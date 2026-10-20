@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 import { renderOutreachEmailHtml, renderOutreachPlainText } from './outreach-email-html.js'
+import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
+import { parseOutreachAttachments } from './email-attachments.js'
 
 export class EmailWorkflowError extends Error {
   constructor(code) { super(code); this.code = code }
@@ -39,7 +41,7 @@ export function belgradeSchedule(local, offset, now) {
 
 // No credentials, network, environment loading, or production fallback in this module.
 // authorize is REQUIRED on each operation and again before a worker claims a job.
-export function createEmailWorkflow({ store, identities, send, authorize, enabled = () => false, now = Date.now, validateSchedule = async()=>{} }) {
+export function createEmailWorkflow({ store, identities, send, authorize, enabled = () => false, now = Date.now, validateSchedule = async()=>{}, staffReviewMode = false }) {
   async function gate(actor, action) {
     if (!enabled()) fail('email_workflow_disabled')
     if (!actor || !UUID.test(actor.ownerId || '') || typeof authorize !== 'function' || await authorize(actor, action) !== true) fail('email_access_denied')
@@ -64,13 +66,27 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     const subject = String(kind !== 'initial' ? (legacyInput || args).subject : lead.initial_email_subject || '').trim()
     const body = String(kind !== 'initial' ? (legacyInput || args).body : lead.initial_email_body || '').trim()
     if (!subject || subject.length > 300 || /[\r\n]/.test(subject) || !body || body.length > 50000) fail('invalid_draft')
+    const staffHeaders = staffReviewMode && actor.kind === 'staff' && !legacyInput
+    if (staffHeaders && [args.inReplyTo,args.references].some(v=>v !== undefined && (typeof v !== 'string' || /[\r\n]/.test(v)))) fail('invalid_reply')
+    const parent = staffHeaders && args.inReplyTo ? normalizeMessageId(args.inReplyTo) : ''
+    if (staffHeaders && args.inReplyTo && !parent) fail('invalid_reply')
+    if (staffHeaders && args.references && !parent) fail('invalid_reply')
+    const messageIdPattern=/^<[^<>\s@]+@[^<>\s@]+>$/
+    if(parent && (!messageIdPattern.test(parent) || String(args.references||'').split(/\s+/).filter(Boolean).some(v=>!messageIdPattern.test(v))))fail('invalid_reply')
+    if(parent && !await store.replyParent(actor.ownerId,lead.id,parent))fail('reply_parent_not_on_lead')
+    // Replies use a stable followup intent, preserving the DB delivery-key contract.
+    if (parent && kind !== 'followup') fail('invalid_message_kind')
+    const attachments = staffHeaders && args.attachments !== undefined
+      ? parseOutreachAttachments(args.attachments).map(a=>({filename:a.filename,contentType:a.contentType,content:a.content.toString('base64')}))
+      : (legacyInput || args).attachments
     return {
       leadId: lead.id, to, from, fromHeader: identity.fromHeader, fromIdentity: identity.id,
       subject, body, text: renderOutreachPlainText(body), html: renderOutreachEmailHtml({subject, body}),
       template: 'crm-outreach-v1', kind,
       ...(kind === 'followup' ? {messageIntentId:args.messageIntentId.toLowerCase()} : {}),
       ...(kind === 'reply' ? {inReplyTo:(legacyInput || args).inReplyTo,references:(legacyInput || args).references || ''} : {}),
-      ...((legacyInput || args).attachments?.length ? {attachments:(legacyInput || args).attachments} : {}),
+      ...(parent ? {inReplyTo:parent,references:buildReferencesHeader(args.references || '',parent)} : {}),
+      ...(attachments?.length ? {attachments} : {}),
       ...(lead.scheduled_send ? {legacySchedule:lead.scheduled_send} : {}),
     }
   }
@@ -114,7 +130,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
   return {
     async preview(actor, args) {
       await gate(actor, 'review')
-      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body'], ['leadId','to','fromIdentity'])
+      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body',
+        ...(staffReviewMode && actor.kind==='staff'?['inReplyTo','references','attachments']:[])], ['leadId','to','fromIdentity'])
       if (args.kind !== undefined && !['initial','followup'].includes(args.kind)) fail('invalid_message_kind')
       if (args.kind === 'followup') {
         if (typeof args.subject !== 'string' || typeof args.body !== 'string') fail('invalid_draft')
@@ -124,7 +141,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       const content = await snapshot(actor, args)
       const schedule = args.scheduledLocal === undefined ? null : belgradeSchedule(args.scheduledLocal, args.utcOffset, now())
       await validateSchedule(actor,schedule)
-      const reviewed = { snapshot: content, schedule }
+      const reviewed = { snapshot: content, schedule,
+        ...(staffReviewMode && actor.kind==='staff'?{principal:{kind:'staff',ownerId:actor.ownerId,accessRevision:actor.accessRevision}}:{}) }
       const digest = hash(reviewed)
       const review = await store.review(actor.ownerId, { ...reviewed, digest, expiresAt: new Date(now() + 15 * 60000).toISOString() })
       return { ...review, requiresExplicitConfirmation: true, status: 'review', note: 'Confirm the exact recipient, sender, subject, rendered content and schedule.' }
@@ -135,6 +153,10 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       await gate(actor, 'review')
       const review = await store.getReview(actor.ownerId, args.reviewId)
       if (!review || review.digest !== args.digest) fail('review_not_found_or_mismatch')
+      if ((staffReviewMode && actor.kind==='staff' && (!review.principal || review.principal.kind!=='staff' ||
+        review.principal.ownerId!==actor.ownerId || review.principal.accessRevision!==actor.accessRevision)) ||
+        (actor.kind!=='staff' && review.principal?.kind==='staff')) fail('review_principal_mismatch')
+      if (review.principal && hash({snapshot:review.snapshot,schedule:review.schedule,principal:review.principal})!==review.digest) fail('review_not_found_or_mismatch')
       await gate(actor, review.schedule ? 'schedule' : 'send')
       const existing = await store.replay(actor.ownerId, args.idempotencyKey)
       if (existing) {
@@ -160,6 +182,16 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       fields(args, [], [])
       await gate(actor, 'review')
       return store.list(actor.ownerId)
+    },
+    async status(actor,args) {
+      fields(args,['idempotencyKey'])
+      if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(args.idempotencyKey||''))fail('invalid_arguments')
+      await gate(actor,'review')
+      const job=await store.replay(actor.ownerId,args.idempotencyKey)
+      if(!job)return {status:'not_found'}
+      if(job.authorization?.kind!==actor.kind ||
+        (actor.kind==='staff' && job.authorization.accessRevision!==actor.accessRevision))fail('email_access_denied')
+      return job
     },
     async cancel(actor, args) {
       fields(args, ['jobId'])

@@ -1,6 +1,9 @@
 const NAMED_SCOPES = {
-  // Reviewed email pilot only. Existing CRM/Globe/demo scopes stay unchanged.
+  // Reviewed email backend and its three browser entry points only.
   'crm-email': [
+    'src/crm/InitialOutreachPanel.tsx',
+    'src/crm/sendOutreachEmail.ts',
+    'src/crm/reviewedStaffEmail.ts',
     'scripts/deploy-reviewed-public-data.json',
     'scripts/validate-crm-email-build.mjs',
     'api/crm-email-live-mcp.js',

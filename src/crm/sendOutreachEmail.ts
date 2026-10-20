@@ -1,5 +1,6 @@
 import { getSupabase, useLiveCrmBackend } from './supabaseClient'
 import { isCrmDemoMode } from './demoMode'
+import { sendReviewedStaffEmail } from './reviewedStaffEmail'
 import type { OutreachEmailAttachment } from './emailAttachments'
 import {
   OUTREACH_FROM_IDENTITIES,
@@ -7,6 +8,7 @@ import {
 } from './outreachFromIdentities'
 
 export type SendOutreachEmailInput = {
+  reviewKind?: 'initial' | 'followup'
   to: string
   subject: string
   body: string
@@ -76,6 +78,10 @@ export async function sendOutreachEmail(
   if (!token) throw new Error('You must be signed in to send email.')
 
   const fromIdentity = input.fromIdentity || 'contact'
+  if (fromIdentity === 'projects') {
+    if (!data.session?.user.id) throw new Error('You must be signed in to review email.')
+    return sendReviewedStaffEmail(input, token, data.session.user.id)
+  }
   const attachments = (input.attachments || []).map((a) => ({
     filename: a.filename,
     contentType: a.contentType,

@@ -10,11 +10,21 @@ export default async function(req,res) {
     const pin=assertProductionTarget()
     const auth=await requireStaffUser(req)
     if(!auth.ok)return res.status(auth.status).json({ok:false,error:auth.code})
-    const runtime=await getProductionEmailRuntime(),actor={kind:'staff',ownerId:auth.user.id}
+    if(auth.aal!=='aal2')return res.status(403).json({ok:false,error:'MFA_REQUIRED'})
+    const runtime=await getProductionEmailRuntime(),actor={kind:'staff',ownerId:auth.user.id,aal:auth.aal,verifiedStaff:true}
     if(!await runtime.authorize(actor,'review'))return res.status(403).json({ok:false,error:'email_access_denied'})
     if(!await runtime.rateLimit('staff',30,60000))return res.status(429).json({ok:false,error:'rate_limited'})
     const body=typeof req.body==='string'?JSON.parse(req.body):req.body
     if(!body || typeof body.name!=='string' || Object.keys(body).some(k=>!['name','arguments'].includes(k)))return res.status(400).json({ok:false,error:'invalid_request'})
+    // Staff browser actions are separate from MCP tool scopes and scheduling.
+    const staffOperation={preview_staff_email:'preview',confirm_staff_email:'confirm',get_staff_email_status:'status'}[body.name]
+    if(pin.accessMode==='regular-projects'){
+      if(!staffOperation)return res.status(400).json({ok:false,error:'email_tool_not_allowed'})
+      try {
+        const result=await runtime.workflow[staffOperation](actor,body.arguments)
+        return res.status(200).json({ok:true,result})
+      }catch(error){return res.status(409).json({ok:false,error:error.code||'email_temporarily_unavailable'})}
+    }
     const result=await createEmailToolExecutor(runtime.workflow,{live:true,reviewOnly:pin.accessMode==='review-only',singleSend:pin.accessMode==='single-send'})(actor,body.name,body.arguments)
     return res.status(result.isError?409:200).json(result.structuredContent)
   }catch{return res.status(503).json({ok:false,error:'email_production_unavailable'})}

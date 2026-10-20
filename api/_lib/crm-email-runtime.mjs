@@ -17,12 +17,12 @@ export function createEmailAuthorizer(store,ownerId,now=Date.now) {
       required.every(s=>s && actor.scopes?.includes(s) && grant.scopes?.includes(s))
   }
 }
-export function createEmailRuntime({store,ownerId,identities=stagingIdentities,enabled=()=>false,now=Date.now,providerDependencies,beforeDelivery,authorizeAction=()=>true,validateSchedule}) {
+export function createEmailRuntime({store,ownerId,identities=stagingIdentities,enabled=()=>false,now=Date.now,providerDependencies,beforeDelivery,authorizeAction=()=>true,validateSchedule,staffReviewMode=false}) {
   const baseAuthorize=createEmailAuthorizer(store,ownerId,now)
   const authorize=async(actor,action)=>await authorizeAction(actor,action) && await baseAuthorize(actor,action)
   const send=createReviewedEmailProvider({...fakeProviderDependencies(identities),...providerDependencies,
     beginDelivery:async(snapshot,context)=>{await beforeDelivery?.(snapshot,context);return store.beginDelivery(context.ownerId,context.jobId,snapshot)}})
-  const workflow=createEmailWorkflow({store,identities,send,authorize,enabled,now,validateSchedule})
+  const workflow=createEmailWorkflow({store,identities,send,authorize,enabled,now,validateSchedule,staffReviewMode})
   return {workflow,store,ownerId,authorize,rateLimit:(bucket,max,windowMs)=>store.rateLimit(ownerId,bucket,max,windowMs),
     async runDue() {
       const results=await workflow.runDue({ownerId,kind:'worker'})

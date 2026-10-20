@@ -52,7 +52,8 @@ export function createEmailStore(acquire) {
       validateLead(row,review.snapshot)
       await validateIntent(c,owner,review.snapshot)
       if (Date.parse(review.expiresAt)<=now) fail('review_expired')
-      const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,...(actor?.accessRevision?{accessRevision:actor.accessRevision}:{})}}
+      const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,
+        ...(actor?.kind==='staff'?{aal:actor.aal}:{}),...(actor?.accessRevision?{accessRevision:actor.accessRevision}:{})}}
       const due=review.schedule?.at || new Date(now).toISOString()
       let job
       if (replace) {
@@ -82,6 +83,24 @@ export function createEmailStore(acquire) {
     if(!r || emailContentDigest(r.snapshot)!==emailContentDigest(snapshot))fail('message_intent_content_mismatch')
   }
   return {
+    async replyParent(owner,leadId,messageId) {
+      return (await query(owner,`select 1 from public.crm_lead_messages m
+        join public.crm_leads l on l.id=m.lead_id
+        where l.owner_id=$1 and l.id=$2 and lower(m.message_id)=$3 limit 1`,
+        [owner,leadId,messageId])).rows.length===1
+    },
+    async staffBinding(pin,revision) {
+      return (await query(pin.ownerId,`select 1 from crm_email_private.staff_access
+        where owner_id=$1 and revision=$2 and enabled and expires_at>statement_timestamp()
+          and from_identity=$3 and from_email=$4 and from_header=$5`,
+        [pin.ownerId,revision,pin.fromIdentity,pin.fromEmail,pin.fromHeader])).rows.length===1
+    },
+    async assertStaffDelivery(owner,id,revision) {
+      const r=await query(owner,`select 1 from crm_email_private.jobs j where j.owner_id=$1 and j.id=$2
+        and j.status='sending' and not j.delivery_started and j.data->'authorization'->>'accessRevision'=$3
+        and crm_email_private.staff_job_authorized(j)`,[owner,id,revision])
+      if(r.rows.length!==1)fail('email_delivery_authorization_changed')
+    },
     async regularBinding(pin,url) {
       return (await query(pin.ownerId,`select 1 from crm_email_private.regular_access a
         join crm_email_private.target_binding t using(owner_id)

@@ -311,6 +311,10 @@ export function InitialOutreachPanel({
   }
 
   const sendViaCrm = async (mode: SendMode) => {
+    if (!demoMode && fromIdentity === 'projects' && mode === 'resend') {
+      setError('Reviewed Projects sending does not resend an existing email. Check its delivery status; write a new follow-up in the thread if needed.')
+      return
+    }
     const to = toEmail.trim()
     const subj = lead.initial_email_subject.trim()
     const text = lead.initial_email_body.trim()
@@ -338,6 +342,7 @@ export function InitialOutreachPanel({
     try {
       const attachments = await filesToOutreachAttachments(attachFiles)
       const result = await sendOutreachEmail({
+        reviewKind: 'initial',
         to,
         subject: subj,
         body: text,
@@ -1138,7 +1143,10 @@ export function InitialOutreachPanel({
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={busy}
+                        disabled={busy || (!demoMode && fromIdentity === 'projects')}
+                        title={!demoMode && fromIdentity === 'projects'
+                          ? 'Reviewed Projects sending does not resend an existing email. Check its status or write a new follow-up in the thread.'
+                          : undefined}
                         onClick={() => void sendViaCrm('resend')}
                       >
                         {busy ? t('outreach.sending') : t('outreach.resend')}

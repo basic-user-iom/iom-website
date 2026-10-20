@@ -32,6 +32,7 @@ export const EMAIL_REGULAR_APPROVAL = Object.freeze({
   redirectUri:EMAIL_REVIEW_APPROVAL.redirectUri,subject:EMAIL_REVIEW_APPROVAL.subject,
 })
 export const regularApproval = pin => pin?.accessMode === 'regular-projects'
+export const EMAIL_STAFF_REVISION = 'staff-projects-v1'
 export const EMAIL_PRODUCTION_APPROVAL = EMAIL_REGULAR_APPROVAL
 export const EMAIL_PRODUCTION_REF = 'werfdsobddsijqckymip'
 export const EMAIL_PRODUCTION_ORIGIN = 'https://iobjectm.com'
@@ -172,16 +173,28 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
     return lead
   }}
   const service=createEmailRuntime({store:scopedStore,ownerId:pin.ownerId,identities:dependencies.identities,now,
-    enabled:()=>{assertProductionTarget(env,pin);return true},providerDependencies:dependencies,validateSchedule,
+    enabled:()=>{assertProductionTarget(env,pin);return true},providerDependencies:dependencies,validateSchedule,staffReviewMode:true,
     authorizeAction:async(actor,action)=>{
       if(!await binding())return false
       if(actor.kind==='worker')return action==='worker' && env.CRM_EMAIL_SEND_ENABLED==='true'
+      if(actor.kind==='staff')return env.CRM_EMAIL_STAFF_REVIEW_ENABLED==='true' &&
+        actor.verifiedStaff===true && actor.aal==='aal2' && actor.ownerId===pin.ownerId &&
+        ['review','send'].includes(action) && (action!=='send'||env.CRM_EMAIL_SEND_ENABLED==='true') &&
+        await store.staffBinding(pin,EMAIL_STAFF_REVISION)
       if(!await grantFor(actor))return false
       return !['send','schedule'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true'
     },
     beforeDelivery:async(snapshot,context)=>{
       assertProductionTarget(env,pin)
       if(env.CRM_EMAIL_SEND_ENABLED!=='true' || !await binding())fail('email_delivery_paused')
+      const job=await store.get(context.ownerId,context.jobId)
+      if(job?.authorization?.kind==='staff'){
+        if(env.CRM_EMAIL_STAFF_REVIEW_ENABLED!=='true' || !await store.staffBinding(pin,EMAIL_STAFF_REVISION))fail('email_access_denied')
+        if(snapshot.fromIdentity!==pin.fromIdentity || snapshot.from!==pin.fromEmail || snapshot.fromHeader!==pin.fromHeader ||
+          !['initial','followup'].includes(snapshot.kind) || job.schedule)fail('email_sender_binding_mismatch')
+        await store.assertStaffDelivery(context.ownerId,context.jobId,EMAIL_STAFF_REVISION)
+        return
+      }
       if(snapshot.fromIdentity!==pin.fromIdentity || snapshot.from!==pin.fromEmail || snapshot.fromHeader!==pin.fromHeader ||
         !['initial','followup'].includes(snapshot.kind) || snapshot.inReplyTo || snapshot.attachments?.length)fail('email_sender_binding_mismatch')
       await store.assertRegularDelivery(context.ownerId,context.jobId,pin.accessRevision)
@@ -189,12 +202,14 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
   const flow=service.workflow
   // Revision is taken from the approved server pin and checked against the grant
   // in the DB on every action. It is never accepted as authority from tool arguments.
-  const bound=actor=>({...actor,accessRevision:pin.accessRevision})
+  const bound=actor=>({...actor,accessRevision:actor.kind==='staff'?EMAIL_STAFF_REVISION:pin.accessRevision})
   service.workflow={...flow,
     confirm:(actor,args)=>flow.confirm(bound(actor),args),
+    status:(actor,args)=>flow.status(bound(actor),args),
     previewReschedule:(actor,args)=>flow.previewReschedule(bound(actor),args),
     preview:async(actor,args)=>{
       if(args?.fromIdentity!==pin.fromIdentity || args?.replaceLegacySchedule)fail('email_regular_scope_only')
+      if(actor.kind==='staff' && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined))fail('email_staff_immediate_only')
       const review=await flow.preview(bound(actor),args)
       return {...review,authorizationExpiresAt:(await grantFor(actor))?.expires_at,
         schedulingNote:'Delivery uses the next successful CRM scheduler run after the selected Europe/Belgrade time.'}
