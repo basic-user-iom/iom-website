@@ -43,6 +43,12 @@
       "bytes": 17184695,
       "sha256": "66a719c3bf9c3cee3171e5cb9872a2801571547c980fc0919954fb48db3d2c3d",
       "url": "/_assets/66a719c3bf9c3cee3171e5cb9872a2801571547c980fc0919954fb48db3d2c3d/overview-final.bin"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/gymnopedie-no-1.mp3",
+      "bytes": 11484886,
+      "sha256": "a54488a8b9d5aaa8e2462023e58c0ea301dd3c39947a84220f478d5c03ecf526",
+      "url": "/_assets/a54488a8b9d5aaa8e2462023e58c0ea301dd3c39947a84220f478d5c03ecf526/gymnopedie-no-1.mp3"
     }
   ]
 }

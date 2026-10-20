@@ -1,12 +1,16 @@
+import {createMusic} from './music.js';
 import * as THREE from 'three';
 
 export function createIntroduction({host,canvas,controls,getCamera,render,prepare}){
+ let chosen=false;
+ const music=createMusic();
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const panel=document.createElement('div');panel.className='cable-intro';panel.setAttribute('aria-label','Cable introduction');
- panel.innerHTML='<span class="intro-copy" role="status" aria-live="polite"></span><div class="intro-actions"><button type="button" data-intro="next" hidden>Next detail</button><button type="button" data-intro="skip" hidden>Skip</button><button type="button" data-intro="replay">Replay intro</button></div>';
+ panel.innerHTML='<span class="intro-copy" role="status" aria-live="polite"></span><div class="intro-actions"><button type="button" data-intro="start-music">Start tour with music</button><button type="button" data-intro="explore">Explore without music</button><button type="button" data-intro="next" hidden>Next detail</button><button type="button" data-intro="skip" hidden>Skip</button><button type="button" data-intro="replay">Replay intro</button></div>';
  host.append(panel);
  const label=panel.querySelector('.intro-copy'),skip=panel.querySelector('[data-intro=skip]'),replay=panel.querySelector('[data-intro=replay]'),next=panel.querySelector('[data-intro=next]');
  let phase='idle',index=-1,frame=0,serial=0,last=0,elapsed=0,from,to,remaining=0,lastApplied=0,reason='ready',shots=[];
+ const withMusic=panel.querySelector('[data-intro=start-music]'),explore=panel.querySelector('[data-intro=explore]');
  const offset=new THREE.Vector3(192.5,224,370),identity=new THREE.Quaternion();
  const busy=()=>phase==='preparing'||phase==='moving'||phase==='holding'||phase==='static';
  const capture=()=>({target:controls.target.clone(),offset:getCamera().position.clone().sub(controls.target),zoom:getCamera().zoom});
@@ -24,7 +28,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   camera.zoom=Math.exp(THREE.MathUtils.lerp(Math.log(a.zoom),Math.log(b.zoom),e));camera.updateProjectionMatrix();controls.update();render();
  }
  function ui(text){
-  label.textContent=text;skip.hidden=!busy();replay.hidden=busy();next.hidden=phase!=='static';
+  label.textContent=chosen?text:'A short introduction to the cable';panel.classList.toggle('intro-welcome',!chosen);withMusic.hidden=chosen;explore.hidden=chosen;skip.hidden=!busy();replay.hidden=!chosen||busy();next.hidden=phase!=='static';
   replay.textContent=reduced.matches?'View introduction':'Replay intro';
  }
  function stop(why='skipped'){
@@ -52,6 +56,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   if(busy())frame=requestAnimationFrame(tick);
  }
  async function start(){
+  chosen=true;
   stop('restarting');const generation=serial;phase='preparing';ui('Preparing introduction…');
   await prepare(0);if(generation!==serial)return;
   const mobile=host.clientWidth<700;
@@ -65,7 +70,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   ];
   controls.enabled=false;move(0);
  }
- function interrupt(){if(busy())stop('interaction');}
+ function interrupt(event){if(event?.target?.closest('.cable-music'))return;if(busy())stop('interaction');}
  canvas.addEventListener('pointerdown',interrupt,{capture:true});
  canvas.addEventListener('wheel',interrupt,{capture:true,passive:true});
  document.querySelector('aside').addEventListener('pointerdown',interrupt,{capture:true});
@@ -77,6 +82,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   else if(phase==='moving'||phase==='holding'){last=performance.now();frame=requestAnimationFrame(tick);}
  });
  reduced.addEventListener('change',()=>stop('motion-preference'));
+ withMusic.onclick=()=>{chosen=true;music.play();void start();};explore.onclick=()=>{chosen=true;stop('exploring');};
  skip.onclick=()=>stop('skipped');replay.onclick=()=>{void start();};next.onclick=()=>move(index+1);
  ui(reduced.matches?'Explore freely · reduced motion':'Explore freely');
  return {start,stop,autoplay:()=>!reduced.matches,inspect:()=>({phase,index,title:shots[index]?.title,reason,active:busy(),reducedMotion:reduced.matches,controlsEnabled:controls.enabled,target:controls.target.toArray(),position:getCamera().position.toArray(),zoom:getCamera().zoom,plannedDurationMs:shots.reduce((n,s)=>n+s.travel+s.hold,0)})};
