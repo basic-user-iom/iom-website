@@ -11,9 +11,9 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
  const busy=()=>phase==='preparing'||phase==='moving'||phase==='holding'||phase==='static';
  const capture=()=>({target:controls.target.clone(),offset:getCamera().position.clone().sub(controls.target),zoom:getCamera().zoom});
  function pose(shot){
-  const camera=getCamera(),target=new THREE.Vector3(...shot.target),radius=offset.length();
+  const camera=getCamera(),target=new THREE.Vector3(...shot.target),shotOffset=shot.offset?new THREE.Vector3(...shot.offset):offset,radius=shotOffset.length();
   const span=camera.isPerspectiveCamera?2*radius*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect:camera.right-camera.left;
-  return {target,offset:offset.clone(),zoom:span/shot.width};
+  return {target,offset:shotOffset.clone(),zoom:span/shot.width};
  }
  function apply(a,b,t){
   const camera=getCamera(),e=t*t*t*(t*(t*6-15)+10);
@@ -57,10 +57,11 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   const mobile=host.clientWidth<700;
   shots=[
    {title:'The complete cable',target:[2.5,1,0],width:170,travel:1600,hold:900},
-   {title:'STRADIVARI® · Copper jacket marking',target:[-10.5,0,0],width:mobile?19:27,travel:4000,hold:4500},
-   {title:'Protective layers and shielding braids',target:[19,0,0],width:mobile?44:54,travel:3400,hold:2000},
-   {title:'OCC copper · 30 strands per conductor',target:[65,0,0],width:mobile?16:20,travel:3400,hold:2700},
-   {title:'The complete cable · Explore freely',target:[2.5,1,0],width:170,travel:4000,hold:0},
+   {title:'Backside \u00b7 Textile braid',target:[-52,3,-4.5],offset:[-230,160,380],width:mobile?38:45,travel:4000,hold:2600},
+   {title:'The complete cable',target:[2.5,1,0],width:170,travel:3200,hold:500},
+   {title:'OCC copper \u00b7 30 strands per conductor',target:[65,0,0],width:mobile?16:20,travel:3600,hold:2700},
+   {title:'The complete cable',target:[2.5,1,0],width:170,travel:3200,hold:500},
+   {title:'STRADIVARI\u00ae \u00b7 Copper jacket marking',target:[-10.5,0,0],width:mobile?19:27,travel:4000,hold:4500},
   ];
   controls.enabled=false;move(0);
  }
