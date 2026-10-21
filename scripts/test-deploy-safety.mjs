@@ -8,6 +8,7 @@ import vm from 'node:vm'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { knownDeployScopes } from './deploy-scope.mjs'
+import { validateManifest, objectKey, PUBLIC_ORIGIN } from './r2-release-manifest.mjs'
 import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
 import { publicLiteralReview } from './deploy-reviewed-public-data.mjs'
 import { assertReleaseManifestSecrets, knownValuesFromEnvironment, scanReleaseFile, secretName, withScannedRelease } from './deploy-secret-scan.mjs'
@@ -143,18 +144,76 @@ const crmFiles = [
   'tests/crm-contact-form.browser.test.mjs', 'tests/fixtures/crm-contact-leads.mjs',
   'scripts/deploy-scope.mjs', 'scripts/deploy-production.mjs',
   'scripts/deploy-reviewed-public-data.json', 'scripts/test-deploy-safety.mjs', 'scripts/test-deploy-secret-scan.mjs',
+  'scripts/incremental-r2-release.mjs',
 ]
 
 test('CRM accepts exact form/test/control paths and rejects unrelated paths', () => {
   assert.deepEqual(invalidFilesForScope(crmFiles, 'crm'), [])
   assert.equal(inferDeployScope(crmFiles), 'crm')
   for (const file of ['tests/other.test.mjs', 'tests/fixtures/other.mjs',
+    'scripts/incremental-r2-release-other.mjs', 'scripts/incremental-r2-release.mjs/other',
     'scripts/other-release.mjs', 'src/blog/posts/other.ts', 'public/demos/lobo-mobo-study/index.html']) {
     assert.equal(matchesDeployScope(file, 'crm'), false, file)
   }
   assert.equal(inferDeployScope([...crmFiles, 'src/blog/posts/other.ts']), null)
   for (const file of ['lobo-mobo-study/src/main.ts', 'public/demos/lobo-mobo-study/index.html',
     'scripts/build-lobo-mobo-study.mjs']) assert.equal(matchesDeployScope(file, 'project:lobo-mobo-study'), true)
+})
+
+// Execute the real plan and its nested budget gate. Only Git payload reads,
+// content scanning and policy-file reads are inert; sizes are metadata, not allocations.
+function mediaBudgetHarness(sizes, elapsed = 0) {
+  const tree = ts.createSourceFile('media.mjs', read('scripts/incremental-r2-release.mjs'), ts.ScriptTarget.Latest, true)
+  const fileLimit = tree.statements.find(n => ts.isVariableStatement(n) &&
+    n.declarationList.declarations.some(d => d.name.getText(tree) === 'MAX_FILE'))
+  assert.ok(fileLimit)
+  const payload = Buffer.from('synthetic media'), hash = digest(payload), files = new Map()
+  const entries = sizes.map((bytes, i) => {
+    const name = '/fixture/' + i + '.bin'
+    files.set('public' + name, { path: 'public' + name, type: 'blob', mode: '100644', oid: 'a'.repeat(40), bytes })
+    return { path: name, bytes, sha256: hash, key: objectKey(name, hash), access: 'public', delivery: 'legacy' }
+  })
+  let reads = 0, ticks = 0
+  const context = vm.createContext({
+    validateManifest, PUBLIC_ORIGIN, scanPolicy: () => 'b'.repeat(64), console: { log() {} },
+    Date: { now: () => 1000 + (ticks++ === 0 ? 0 : elapsed) },
+    git: (_root, args) => { assert.deepEqual(Array.from(args), ['cat-file', 'blob', 'a'.repeat(40)]); reads++; return payload },
+    assessReuse: (entry, _identity, readSource) => { assert.equal(readSource(), payload); return entry },
+  })
+  vm.runInContext(fileLimit.getText(tree) + '\n' + declaration(tree, 'createReusePlan').getText(tree).replace(/^export\s+/, ''), context)
+  return {
+    run: () => context.createReusePlan({ root: '/synthetic', deploymentId: 'dpl_fixture',
+      manifest: { version: 1, origin: PUBLIC_ORIGIN, files: entries }, files, previousFiles: files }),
+    get reads() { return reads },
+  }
+}
+
+test('real media gate accepts 1300000000 bytes and refuses the next byte before reading', () => {
+  const sizes = Array(10).fill(130_000_000), exact = mediaBudgetHarness(sizes)
+  assert.equal(exact.run().reusedBytes, 1_300_000_000)
+  assert.equal(exact.reads, 10)
+  sizes[9]++
+  const excess = mediaBudgetHarness(sizes)
+  assert.throws(excess.run, { message: 'Fresh media scan byte budget exceeded' })
+  assert.equal(excess.reads, 9)
+})
+
+test('real media gate accepts 15000 files and refuses file 15001 before reading', () => {
+  const exact = mediaBudgetHarness(Array(15000).fill(1))
+  assert.equal(exact.run().files.length, 15000)
+  assert.equal(exact.reads, 15000)
+  const excess = mediaBudgetHarness(Array(15001).fill(1))
+  assert.throws(excess.run, { message: 'Fresh media scan file count budget exceeded' })
+  assert.equal(excess.reads, 15000)
+})
+
+test('real media gate keeps the 120000 ms boundary with a controlled clock', () => {
+  const exact = mediaBudgetHarness([1], 120000)
+  assert.equal(exact.run().files.length, 1)
+  assert.equal(exact.reads, 1)
+  const excess = mediaBudgetHarness([1], 120001)
+  assert.throws(excess.run, { message: 'Fresh media scan time budget exceeded' })
+  assert.equal(excess.reads, 0)
 })
 
 function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false', fault = '' } = {}) {

@@ -131,7 +131,9 @@ export function createReusePlan({ root, deploymentId, manifest, files, previousF
     }
     const boundedRead = () => {
       freshBytes += entry.bytes; freshFiles++
-      if (freshBytes > 1_200_000_000 || freshFiles > 15000 || Date.now() - started > 120000) throw Error('Fresh media scan budget exceeded')
+      if (freshBytes > 1_300_000_000) throw Error('Fresh media scan byte budget exceeded')
+      if (freshFiles > 15000) throw Error('Fresh media scan file count budget exceeded')
+      if (Date.now() - started > 120000) throw Error('Fresh media scan time budget exceeded')
       return readSource()
     }
     const result = assessReuse(entry, identity, boundedRead, policyId, knownValues)

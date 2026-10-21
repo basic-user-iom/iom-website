@@ -136,6 +136,7 @@ const NAMED_SCOPES = {
   ],
   crm: [
     'src/crm/',
+    'scripts/incremental-r2-release.mjs',
     'tests/crm-contact-form.browser.test.mjs',
     'tests/fixtures/crm-contact-leads.mjs',
     'scripts/test-deploy-secret-scan.mjs',
