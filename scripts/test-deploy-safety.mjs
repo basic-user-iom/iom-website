@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import vm from 'node:vm'
+import { createHash } from 'node:crypto'
+import ts from 'typescript'
+import { knownDeployScopes } from './deploy-scope.mjs'
+import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
+import { publicLiteralReview } from './deploy-reviewed-public-data.mjs'
+import { assertReleaseManifestSecrets, knownValuesFromEnvironment, scanReleaseFile, secretName, withScannedRelease } from './deploy-secret-scan.mjs'
 import {
   inferDeployScope,
   invalidFilesForScope,
@@ -115,3 +126,236 @@ assert.equal(inferDeployScope(['src/components/GalleryLightbox.tsx', 'src/compon
 assert.equal(inferDeployScope(['src/components/GalleryLightbox.tsx', 'solar-system/src/app/AppShell.tsx']), null)
 
 console.log('Deploy scope safety tests passed.')
+
+// Real launcher functions, inert command/metadata adapters; no entry-point import,
+// subprocess, network, private state or external release fixture in this suite.
+const read = name => fs.readFileSync(new URL('../' + name, import.meta.url), 'utf8')
+const digest = value => createHash('sha256').update(value).digest('hex')
+const launcher = ts.createSourceFile('deploy.mjs', read('scripts/deploy-production.mjs'), ts.ScriptTarget.Latest, true)
+function declaration(tree, name) {
+  const found = tree.statements.filter(n => ts.isFunctionDeclaration(n) && n.name?.text === name)
+  assert.equal(found.length, 1, 'Expected one ' + name)
+  return found[0]
+}
+const crmFiles = [
+  'src/crm/CrmApp.tsx', 'src/crm/LeadDetail.tsx', 'src/crm/LeadForm.tsx',
+  'src/crm/i18n.tsx', 'src/crm/leadFormHydration.ts', 'src/crm/leadFormHydration.test.mjs',
+  'tests/crm-contact-form.browser.test.mjs', 'tests/fixtures/crm-contact-leads.mjs',
+  'scripts/deploy-scope.mjs', 'scripts/deploy-production.mjs',
+  'scripts/deploy-reviewed-public-data.json', 'scripts/test-deploy-safety.mjs', 'scripts/test-deploy-secret-scan.mjs',
+]
+
+test('CRM accepts exact form/test/control paths and rejects unrelated paths', () => {
+  assert.deepEqual(invalidFilesForScope(crmFiles, 'crm'), [])
+  assert.equal(inferDeployScope(crmFiles), 'crm')
+  for (const file of ['tests/other.test.mjs', 'tests/fixtures/other.mjs',
+    'scripts/other-release.mjs', 'src/blog/posts/other.ts', 'public/demos/lobo-mobo-study/index.html']) {
+    assert.equal(matchesDeployScope(file, 'crm'), false, file)
+  }
+  assert.equal(inferDeployScope([...crmFiles, 'src/blog/posts/other.ts']), null)
+  for (const file of ['lobo-mobo-study/src/main.ts', 'public/demos/lobo-mobo-study/index.html',
+    'scripts/build-lobo-mobo-study.mjs']) assert.equal(matchesDeployScope(file, 'project:lobo-mobo-study'), true)
+})
+
+function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false', fault = '' } = {}) {
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'iom-deploy-control-test-'))
+  t.after(() => {
+    assert.equal(path.dirname(stage), os.tmpdir())
+    assert.ok(path.basename(stage).startsWith('iom-deploy-control-test-'))
+    fs.rmSync(stage, { recursive: true, force: true })
+  })
+  fs.writeFileSync(path.join(stage, 'app.js'), 'export const fixture = true;\n')
+  const events = [], local = [], remote = [], r2 = []
+  const env = { IOM_SKIP_BLOG_SYNC: inheritedSkip, CRM_EMAIL_RELEASE_PHASE: 'PREPARED' }
+  const manifest = () => {
+    const files = fs.readdirSync(stage).map(file => ({ path: file, size: fs.statSync(path.join(stage, file)).size }))
+    return { files, fileCount: files.length, totalSize: files.reduce((n, file) => n + file.size, 0) }
+  }
+  const context = vm.createContext({
+    root: '/synthetic-repository', join: path.join, Buffer,
+    process: { env, execPath: '/synthetic-node', platform: 'win32',
+      argv: ['node', 'deploy', '--scope', scope, ...(verifyOnly ? ['--verify-only'] : [])] },
+    console: { log() {}, error() {}, warn() {} }, npm: { name: 'npm' }, npx: { name: 'npx' },
+    MAX_SOURCE_BYTES: 1_000_000_000, FORBIDDEN_UPLOAD_PREFIXES: ['.env', '.qa-out/'],
+    knownDeployScopes, matchesDeployScope, inferDeployScope, isValidProjectSlug,
+    isValidDemoSlug: () => false, requestedEmailReleasePhase, knownValuesFromEnvironment, withScannedRelease,
+    releaseOperation: () => null, ensureCommit() {}, ensureAncestor() {},
+    git: args => args.includes('origin/master') ? 'a'.repeat(40) : 'b'.repeat(40),
+    changedFiles: () => scope === 'crm' ? crmFiles : [scope === 'crm-email'
+      ? 'api/_lib/crm-email-tools.mjs' : 'lobo-mobo-study/src/main.ts'],
+    productionMetadata: () => ({ id: 'synthetic-deployment' }),
+    productionState: () => ({ base: 'a'.repeat(40), overlays: { 'project:lobo-mobo-study': 'c'.repeat(40) } }),
+    readProductionManifest: () => ({}),
+    composeSnapshot: state => ({ stage, base: state.base, overlays: state.overlays, reuse: { runtimeComplete: true }, reuseIdentity: 'fixture' }),
+    existsSync: file => !file.replaceAll('\\', '/').includes('public/demos/'), symlinkSync() {}, rmSync() {},
+    cleanupStage: () => events.push('cleanup'), parseJsonOutput: output => JSON.parse(output),
+    assertReleaseManifestSecrets: (...args) => { events.push('scan'); return assertReleaseManifestSecrets(...args) },
+    command: (file, args) => {
+      if (args.some(arg => String(arg).endsWith('prepare-r2-release.mjs'))) {
+        events.push('r2'); r2.push(Array.from(args))
+        if (fault === 'r2') throw new Error('synthetic missing R2 object')
+      } else if (file === 'git' && args.includes('push')) {
+        events.push('push')
+        if (fault === 'after-push') fs.writeFileSync(path.join(stage, 'unexpected.js'), 'export const extra = true;')
+      } else assert.ok(args.some(arg => String(arg).endsWith('pre-deploy-check.mjs')))
+    },
+    packageCommand: (tool, args, options) => {
+      if (tool.name === 'npm') {
+        events.push('build'); local.push({ ...options.env })
+        if (fault === 'build') throw new Error('synthetic build failed')
+        if (fault === 'scan') fs.writeFileSync(path.join(stage, 'app.js'), 'const token="synthetic-not-a-credential";')
+      } else if (args.includes('--dry')) return JSON.stringify(manifest())
+      else {
+        assert.ok(args.includes('--prod')); events.push('publish'); remote.push(Array.from(args))
+        if (fault === 'unclear') throw new Error('synthetic unknown publication outcome')
+      }
+      return ''
+    },
+  })
+  for (const name of ['fail', 'requestedScopes', 'requestedTarget', 'validateScopeName', 'resolveScopes',
+    'validateUnpushedFiles', 'buildSnapshot', 'demoSlugForScope', 'verifyUploadManifest', 'deploySnapshot', 'main']) {
+    vm.runInContext(declaration(launcher, name).getText(launcher), context)
+  }
+  return { run: () => context.main(), events, local, remote, r2, env }
+}
+
+test('real CRM launcher forces blog skip in both builds and only verifies R2', t => {
+  const h = harness(t); h.run()
+  assert.equal(h.local[0].IOM_SKIP_BLOG_SYNC, 'true')
+  assert.equal(h.local[0].CRM_EMAIL_RELEASE_PHASE, 'PREPARED')
+  assert.equal(h.env.IOM_SKIP_BLOG_SYNC, 'false')
+  const args = h.remote[0]
+  assert.equal(args.filter(x => x === 'IOM_SKIP_BLOG_SYNC=true').length, 1)
+  assert.equal(args[args.indexOf('IOM_SKIP_BLOG_SYNC=true') - 1], '--build-env')
+  assert.ok(!args.some(x => x.startsWith('CRM_EMAIL_RELEASE_PHASE=')))
+  assert.equal(h.r2[0].filter(x => x === '--verify-only').length, 1)
+  assert.deepEqual(h.events, ['build', 'scan', 'r2', 'scan', 'push', 'scan', 'publish', 'cleanup'])
+})
+
+test('CRM verify-only runs the gates without push or publication', t => {
+  const h = harness(t, { verifyOnly: true }); h.run()
+  assert.equal(h.local[0].IOM_SKIP_BLOG_SYNC, 'true')
+  assert.equal(h.r2[0].filter(x => x === '--verify-only').length, 1)
+  assert.deepEqual(h.events, ['build', 'scan', 'r2', 'scan', 'cleanup'])
+})
+
+test('LOBO retains its explicit blog-skip forwarding and existing R2 policy', t => {
+  for (const inheritedSkip of ['true', 'false']) {
+    const h = harness(t, { scope: 'project:lobo-mobo-study', inheritedSkip }); h.run()
+    assert.equal(h.local[0].IOM_SKIP_BLOG_SYNC, inheritedSkip)
+    assert.equal(h.remote[0].includes('IOM_SKIP_BLOG_SYNC=true'), inheritedSkip === 'true')
+    assert.ok(!h.r2[0].includes('--verify-only'))
+  }
+})
+
+test('existing email production gate and build phase remain intact', t => {
+  const blocked = harness(t, { scope: 'crm-email' })
+  assert.throws(blocked.run, /CRM release requires/)
+  assert.deepEqual(blocked.events, [])
+  const check = harness(t, { scope: 'crm-email', verifyOnly: true }); check.run()
+  assert.equal(check.local[0].IOM_SKIP_BLOG_SYNC, 'true')
+  assert.equal(check.local[0].CRM_EMAIL_RELEASE_PHASE, 'ACTIVE')
+  assert.ok(!check.events.includes('push') && !check.events.includes('publish'))
+})
+
+test('build, R2 and scanner failures stop publication; post-push drift is refused', t => {
+  for (const fault of ['build', 'r2', 'scan', 'after-push']) {
+    const h = harness(t, { fault })
+    assert.throws(h.run, fault === 'after-push' ? /SCAN_RELEASE_CHANGED/ : /synthetic|SECRET_DETECTED/)
+    assert.ok(!h.events.includes('publish'))
+    assert.equal(h.events.includes('push'), fault === 'after-push')
+    assert.equal(h.events.at(-1), 'cleanup')
+  }
+})
+
+test('unclear publication propagates failure with one attempt and no rollback', t => {
+  const h = harness(t, { fault: 'unclear' })
+  assert.throws(h.run, /unknown publication outcome/)
+  assert.equal(h.remote.length, 1)
+  assert.equal(h.events.filter(x => x === 'push').length, 1)
+  assert.match(launcher.text, /catch \(error\)[\s\S]*process\.exitCode = 1/)
+})
+
+test('real R2 worker refuses a missing object before reading bytes or requesting PUT', async () => {
+  const tree = ts.createSourceFile('r2.mjs', read('scripts/prepare-r2-release.mjs'), ts.ScriptTarget.Latest, true)
+  const worker = declaration(tree, 'prepare').body.statements.filter(n =>
+    ts.isExpressionStatement(n) && n.getText(tree).startsWith('await Promise.all('))
+  assert.equal(worker.length, 1)
+  const methods = [], context = vm.createContext({
+    objects: [{ key: 'synthetic', path: '/synthetic' }], cursor: 0, failure: null,
+    verifyOnly: true, client: { request: async method => { methods.push(method); return { status: 404 } } },
+    readAsset: () => assert.fail('Unexpected asset read'),
+  })
+  const failure = await vm.runInContext('(async()=>{' + worker[0].getText(tree) + ';return failure})()', context)
+  assert.match(failure.message, /missing in verification-only mode/)
+  assert.deepEqual(methods, ['HEAD'])
+})
+
+test('real blog skip exits before configuration, database or network access', () => {
+  const tree = ts.createSourceFile('blog.mjs', read('scripts/sync-3d-viewer-blog.mjs'), ts.ScriptTarget.Latest, true)
+  const first = tree.statements.find(n => !ts.isImportDeclaration(n))
+  assert.ok(ts.isIfStatement(first), 'Blog skip must precede configuration access')
+  const executable = first.getText(tree)
+  assert.match(executable, /IOM_SKIP_BLOG_SYNC/)
+  const stopped = new Error('expected skip'), forbidden = () => assert.fail('Unexpected operation before blog skip')
+  assert.throws(() => vm.runInNewContext(executable, {
+    process: { env: { IOM_SKIP_BLOG_SYNC: 'true' }, exit: code => { assert.equal(code, 0); throw stopped } },
+    console: { log() {} }, readFileSync: forbidden, createClient: forbidden, fetch: forbidden,
+  }), error => error === stopped)
+})
+
+function reviewedAssignments(file) {
+  const source = read(file), tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true,
+    file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.JS), rows = []
+  function visit(node) {
+    if (ts.isPropertyAssignment(node) && (ts.isStringLiteralLike(node.name) || ts.isIdentifier(node.name)) && secretName(node.name.text) &&
+      (ts.isStringLiteralLike(node.initializer) || ts.isNumericLiteral(node.initializer))) {
+      rows.push({ key: node.name.text, value: node.initializer.text, numeric: ts.isNumericLiteral(node.initializer),
+        start: node.initializer.getStart(tree), end: node.initializer.end })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(tree)
+  return { source, rows, bytes: Buffer.from(source) }
+}
+
+test('public reviews pin unchanged UI literals and four numeric request counters', () => {
+  const registry = JSON.parse(read('scripts/deploy-reviewed-public-data.json')).files
+  for (const file of ['src/crm/i18n.tsx', 'src/crm/leadFormHydration.test.mjs']) {
+    const { source, bytes, rows } = reviewedAssignments(file)
+    const record = registry[file].find(r => r.fileDigest === digest(bytes))
+    assert.ok(record, 'Checked-in source needs its exact reviewed digest')
+    assert.deepEqual([...new Set(rows.map(r => digest(JSON.stringify([r.key, r.value]))))].sort(), [...record.literalDigests].sort())
+    if (file.endsWith('.tsx')) {
+      assert.equal(rows.length, 20)
+      assert.ok(registry[file].some(r => r !== record && JSON.stringify([...r.literalDigests].sort()) === JSON.stringify([...record.literalDigests].sort())))
+    } else {
+      assert.equal(rows.length, 4)
+      for (const row of rows) assert.ok(row.numeric && row.value === '1' && ['token', 'activeToken'].includes(row.key))
+      assert.match(source, /next\.token\[next\.selectedId\] = \(next\.token\[next\.selectedId\] \?\? 0\) \+ 1/)
+      assert.match(read('src/crm/leadFormHydration.ts'), /token: number/)
+    }
+    for (const eol of ['\n', '\r\n']) {
+      const checkoutBytes = Buffer.from(source.replace(/\r\n/g, '\n').replace(/\n/g, eol))
+      assert.deepEqual(scanReleaseFile(file, checkoutBytes), { complete: true, rules: [], errors: [] })
+    }
+  }
+})
+
+test('changed hashes/literals, copied paths, signatures and configured values stay denied', () => {
+  for (const file of ['src/crm/i18n.tsx', 'src/crm/leadFormHydration.test.mjs']) {
+    const { source, bytes, rows } = reviewedAssignments(file)
+    const denied = (name, text) => assert.ok(scanReleaseFile(name, Buffer.from(text)).rules.includes('credential_literal_assignment'))
+    denied(file, source + '\n')
+    denied(file.endsWith('.tsx') ? 'unreviewed-copy.tsx' : 'unreviewed-copy.mjs', source)
+    for (const row of rows) {
+      const changed = row.numeric ? '2' : JSON.stringify(row.value + ' synthetic-change')
+      denied(file, source.slice(0, row.start) + changed + source.slice(row.end))
+      assert.equal(publicLiteralReview(file, bytes)(row.key, row.value + 'changed'), false)
+    }
+    const known = file.endsWith('.tsx') ? rows.find(r => r.value.length >= 4).value : 'Acme'
+    assert.ok(scanReleaseFile(file, bytes, [known]).rules.includes('configured_secret_value'))
+    const prefixed = source + '\nconst fixture="sk-proj-' + 'a'.repeat(24) + '";'
+    assert.ok(scanReleaseFile(file, Buffer.from(prefixed)).rules.includes('credential_token_prefix'))
+  }
+})

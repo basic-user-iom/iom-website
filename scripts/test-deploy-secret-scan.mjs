@@ -243,16 +243,16 @@ test('hard-linked payloads and junction directories are refused', () => fixture(
   refused(() => assertReleaseManifestSecrets(stage, manifest([{ path: 'alias/a.txt', size: 4 }])), 'SCAN_LINK_REFUSED')
 }))
 test('deploy integration guards push and upload, preserves original size guard', () => {
-  const source = fs.readFileSync(new URL('./deploy-production.mjs', import.meta.url), 'utf8')
+  const source = fs.readFileSync(new URL('./deploy-production.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
   assert.ok(source.includes('withScannedRelease({\n      verifyOnly,'))
   assert.ok(source.includes('scan: expectedIdentity => verifyUploadManifest(snapshot.stage, scopes, { knownValues, expectedIdentity })'))
   assert.ok(source.includes("push: () => command('git', ["))
-  assert.ok(source.includes('publish: () => deploySnapshot(snapshot, head, scopes)'))
+  assert.ok(source.includes('publish: () => deploySnapshot(snapshot, head, scopes, emailPhase)'))
   assert.ok(source.includes('const scan = assertReleaseManifestSecrets(stage, manifest, scanOptions)'))
   assert.ok(source.includes('const MAX_SOURCE_BYTES = 1_000_000_000'))
   assert.ok(!source.includes('--no-verify'))
-  const ignored = fs.readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8')
-  assert.ok(ignored.split(/\r?\n/).includes('/scripts/test-deploy-secret-scan.mjs'))
+  const preparation = fs.readFileSync(new URL('./incremental-r2-release.mjs', import.meta.url), 'utf8')
+  assert.ok(preparation.includes("'/scripts/test-*.mjs'"))
 })
 test('verify-only and denied scans never call push or publish', () => {
   const calls = []

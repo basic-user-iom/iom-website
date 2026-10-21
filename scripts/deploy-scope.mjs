@@ -136,6 +136,11 @@ const NAMED_SCOPES = {
   ],
   crm: [
     'src/crm/',
+    'tests/crm-contact-form.browser.test.mjs',
+    'tests/fixtures/crm-contact-leads.mjs',
+    'scripts/test-deploy-secret-scan.mjs',
+    'scripts/deploy-production.mjs',
+    'scripts/deploy-reviewed-public-data.json',
     'api/crm-send-email.js',
     'api/_lib/crm-auto-reply.js',
     'api/_lib/crm-auto-reply.test.js',

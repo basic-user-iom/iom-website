@@ -351,6 +351,7 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
 
 function buildSnapshot(stage, scopes, reuse, emailPhase) {
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
+  const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
   // Restore the exact committed ICM GLB before the static build and R2 upload.
   const viewerAssets = join(stage, 'building-viewer', 'scripts', 'prepare-runtime-assets.mjs')
   if (existsSync(viewerAssets) && !reuse?.runtimeComplete) command(process.execPath, [viewerAssets], { cwd: stage })
@@ -370,7 +371,8 @@ function buildSnapshot(stage, scopes, reuse, emailPhase) {
   )
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true', CRM_EMAIL_RELEASE_PHASE: emailPhase } : process.env })
+      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true', CRM_EMAIL_RELEASE_PHASE: emailPhase }
+        : crmOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -437,6 +439,7 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
 
 function deploySnapshot(snapshot, head, scopes, emailPhase) {
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
+  const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
   const scopeMap = Buffer.from(JSON.stringify(snapshot.overlays), 'utf8').toString('base64url')
   packageCommand(npx, [
     '--yes',
@@ -447,6 +450,7 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     '--cwd',
     snapshot.stage,
     ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
+    ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
       ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     '--meta',
@@ -507,7 +511,7 @@ function main() {
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
         ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
-        ...(verifyOnly ? ['--verify-only'] : []),
+        ...(verifyOnly || (scopes.length === 1 && scopes[0] === 'crm') ? ['--verify-only'] : []),
       ])
     }
     const knownValues = knownValuesFromEnvironment(process.env)
