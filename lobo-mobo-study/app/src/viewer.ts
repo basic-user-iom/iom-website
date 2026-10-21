@@ -1,4 +1,8 @@
+import { refineBacksplashGrout } from './backsplash-grout';
 import { DepthOfField } from './depth-of-field';
+import { SmoothDimmer } from './smooth-dimmer';
+import { FinishTransition } from './finish-transition';
+import { RoomTourCamera, type TourCameraFrame } from './tour-camera';
 import { Moonlight } from './moonlight';
 import { createFloorReflection } from './floor-reflection';
 import { createWindowReflection } from './window-reflection';
@@ -37,8 +41,14 @@ export class StudyViewer {
   private lampLevel = 1;
   private lampBrightness = .7;
   private currentLit = false;
+  private pendantPower=new SmoothDimmer();
+  private cabinetPower=new SmoothDimmer(.45);
+  private cabinetEnabled=true;
+  private cabinetBrightness=.45;
+  private lightingLast=0;
   private roomFill = new THREE.HemisphereLight('#fff8eb','#bab1a1',.85);
   private inspection?:RoomInspection;
+  private tourMotion?:RoomTourCamera;
   private inspectRequested=false;
   private mode:ViewMode = 'room';
   private roomConfig?:RoomConfig;
@@ -48,6 +58,7 @@ export class StudyViewer {
   private camera = new THREE.OrthographicCamera(-1,1,1,-1,.05,40);
   private controls:OrbitControls;
   private exterior?:THREE.MeshPhysicalMaterial;
+  private finishTransition?:FinishTransition;
   private materials = new Map<string,THREE.MeshStandardMaterial>();
   private lamp?:THREE.Group;
   private light = new THREE.SpotLight('#ffd6a0', 0, 3, .9, 1, 2);
@@ -56,6 +67,7 @@ export class StudyViewer {
   private frame = 0;
   private dead = false;
   private ready = false;
+  private firstFrameReady=false;
   private renders = 0;
   private dof:DepthOfField;private dofEnabled=true;
   private startPosition = new THREE.Vector3(2.2,1.05,8);
@@ -154,7 +166,9 @@ export class StudyViewer {
     if (!(exterior instanceof THREE.MeshPhysicalMaterial) || !exterior.normalMap) throw new Error('Reviewed ceramic material is missing.');
     this.exterior = exterior;
     this.cordTextile=await CordTextile.create(this.lamp);
+    if(this.dead){this.cordTextile.dispose();this.disposeObject(this.lamp);return;}
     applyFinish(exterior,data[0]);
+    this.finishTransition=new FinishTransition(exterior,this.cordTextile);
     this.scene.add(this.lamp); this.lamp.updateMatrixWorld(true);
     this.lamp.getObjectByName('Light_Origin')!.getWorldPosition(this.light.position);
     if (this.light.position.distanceTo(new THREE.Vector3(0,-.44915664196014404,0)) > .00001) throw new Error('Unexpected light origin.');
@@ -192,6 +206,7 @@ export class StudyViewer {
     roomSun.intensity=environmentSettings.sunIntensity;
     room.scene.traverse(o=>{if(o instanceof THREE.Mesh){o.receiveShadow=true;const materials=Array.isArray(o.material)?o.material:[o.material];o.castShadow=!materials.some(m=>/Soft sky|Foliage|Window clear glazing|gray brown stone floor/.test(m.name));}});
     room.scene.traverse(o=>{if(o instanceof THREE.Mesh)for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m instanceof THREE.MeshStandardMaterial&&(m.name==='PBR | ambientCG Tiles036 | glazed backsplash'||m.name==='PBR | warm mineral plaster | ceiling')){m.envMap=this.tileEnvironment!.texture;m.envMapRotation.y=environmentSettings.rotationY;m.envMapIntensity=environmentSettings.environmentIntensity;this.tileMaterials.push(m);}});
+    refineBacksplashGrout(room.scene);
     this.roomScene.add(room.scene);
     this.cordTextile.attachRoomExtensions(room.scene);
     this.cabinetLight=new CabinetLight(this.roomScene,room.scene);
@@ -224,6 +239,23 @@ export class StudyViewer {
     this.resize();
     this.ready = true;
   }
+  async prepareFirstFrame(){
+    if(this.dead||!this.ready)throw new Error('Scene is not ready.');
+    this.resize();this.updateLighting();
+    // Warm the complete room shaders before exposing the canvas. Texture upload,
+    // shadows and the depth pass are exercised by the actual draw below.
+    await this.renderer.compileAsync(this.roomScene,this.roomCamera);
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+    if(this.dead||this.renderer.getContext().isContextLost())throw new Error('Scene preparation interrupted.');
+    if(!this.host.clientWidth||!this.host.clientHeight)throw new Error('Scene has no visible size.');
+    this.resize();cancelAnimationFrame(this.frame);this.frame=0;
+    this.finishTransition?.advance(1);this.pendantPower.advance(10);this.cabinetPower.advance(10);this.updateLighting();
+    this.renderScene();
+    if(this.renderer.getContext().isContextLost())throw new Error('First scene render unavailable.');
+    this.firstFrameReady=true;
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+    if(this.dead)throw new Error('Scene preparation interrupted.');
+  }
   setMode(mode:ViewMode) {
     if(this.dead)return;
     this.mode=mode;this.controls.enabled=mode==='lamp';
@@ -232,20 +264,21 @@ export class StudyViewer {
     this.renderer.domElement.style.cursor=mode==='room'&&!this.inspectRequested?'default':'grab';
     this.resize();this.invalidate();
   }
-  setInspection(enabled:boolean) {
+  setInspection(enabled:boolean,preservePose=false) {
+    const wasRequested=this.inspectRequested;
     this.inspectRequested=ENABLE_ROOM_INSPECTION&&enabled;
     this.inspection?.setEnabled(this.mode==='room'&&this.inspectRequested);
     this.renderer.domElement.style.touchAction=this.mode==='lamp'||this.inspectRequested?'none':'pan-y';
     this.renderer.domElement.style.cursor=this.mode==='lamp'||this.inspectRequested?'grab':'default';
-    if(!this.inspectRequested)this.inspection?.reset();
+    if(wasRequested&&!this.inspectRequested&&!preservePose)this.inspection?.reset();
+    if(!wasRequested&&this.inspectRequested)this.inspection?.syncPose();
     this.invalidate();
   }
   inspectMove(action:InspectionAction){this.inspection?.action(action);}
   apply(state:StudyState,data:ExportedFinish[]) {
     if (!this.exterior || this.dead) return;
-    applyFinish(this.exterior,data.find(f => f.id === state.finish)!);
-    this.cordTextile?.apply(state.finish);
-    this.currentLit=state.lit;this.updateLighting();
+    this.finishTransition?.setFinish(data.find(f => f.id === state.finish)!);
+    this.currentLit=state.lit;this.requestLighting();
     this.renderer.domElement.setAttribute('aria-label',`${data.find(f=>f.id===state.finish)!.label}, Light ${state.lit?'on':'off'}. ${this.mode==='room'?(this.inspectRequested?'Free fly. Drag to look; WASD or arrows fly; Q down and E up; wheel or pinch zoom; Home resets; Escape exits.':'MOBO in a modelled kitchen. Fixed camera.'):'Interactive MOBO concept. Arrow keys rotate; plus and minus zoom; Home resets.'}`);
     this.invalidate();
   }
@@ -256,32 +289,44 @@ export class StudyViewer {
     if(previousMoon===0&&this.moonlight.light.intensity>0)this.renderer.shadowMap.needsUpdate=true;
     this.lampBrightness=THREE.MathUtils.clamp(brightness,0,1);
     this.lampLevel=THREE.MathUtils.clamp(lampLevel,0,1);
-    this.updateLighting();this.invalidate();
+    this.requestLighting();this.invalidate();
   }
   setCabinetLight(enabled:boolean,brightness:number) {
-    this.cabinetLight?.set(enabled,brightness);
+    this.cabinetEnabled=enabled;this.cabinetBrightness=THREE.MathUtils.clamp(brightness,0,1);
+    this.cabinetPower.setTarget(enabled?this.cabinetBrightness:0);
     // This shadowless area light changes radiance only; cached geometry shadows stay valid.
     this.invalidate();
   }
+  private requestLighting(){
+    this.pendantPower.setTarget(this.currentLit?this.lampLevel*this.lampBrightness:0);
+    this.invalidate();
+  }
   private updateLighting() {
-    const power=this.currentLit?this.lampLevel*this.lampBrightness:0;
+    const power=this.pendantPower.value;
     if(power>0&&this.roomLights.some(l=>l.intensity===0))this.renderer.shadowMap.needsUpdate=true;
-    this.light.intensity=1.1*power;
-    this.roomLights.forEach(l=>l.intensity=9*power);
-    this.pendantReflections.forEach(l=>l.intensity=2.8*power);
+    this.light.intensity=2.4*power;
+    this.roomLights.forEach(l=>l.intensity=14*power);
+    this.pendantReflections.forEach(l=>l.intensity=3.2*power);
     this.roomGlowMaterials.forEach(m=>m.emissiveIntensity=.65*power);
     const sun=this.roomScene.getObjectByName('Room_Sun') as THREE.DirectionalLight;
     if(this.daylight>0&&sun.intensity===0)this.renderer.shadowMap.needsUpdate=true;
     sun.intensity=(this.environmentSettings?.sunIntensity??3)*this.daylight;
-    this.roomFill.intensity=.85*this.daylight;
-    this.roomScene.environmentIntensity=(this.environmentSettings?.environmentIntensity??1.5)*this.daylight;this.tileMaterials.forEach(m=>m.envMapIntensity=this.roomScene.environmentIntensity*(m.name.includes("warm mineral plaster")?2.2:1));
-    this.roomScene.backgroundIntensity=(this.environmentSettings?.backgroundIntensity??1)*this.daylight;
-    // Exposure remains fixed; at full night all daylight terms are exactly zero.
+    const night=1-this.daylight;
+    // Cool low-level sky bounce keeps the room legible without dimming the daytime
+    // scene or tying ambient exposure to the pendant dimmer.
+    this.roomFill.intensity=.85*this.daylight+.32*night;
+    this.roomFill.color.set('#fff8eb').lerp(new THREE.Color('#a8c0e8'),night);
+    this.roomFill.groundColor.set('#bab1a1').lerp(new THREE.Color('#68788e'),night);
+    this.roomScene.environmentIntensity=(this.environmentSettings?.environmentIntensity??1.5)*this.daylight+.11*night;this.tileMaterials.forEach(m=>m.envMapIntensity=this.roomScene.environmentIntensity*(m.name.includes("warm mineral plaster")?2.2:1));
+    this.roomScene.backgroundIntensity=(this.environmentSettings?.backgroundIntensity??1)*this.daylight+.02*night;
+    this.cabinetLight?.set(this.cabinetEnabled,this.cabinetBrightness,this.cabinetPower.value);
+    // Exposure stays fixed; direct moonlight and restrained sky bounce carry night.
   }
   setDepthOfField(enabled:boolean){this.dofEnabled=enabled;this.invalidate();}
   captureCameras(){return{lampPosition:this.camera.position.toArray(),lampTarget:this.controls.target.toArray(),lampZoom:this.camera.zoom,roomPosition:this.roomCamera.position.toArray(),roomQuaternion:this.roomCamera.quaternion.toArray(),roomZoom:this.roomCamera.zoom};}
   restoreCameras(s:ReturnType<StudyViewer['captureCameras']>){this.camera.position.fromArray(s.lampPosition);this.controls.target.fromArray(s.lampTarget);this.camera.zoom=s.lampZoom;this.camera.updateProjectionMatrix();this.controls.update();this.roomCamera.position.fromArray(s.roomPosition);this.roomCamera.quaternion.fromArray(s.roomQuaternion);this.roomCamera.zoom=s.roomZoom;this.roomCamera.updateProjectionMatrix();this.roomCamera.updateMatrixWorld();this.inspection?.syncPose();this.invalidate();}
-  tourCamera(amount:number){if(this.mode==='room'){const p=this.roomConfig!.camera.position;this.roomCamera.position.set(p[0]+amount*.13,p[1]+amount*.025,p[2]);this.roomCamera.lookAt(new THREE.Vector3().fromArray(this.roomConfig!.camera.target));this.roomCamera.updateMatrixWorld();}else{const offset=this.startPosition.clone().sub(this.target),s=new THREE.Spherical().setFromVector3(offset);s.theta+=amount*.22;this.camera.position.copy(this.target).add(new THREE.Vector3().setFromSpherical(s));this.controls.update();}this.invalidate();}
+  tourCamera(frame:TourCameraFrame){if(!this.roomConfig)return;this.tourMotion??=new RoomTourCamera(this.roomCamera,this.roomConfig.camera,new THREE.Box3().setFromObject(this.roomLamps[1].getObjectByName('MOBO_Ceramic')!),this.roomConfig.table?.top??1.02);this.tourMotion.update(frame);this.invalidate();}
+  stopTourCamera(){this.tourMotion?.stop();}
   move(action:CameraAction) {
     if (!this.ready || this.dead) return;
     if(this.mode==='room') {if(action==='reset'){this.inspection?.reset();this.resize();}return;}
@@ -301,8 +346,8 @@ export class StudyViewer {
     this.roomScene.traverse(o=>{if(o instanceof THREE.Mesh)for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m instanceof THREE.MeshStandardMaterial&&m.name.startsWith('PBR')){const im=m.map?.image as {width:number;height:number}|undefined;pbr[m.name]={hasBaseColorMap:!!m.map,hasRoughnessMap:!!m.roughnessMap,hasNormalMap:!!m.normalMap,hasAOMap:!!m.aoMap,metalness:m.metalness,roughnessFactor:m.roughness,uvCount:o.geometry.getAttribute("uv")?.count,baseColorSpace:m.map?.colorSpace,roughnessSpace:m.roughnessMap?.colorSpace,normalSpace:m.normalMap?.colorSpace,normalScale:m.normalScale.toArray(),baseSize:[im?.width,im?.height]};}});
     const sun=this.roomScene.getObjectByName('Room_Sun') as THREE.DirectionalLight;
     const tableHits=this.roomLights.map(l=>{const ray=new THREE.Raycaster(l.position,new THREE.Vector3(0,-1,0),0,3);const hit=ray.intersectObjects(this.roomScene.children,true)[0];return {point:hit?.point.toArray(),object:hit?.object.name,targetNdc:l.target.position.clone().project(this.roomCamera).toArray()};});
-    const illumination={daylight:this.daylight,lampLevel:this.lampLevel,brightness:this.lampBrightness,exposure:this.renderer.toneMappingExposure,environment:this.roomScene.environmentIntensity,background:this.roomScene.backgroundIntensity,lights:this.roomScene.children.filter(o=>o instanceof THREE.Light).map(o=>({name:o.name,type:o.type,intensity:(o as THREE.Light).intensity})),emitters:this.roomLights.map(l=>({position:l.position.toArray(),target:l.target.position.toArray(),castShadow:l.castShadow})),table:this.roomConfig?.table,footprints:this.roomLamps.map(l=>{const b=new THREE.Box3().setFromObject(l.getObjectByName('MOBO_Ceramic')!);return {min:b.min.toArray(),max:b.max.toArray()};})};
-    return {depthOfField:{enabled:this.dofEnabled,...this.dof.snapshot()},moonlight:this.moonlight.snapshot(),cordBounds:this.roomLamps.map(l=>{const m=l.getObjectByName("MOBO_Cord") as THREE.Mesh,b=new THREE.Box3().setFromObject(m);return{min:b.min.toArray(),max:b.max.toArray(),sharedMaterial:m.material===this.cordTextile?.material};}),cordTextile:this.cordTextile?.snapshot(),cabinet:this.cabinetLight?.snapshot(),inspection:this.inspection?.snapshot(),tableHits,illumination,ready:this.ready, mode:this.mode, memory:{...this.renderer.info.memory},drawCalls:this.renderer.info.render.calls, room:{pbr,sunDirection:sun.position.clone().sub(sun.target.position).normalize().toArray(),environment:this.environmentSettings,lamps:this.roomLamps.length,sharedReviewedGeometry:this.roomLamps.every(l=>(l.getObjectByName('MOBO_Ceramic') as THREE.Mesh).geometry===(this.lamp!.getObjectByName('MOBO_Ceramic') as THREE.Mesh).geometry),sharedGlaze:this.roomLamps.every(l=>((l.getObjectByName('MOBO_Ceramic') as THREE.Mesh).material===(this.lamp!.getObjectByName('MOBO_Ceramic') as THREE.Mesh).material)),lights:this.roomLights.map(l=>l.intensity),camera:this.roomCamera.position.toArray(),fov:this.roomCamera.fov, projectedLamps:this.roomLamps.map(l=>{const b=new THREE.Box3().setFromObject(l.getObjectByName('MOBO_Ceramic')!);return [b.min.x,b.max.x].flatMap(x=>[b.min.y,b.max.y].flatMap(y=>[b.min.z,b.max.z].map(z=>new THREE.Vector3(x,y,z).project(this.roomCamera).toArray())));})}, renders:this.renders, camera:{position:this.camera.position.toArray(),target:this.controls.target.toArray(),zoom:this.camera.zoom,polar:this.controls.getPolarAngle(),azimuth:this.controls.getAzimuthalAngle()},
+    const illumination={power:this.pendantPower.value,targetPower:this.pendantPower.target,cabinetPower:this.cabinetPower.value,cabinetTargetPower:this.cabinetPower.target,settling:this.pendantPower.moving||this.cabinetPower.moving,glow:this.roomGlowMaterials.map(m=>m.emissiveIntensity),daylight:this.daylight,lampLevel:this.lampLevel,brightness:this.lampBrightness,exposure:this.renderer.toneMappingExposure,environment:this.roomScene.environmentIntensity,background:this.roomScene.backgroundIntensity,lights:this.roomScene.children.filter(o=>o instanceof THREE.Light).map(o=>({name:o.name,type:o.type,intensity:(o as THREE.Light).intensity})),emitters:this.roomLights.map(l=>({position:l.position.toArray(),target:l.target.position.toArray(),castShadow:l.castShadow})),table:this.roomConfig?.table,footprints:this.roomLamps.map(l=>{const b=new THREE.Box3().setFromObject(l.getObjectByName('MOBO_Ceramic')!);return {min:b.min.toArray(),max:b.max.toArray()};})};
+    return {firstFrameReady:this.firstFrameReady,finishTransition:this.finishTransition?.snapshot(),tourCamera:this.tourMotion?.snapshot(),depthOfField:{enabled:this.dofEnabled,...this.dof.snapshot()},moonlight:this.moonlight.snapshot(),cordBounds:this.roomLamps.map(l=>{const m=l.getObjectByName("MOBO_Cord") as THREE.Mesh,b=new THREE.Box3().setFromObject(m);return{min:b.min.toArray(),max:b.max.toArray(),sharedMaterial:m.material===this.cordTextile?.material};}),cordTextile:this.cordTextile?.snapshot(),cabinet:this.cabinetLight?.snapshot(),inspection:this.inspection?.snapshot(),tableHits,illumination,ready:this.ready, mode:this.mode, memory:{...this.renderer.info.memory},drawCalls:this.renderer.info.render.calls, room:{pbr,sunDirection:sun.position.clone().sub(sun.target.position).normalize().toArray(),environment:this.environmentSettings,lamps:this.roomLamps.length,sharedReviewedGeometry:this.roomLamps.every(l=>(l.getObjectByName('MOBO_Ceramic') as THREE.Mesh).geometry===(this.lamp!.getObjectByName('MOBO_Ceramic') as THREE.Mesh).geometry),sharedGlaze:this.roomLamps.every(l=>((l.getObjectByName('MOBO_Ceramic') as THREE.Mesh).material===(this.lamp!.getObjectByName('MOBO_Ceramic') as THREE.Mesh).material)),lights:this.roomLights.map(l=>l.intensity),camera:this.roomCamera.position.toArray(),fov:this.roomCamera.fov, projectedLamps:this.roomLamps.map(l=>{const b=new THREE.Box3().setFromObject(l.getObjectByName('MOBO_Ceramic')!);return [b.min.x,b.max.x].flatMap(x=>[b.min.y,b.max.y].flatMap(y=>[b.min.z,b.max.z].map(z=>new THREE.Vector3(x,y,z).project(this.roomCamera).toArray())));})}, renders:this.renders, camera:{position:this.camera.position.toArray(),target:this.controls.target.toArray(),zoom:this.camera.zoom,polar:this.controls.getPolarAngle(),azimuth:this.controls.getAzimuthalAngle()},
       light:{position:this.light.position.toArray(),target:this.light.target.position.toArray(),intensity:this.light.intensity},
       materials:Object.fromEntries([...this.materials].map(([name,m])=>[name,{color:m.color.toArray(),roughness:m.roughness,metalness:m.metalness,opacity:m.opacity,transparent:m.transparent,emissive:m.emissive.toArray(),normalScale:m.normalScale.toArray(),clearcoat:(m as THREE.MeshPhysicalMaterial).clearcoat,clearcoatRoughness:(m as THREE.MeshPhysicalMaterial).clearcoatRoughness,transmission:(m as THREE.MeshPhysicalMaterial).transmission}])),
       pixelRatio:this.renderer.getPixelRatio(),autoRotate:this.controls.autoRotate, damping:this.controls.enableDamping};
@@ -313,7 +358,7 @@ export class StudyViewer {
     if (action[event.key]) {event.preventDefault(); this.move(action[event.key]);}
   };
   private onContextLost = (event:Event) => {event.preventDefault(); this.onFailure('3D view interrupted. Showing the matching rendered poster.');};
-  private onVisibility = () => { if (document.hidden) {cancelAnimationFrame(this.frame);this.frame=0;} else this.invalidate(); };
+  private onVisibility = () => { if (document.hidden) {cancelAnimationFrame(this.frame);this.frame=0;this.lightingLast=0;} else this.invalidate(); };
   private resize = () => {
     if (this.dead) return;
     const width = this.host.clientWidth, height = this.host.clientHeight;
@@ -329,13 +374,19 @@ export class StudyViewer {
     this.camera.top = halfHeight; this.camera.bottom = -halfHeight;
     this.camera.updateProjectionMatrix(); this.renderer.setSize(width,height,false); this.invalidate();
   };
+  private renderScene(){if(this.mode==='room'&&!this.inspectRequested&&this.dofEnabled&&this.dof.supported){try{this.dof.render(this.roomScene,this.roomCamera,this.roomLamps);}catch{this.dof.fail();this.renderer.render(this.roomScene,this.roomCamera);}}else{this.dof.disable();this.renderer.render(this.mode==='room'?this.roomScene:this.scene,this.mode==='room'?this.roomCamera:this.camera);}this.renders++;}
   private invalidate = () => {
     if (this.dead || this.frame || document.hidden) return;
-    this.frame = requestAnimationFrame(()=>{
+    this.frame = requestAnimationFrame((now)=>{
       this.frame=0;
       if (this.dead) return;
-      try {if(this.mode==='room'&&!this.inspectRequested&&this.dofEnabled&&this.dof.supported){try{this.dof.render(this.roomScene,this.roomCamera,this.roomLamps);}catch{this.dof.fail();this.renderer.render(this.roomScene,this.roomCamera);}}else{this.dof.disable();this.renderer.render(this.mode==='room'?this.roomScene:this.scene,this.mode==='room'?this.roomCamera:this.camera);}this.renders++;}
+      const seconds=this.lightingLast?(now-this.lightingLast)/1000:0;
+      this.finishTransition?.advance(seconds);
+      this.pendantPower.advance(seconds);this.cabinetPower.advance(seconds);this.updateLighting();
+      this.lightingLast=now;
+      try {this.renderScene();}
       catch {this.onFailure('3D rendering failed. Showing the matching rendered poster.');}
+      if(this.pendantPower.moving||this.cabinetPower.moving||this.finishTransition?.active)this.invalidate();else this.lightingLast=0;
     });
   };
   private disposeObject(object:THREE.Object3D) {

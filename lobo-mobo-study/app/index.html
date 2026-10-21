@@ -6,7 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <meta name="theme-color" content="#fafafa" /><link rel="stylesheet" href="./brand/fonts.css" />
+  <link rel="stylesheet" href="./src/tour.css" />
+  <link rel="stylesheet" href="./src/styles.css" />
+  <link rel="stylesheet" href="./src/layout.css" />
+  <link rel="stylesheet" href="./src/room.css" />
+  <link rel="stylesheet" href="./src/brand.css" />
+  <link rel="stylesheet" href="./src/loading.css" />
+  <link rel="preload" as="image" href="./posters/room-loading.webp" />
   <title>MOBO / Finish and light study</title>
+  <script>
+    // Keep the rendered preview and Retry available even if the entry module fails.
+    window.addEventListener('error',function(event){
+      if(!(event.target instanceof HTMLScriptElement)||event.target.type!=='module')return;
+      function showFallback(){
+        document.getElementById('scene-loading').hidden=true;
+        document.getElementById('stage').setAttribute('aria-busy','false');
+        document.getElementById('status').textContent='Interactive view unavailable. Please retry.';
+        const retry=document.getElementById('retry');retry.hidden=false;retry.onclick=function(){location.reload();};
+      }
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showFallback,{once:true});else showFallback();
+    },true);
+  </script>
   <link rel="icon" href="data:," />
 </head>
 <body>
@@ -22,6 +42,7 @@
     <section class="study" aria-label="MOBO finish and light study">
       <div class="stage-column">
         <div id="stage" class="stage" data-view="room" aria-busy="true">
+          <div id="scene-loading" class="scene-loading" data-state="loading" role="status" aria-live="polite"><img src="./posters/room-loading.webp" alt="" fetchpriority="high" /><p class="scene-loading-copy"><span class="scene-loading-indicator" aria-hidden="true"></span>Preparing the room</p></div>
           <div class="stage-note" aria-hidden="true">FORM &amp; FINISH <span>MOBO</span></div>
           <img id="poster" src="./posters/shell-white-unlit.webp" alt="02. Shell White — Light off. Rendered concept poster." />
           <div id="canvas-host"></div>
@@ -44,6 +65,7 @@
     </section>
     <footer><p>Concept visualisation. Glaze colour and lighting are illustrative; handmade pieces vary.</p><a href="https://loboatelier.com/lighting-collection/mobo" target="_blank" rel="noopener noreferrer">MOBO at LOBO Atelier <span aria-hidden="true">↗</span></a></footer>
   </main>
+  <noscript><style>#scene-loading{display:none!important}</style></noscript>
   <noscript><p class="noscript">JavaScript is disabled. Showing the Shell White / Light off concept poster; interactive controls are unavailable.</p></noscript>
   <script type="module" src="./src/main.ts"></script>
 </body>

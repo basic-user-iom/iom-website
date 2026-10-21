@@ -16,9 +16,9 @@ export class CabinetLight {
     this.strip.lookAt(new THREE.Vector3(2.112,1.207,-1.79));scene.add(this.strip);
     this.set(true,.45);
   }
-  set(enabled:boolean,brightness:number){
+  set(enabled:boolean,brightness:number,renderedPower?:number){
     this.enabled=enabled;this.brightness=THREE.MathUtils.clamp(brightness,0,1);
-    const power=enabled?this.brightness:0;
+    const power=renderedPower??(enabled?this.brightness:0);
     this.strip.intensity=60*power;
     if(this.diffuser){this.diffuser.emissive.set('#ffcd85');this.diffuser.emissiveIntensity=1.4*power;}
   }

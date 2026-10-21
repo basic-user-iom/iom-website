@@ -447,6 +447,8 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     '--cwd',
     snapshot.stage,
     ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
+    ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
+      ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     '--meta',
     `githubCommitRef=master`,
     '--meta',

@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import type {FinishId} from './materials';
 
+export type CordAppearance={color:THREE.Color;gripColor:THREE.Color;gripMetalness:number;gripRoughness:number};
+export function cordAppearance(finish:FinishId):CordAppearance{
+  const white=finish==='reference-white'||finish==='shell-white',black=finish==='reference-black';
+  return{color:new THREE.Color(white?'#f3f1ee':'#b3a08a'),gripColor:new THREE.Color(white?'#e6e6e6':black?'#151619':'#c3a265'),gripMetalness:white?.98:black?.80:.85,gripRoughness:white?.13:black?.17:.22};
+}
+
 /** One textile sheath across reviewed cords and their ceiling extensions. */
 export class CordTextile {
   readonly material:THREE.MeshStandardMaterial;
@@ -51,9 +57,14 @@ export class CordTextile {
     });additions.forEach(m=>room.add(m));this.extensionMeshes=additions;
   }
   apply(finish:FinishId){
-    const white=finish==='reference-white'||finish==='shell-white',black=finish==='reference-black';
-    this.material.color.set(white?'#f3f1ee':'#b3a08a');this.material.roughness=.95;
-    this.grip.color.set(white?'#e6e6e6':black?'#151619':'#c3a265');this.grip.metalness=white?.98:black?.80:.85;this.grip.roughness=white?.13:black?.17:.22;
+    const target=cordAppearance(finish);this.blendAppearance(target,target,1);
+  }
+  captureAppearance():CordAppearance{return{color:this.material.color.clone(),gripColor:this.grip.color.clone(),gripMetalness:this.grip.metalness,gripRoughness:this.grip.roughness};}
+  blendAppearance(from:CordAppearance,to:CordAppearance,amount:number){
+    this.material.color.lerpColors(from.color,to.color,amount);this.material.roughness=.95;
+    this.grip.color.lerpColors(from.gripColor,to.gripColor,amount);
+    this.grip.metalness=from.gripMetalness+(to.gripMetalness-from.gripMetalness)*amount;
+    this.grip.roughness=from.gripRoughness+(to.gripRoughness-from.gripRoughness)*amount;
   }
   snapshot(){return{extensions:this.extensions,triangleCountPreserved:this.positionChecks,extensionBounds:this.extensionMeshes.map(m=>{const b=new THREE.Box3().setFromObject(m);return{min:b.min.toArray(),max:b.max.toArray(),sharedMaterial:m.material===this.material};}),source:'ambientCG Fabric036',license:'CC0',color:this.material.color.getHexString(),roughness:this.material.roughness,metalness:this.material.metalness,normalScale:this.material.normalScale.toArray(),maps:[this.material.map,this.material.roughnessMap,this.material.normalMap].map(t=>({space:t?.colorSpace,width:(t?.image as {width:number}|undefined)?.width})),grip:{color:this.grip.color.getHexString(),roughness:this.grip.roughness,metalness:this.grip.metalness}};}
   dispose(){this.textures.forEach(t=>t.dispose());}

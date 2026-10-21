@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-/** A weak exterior source, clipped to the modelled window, without ambient fill. */
+/** Cool exterior key clipped to the modelled window; sky bounce is balanced in the viewer. */
 export class Moonlight {
   readonly light=new THREE.DirectionalLight('#c8d7ee',0);
   private aperture=new THREE.Group();
@@ -23,7 +23,7 @@ export class Moonlight {
   setProgress(progress:number){
     this.progress=THREE.MathUtils.clamp(progress,0,1);
     const t=THREE.MathUtils.clamp((this.progress-.35)/.65,0,1),factor=t*t*(3-2*t);
-    this.light.intensity=.45*factor;
+    this.light.intensity=1.8*factor;
   }
   snapshot(){return{intensity:this.light.intensity,progress:this.progress,color:this.light.color.getHexString(),position:this.light.position.toArray(),target:this.light.target.position.toArray(),castShadow:this.light.castShadow,mapSize:this.light.shadow.mapSize.toArray(),aperture:{planeX:-1.99,minY:.115,maxY:3.185,minZ:-1.575,maxZ:5.975},apertureOccludesMoonOnly:true};}
 }

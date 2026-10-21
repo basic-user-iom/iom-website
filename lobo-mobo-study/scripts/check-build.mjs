@@ -6,11 +6,13 @@ async function walk(dir) { const entries = await readdir(dir,{withFileTypes:true
 for(const folder of ['app/public','dist']) {
   const files=await walk(path.join(root,folder));
   assert.equal(files.filter(p=>p.endsWith('.glb')).length,2);
-  assert.equal(files.filter(p=>p.endsWith('.webp')).length,14);
+  assert.equal(files.filter(p=>p.endsWith('.webp')&&path.basename(p)!=='room-loading.webp').length,14);
+  const loading=files.filter(p=>path.basename(p)==='room-loading.webp');assert.equal(loading.length,1);
+  assert((await readFile(loading[0])).length<80000,'The loading thumbnail must remain small.');
   for(const file of files) {
     assert(!/private-|refs[\\/]|\.blend$|manifest|Cursor_prompt|HANDOFF/i.test(file),file);
     if(/\.(json|js|html)$/.test(file)) assert(!/F:\\\\Projects|private-inputs|private-review|run-20261012-200729|__moboStudy/.test(await readFile(file,'utf8')),file);
   }
 }
-console.log('PASS: isolated build contains lamp and room GLBs, fourteen posters, local runtime assets, no private inputs or QA hooks.');
+console.log('PASS: isolated build contains lamp and room GLBs, fourteen finish posters, a small loading thumbnail, local runtime assets, no private inputs or QA hooks.');
 

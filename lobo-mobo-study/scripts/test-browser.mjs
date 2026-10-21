@@ -5,19 +5,24 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 const root=path.resolve(import.meta.dirname,'..');
-await mkdir(path.join(root,'qa'),{recursive:true});
+const qa=process.env.MOBO_QA||path.join(root,'qa');
+await mkdir(qa,{recursive:true});
 const expected=JSON.parse(await readFile(path.join(root,'app/public/assets/finish-materials.json'),'utf8')).finishes;
-const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const channel=process.env.MOBO_BROWSER_CHANNEL;
+const browser=await chromium.launch({headless:true,...(channel?{channel}:{args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']})});
+const graphics=channel?`Playwright ${channel}, local WebGL`:'Playwright Chromium, SwiftShader';
 const results=[];
 const url=process.env.MOBO_URL||'http://127.0.0.1:5284';
 const snapshot=p=>p.evaluate(()=>window.__moboStudy());
 const ready=async p=>{await p.waitForFunction(()=>window.__moboStudy?.().phase==='ready');if(await p.evaluate(()=>window.__moboStudy().viewMode==='room'))await p.locator('#view-toggle').click();};
 const fallback=p=>p.waitForFunction(()=>window.__moboStudy?.().phase==='fallback');
 const paint=p=>p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-const shot=async(p,name)=>{await paint(p);await p.screenshot({path:path.join(root,'qa',name+'.png'),fullPage:true});};
+const settle=async p=>{await p.waitForFunction(()=>{const v=window.__moboStudy().viewer;return v.illumination.settling===false&&!v.finishTransition?.active;},{},{timeout:6000});await paint(p);};
+const shot=async(p,name)=>{await paint(p);await p.screenshot({path:path.join(qa,name+'.png'),fullPage:true});};
 const test=async(name,fn)=>{try{const detail=await fn();results.push({name,status:'passed',detail});console.log('PASS',name);}catch(error){results.push({name,status:'failed',detail:String(error.stack)});console.log('FAIL',name,String(error));}};
 const compareFixed=(a,b)=>{for(const name of ['Ceramic_Interior','Bulb_Illustrative'])assert.deepEqual(a.viewer.materials[name],b.viewer.materials[name],name);};
 const match=async(p,finish,lit)=>{
+ await settle(p);
  const s=await snapshot(p),m=s.viewer.materials.Ceramic_Exterior,source=finish.actualExportedMaterial;
  assert.equal(s.state.finish,finish.id);assert.equal(s.state.lit,lit);
  assert.deepEqual(m.color,source.pbrMetallicRoughness.baseColorFactor.slice(0,3));
@@ -43,7 +48,7 @@ const errors=[],external=[],modelRequests=[];
 page.on('pageerror',e=>errors.push(String(e)));
 page.on('request',r=>{if(r.url().endsWith('mobo-study.glb'))modelRequests.push(r.url());if(!r.url().startsWith(url)&&!r.url().startsWith('data:')&&!r.url().startsWith('blob:'))external.push(r.url());});
 try {
- await test('Initial load: one local GLB, Shell White / Light off',async()=>{await page.goto(url);await ready(page);await match(page,expected[0],false);assert.equal(modelRequests.length,1);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);return {graphics:'Chromium SwiftShader software WebGL',modelRequests:1};});
+ await test('Initial load: one local GLB, Shell White / Light off',async()=>{await page.goto(url);await ready(page);await match(page,expected[0],false);assert.equal(modelRequests.length,1);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);return {graphics,modelRequests:1};});
  const initial=await snapshot(page);
  await test('All six combinations: exact material data, fixed materials, stable camera, visible light change',async()=>{
   const pixelDifferences=[];
@@ -95,7 +100,7 @@ try {
   release();await ready(p);await match(p,expected[2],true);await p.close();
  });
  await test('Reduced motion, capped DPR, no rendering while idle',async()=>{
-  const c=await browser.newContext({reducedMotion:'reduce',deviceScaleFactor:3,viewport:{width:390,height:844}});const p=await c.newPage();await p.goto(url);await ready(p);await paint(p);
+  const c=await browser.newContext({reducedMotion:'reduce',deviceScaleFactor:3,viewport:{width:390,height:844}});const p=await c.newPage();await p.goto(url);await ready(p);await settle(p);
   const before=await snapshot(p);await p.waitForTimeout(650);const after=await snapshot(p);
   assert.equal(after.viewer.renders,before.viewer.renders);assert.equal(after.viewer.autoRotate,false);assert.equal(after.viewer.damping,false);assert(after.viewer.pixelRatio<=1.75);assert.deepEqual(before.viewer.camera,after.viewer.camera);
   await c.close();return {idleFrames:after.viewer.renders-before.viewer.renders,pixelRatio:after.viewer.pixelRatio};
@@ -153,8 +158,8 @@ try {
  await test('Normal path has no uncaught errors or external runtime requests',async()=>{assert.deepEqual(errors,[]);assert.deepEqual(external,[]);assert.equal(modelRequests.length,1);});
 } finally {
  await context.close();await browser.close();
- const report={date:new Date().toISOString(),url,browser:'Playwright Chromium, SwiftShader',results,not_run:['Physical Android/iOS device and Safari/Firefox tests','Photometric / manufacturer validation','Root full-site build and unrelated project tests (would touch other demos)','Lint: no configured linter in the existing workspace or this subproject']};
- await writeFile(path.join(root,'qa/browser-results.json'),JSON.stringify(report,null,2));
+ const report={date:new Date().toISOString(),url,browser:graphics,results,not_run:['Physical Android/iOS device and Safari/Firefox tests','Photometric / manufacturer validation','Root full-site build and unrelated project tests (would touch other demos)','Lint: no configured linter in the existing workspace or this subproject']};
+ await writeFile(path.join(qa,'browser-results.json'),JSON.stringify(report,null,2));
  console.log(JSON.stringify({passed:results.filter(r=>r.status==='passed').length,failed:results.filter(r=>r.status==='failed').length}));
  if(results.some(r=>r.status==='failed'))process.exitCode=1;
 }

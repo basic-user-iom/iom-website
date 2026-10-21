@@ -1,0 +1,14 @@
+.study-utilities{display:flex;align-items:center;gap:12px;margin-top:8px;padding:14px 0 20px;border-top:1px solid #e2e2de}
+#study-help-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-width:94px;min-height:44px;border:1px solid #bdbdb8;border-radius:24px!important;font-size:12px;letter-spacing:.3px;padding:10px 17px;color:#555;background:#fafafa}
+#study-help-toggle:hover,#study-help-toggle[aria-expanded=true]{border-color:#666;background:#efefec;color:#292929}
+.study-help-icon{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid currentColor;border-radius:50%;font-size:11px;line-height:1}
+.study-help-panel{position:absolute;z-index:7;right:18px;top:18px;width:360px;max-width:calc(100% - 36px);max-height:calc(100% - 36px);overflow:auto;overscroll-behavior:contain;padding:22px;text-align:left;background:rgba(250,250,248,.98);border:1px solid #d4d4d0;box-shadow:0 6px 24px #00000014;color:#333;cursor:default}
+.study-help-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:17px}
+.study-help-heading h2{font-family:'Bodoni Moda',Georgia,serif;font-size:23px;font-weight:400;line-height:1.2}
+#study-help-close{min-width:44px;min-height:44px;padding:7px 10px;font-size:11px}
+.study-help-panel ul{padding-left:17px;margin:0;font-size:12px;line-height:1.65;color:#626262}
+.study-help-panel li+li{margin-top:12px}.study-help-panel strong{font-weight:500;color:#333}
+@keyframes view-discovery{0%,100%{box-shadow:0 0 0 0 #33333300;transform:scale(1)}50%{box-shadow:0 0 0 4px #33333312;transform:scale(1.012)}}
+#view-toggle.view-discovery-pulse{animation:view-discovery 1.4s ease-in-out 3}
+@media(max-width:720px){.study-utilities{margin-top:7px;padding:13px 0 20px}.study-help-panel{right:12px;top:12px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);padding:18px}.study-help-heading h2{font-size:22px}.study-help-panel ul{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#view-toggle.view-discovery-pulse{animation:none}}

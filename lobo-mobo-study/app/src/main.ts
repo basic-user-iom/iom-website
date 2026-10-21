@@ -1,11 +1,9 @@
+import { createLoading } from './loading';
 import { createTour } from './tour';
-import './tour.css';
+import { createIntro } from './intro';
+import { createGuidance } from './guidance';
 import { ENABLE_ROOM_INSPECTION } from './features';
 import type { InspectionAction } from './room-inspection';
-import './styles.css';
-import './layout.css';
-import './room.css';
-import './brand.css';
 import { Color, LinearSRGBColorSpace } from 'three';
 import { finishes, validateFinishes, type ExportedFinish, type FinishId, type StudyState } from './materials';
 import type { StudyViewer, CameraAction, ViewMode } from './viewer';
@@ -15,6 +13,7 @@ const stage = element('stage'), host = element('canvas-host'), status = element(
 const poster = element<HTMLImageElement>('poster'), unavailable = element('poster-unavailable');
 const retry = element<HTMLButtonElement>('retry');
 const mode = element('stage-mode');
+const loading=createLoading(),controls=document.querySelector<HTMLElement>('.controls')!;
 const viewToggle=element<HTMLButtonElement>('view-toggle');
 let viewMode:ViewMode='room';
 let exploring=false;let dofEnabled=true;
@@ -38,7 +37,7 @@ let generation = 0;
 let posterGeneration = 0;
 let timer:ReturnType<typeof setTimeout>;
 const cameraButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-camera]')];
-function updateView() {
+function updateView(preserveCamera=false) {
   updateDofControls();
   stage.dataset.view=viewMode;
   stage.dataset.exploring=String(exploring&&viewMode==='room');
@@ -52,10 +51,11 @@ function updateView() {
   cameraButtons.forEach(b=>{b.disabled=phase!=='ready';b.hidden=viewMode==='room'&&b.dataset.camera!=='reset';});
   element('view-help').textContent=viewMode==='room'?(exploring?'Free fly through the partial scene. Reset view returns to the original camera.':'Fixed room view. Switch to the lamp to rotate and zoom.'):'Drag to rotate · pinch or scroll to zoom. Arrow keys rotate; + / − zoom.';
   if(phase==='ready')mode.textContent=viewMode==='room'?(exploring?'FREE FLY':'IN THE ROOM'):'INTERACTIVE STUDY';
-  viewer?.setMode(viewMode);viewer?.setInspection(exploring);
+  viewer?.setMode(viewMode);viewer?.setInspection(exploring,preserveCamera);
   document.querySelector<HTMLButtonElement>('[data-camera=reset]')!.textContent=exploring&&viewMode==='room'?'Reset view':'Reset';
   element('daynight-controls').hidden=viewMode!=='room';
   element('cabinet-controls').hidden=viewMode!=='room';
+  refreshGuidance();
 }
 
 function updatePoster() {
@@ -80,7 +80,7 @@ function update() {
 }
 function fallback(message:string) {
   pauseTransition();tour.setReady(false);
-  generation++; clearTimeout(timer); phase='fallback'; failure=message;
+  generation++; clearTimeout(timer); phase='fallback'; failure=message;intro.setPhase(phase);loading.fail();controls.inert=false;
   viewer?.dispose(); viewer=undefined; host.hidden=true;
   stage.setAttribute('aria-busy','false'); retry.hidden=false;
   cameraButtons.forEach(b=>b.disabled=true); mode.textContent='RENDERED PREVIEW';
@@ -89,7 +89,7 @@ function fallback(message:string) {
 }
 async function start() {
   const current = ++generation;
-  phase='loading'; failure=''; retry.hidden=true; host.hidden=true; stage.setAttribute('aria-busy','true');
+  phase='loading'; intro.setPhase(phase);loading.start();controls.inert=true;tour.setReady(false);failure=''; retry.hidden=true; host.hidden=true; stage.setAttribute('aria-busy','true');
   viewToggle.disabled=true;updateView();
   status.textContent='Loading interactive view…'; updatePoster();
   timer=setTimeout(()=>fallback('3D loading timed out. Showing the matching rendered poster.'),15000);
@@ -107,9 +107,15 @@ async function start() {
     viewer = new module.StudyViewer(host,fallback);
     await viewer.load(data);
     if(current!==generation) return;
-    clearTimeout(timer); phase='ready'; host.hidden=false; poster.hidden=true; unavailable.hidden=true;
+    // Give the renderer its final dimensions and state while the loading image covers it.
+    host.hidden=false;host.style.visibility='hidden';
+    viewer.setMode(viewMode);viewer.setInspection(exploring);viewer.setDepthOfField(dofEnabled);
+    viewer.apply(state,materialData);viewer.setLighting(lighting.progress,lighting.brightness,lighting.lampLevel);viewer.setCabinetLight(cabinet.enabled,cabinet.brightness);
+    await viewer.prepareFirstFrame();
+    if(current!==generation)return;
+    clearTimeout(timer);phase='ready';host.style.visibility='';poster.hidden=true;unavailable.hidden=true;controls.inert=false;
     stage.setAttribute('aria-busy','false'); mode.textContent='INTERACTIVE STUDY';
-    viewToggle.disabled=false;updateView();update();tour.setReady(true);
+    viewToggle.disabled=false;updateView();update();tour.setReady(true);intro.setPhase(phase);loading.reveal();
   } catch(error) {
     if(current!==generation) return;
     console.warn('MOBO viewer unavailable:',error);
@@ -132,7 +138,7 @@ exploreButton.addEventListener('click',()=>{if(phase!=='ready')return;exploring=
 host.addEventListener('room-inspection-exit',()=>{exploring=false;updateView();update();});
 document.querySelectorAll<HTMLButtonElement>('[data-explore]').forEach(b=>b.addEventListener('click',()=>viewer?.inspectMove(b.dataset.explore as InspectionAction)));
 viewToggle.addEventListener('click',()=>{if(phase!=='ready')return;viewMode=viewMode==='room'?'lamp':'room';updateView();update();});
-window.addEventListener('pagehide',()=>{pauseTransition();tour.dispose();clearTimeout(timer);viewer?.dispose();});
+window.addEventListener('pagehide',()=>{pauseTransition();tour.dispose();intro.dispose();guidance.dispose();loading.dispose();clearTimeout(timer);viewer?.dispose();});
 
 function updateLightingControls() {
   document.querySelectorAll<HTMLButtonElement>('[data-light]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.light==='lit')===state.lit)));
@@ -186,11 +192,19 @@ const tour=createTour({
  ready:()=>phase==='ready',
  capture:()=>{const saved={dofEnabled,state:{...state},lighting:{...lighting},cabinet:{...cabinet},viewMode,exploring,cameras:viewer?.captureCameras()};pauseTransition();return saved;},
  restore:s=>{dofEnabled=s.dofEnabled;viewer?.setDepthOfField(dofEnabled);Object.assign(state,s.state);Object.assign(lighting,s.lighting,{playing:false});Object.assign(cabinet,s.cabinet);viewMode=s.viewMode;exploring=s.exploring;updateView();update();brightnessSlider.value=String(lighting.brightness*100);updateLightingControls();if(s.cameras)viewer?.restoreCameras(s.cameras);},
- apply:(s,entry)=>{state.finish=s.finish;state.lit=s.lit;lighting.progress=s.time;lighting.brightness=s.brightness;lighting.lampLevel=s.lit?1:0;cabinet.enabled=s.led;cabinet.brightness=s.ledBrightness;viewMode=s.view;exploring=false;
-  if(entry){updateView();update();}else{viewer?.setLighting(lighting.progress,lighting.brightness,lighting.lampLevel);viewer?.setCabinetLight(cabinet.enabled,cabinet.brightness);}brightnessSlider.value=String(lighting.brightness*100);updateLightingControls();updateCabinetControls();},
- camera:a=>viewer?.tourCamera(a)
+ apply:(s,entry)=>{if(entry)pauseTransition();state.finish=s.finish;state.lit=s.lit;lighting.progress=s.time;lighting.brightness=s.brightness;lighting.lampLevel=s.lampLevel??(s.lit?1:0);cabinet.enabled=s.led;cabinet.brightness=s.ledBrightness;viewMode='room';exploring=false;
+  if(entry){updateView(true);update();}else{viewer?.setLighting(lighting.progress,lighting.brightness,lighting.lampLevel);viewer?.setCabinetLight(cabinet.enabled,cabinet.brightness);}brightnessSlider.value=String(lighting.brightness*100);updateLightingControls();updateCabinetControls();},
+ camera:frame=>viewer?.tourCamera(frame),
+ releaseCamera:()=>{viewer?.stopTourCamera();refreshGuidance();}
+});
+function refreshGuidance(){guidance.setView(viewMode,phase==='ready'&&intro.snapshot().dismissed&&!tour.snapshot().active);}
+const guidance=createGuidance(stage,viewToggle);
+const intro=createIntro({
+ stage,onDismiss:()=>refreshGuidance(),
+ automatic:()=>{element<HTMLButtonElement>('tour-start').click();element<HTMLButtonElement>('tour-pause').focus({preventScroll:true});},
+ explore:()=>{pauseTransition();viewMode='room';exploring=ENABLE_ROOM_INSPECTION;updateView(true);update();host.querySelector<HTMLCanvasElement>('canvas')?.focus({preventScroll:true});}
 });
 // Read-only local QA observability; omitted from the production bundle.
-if(import.meta.env.DEV) Object.defineProperty(window,'__moboStudy',{value:()=>({dofEnabled,tour:tour.snapshot(),cabinet:{...cabinet},state:{...state},viewMode,exploring,phase,lighting:{...lighting},viewer:viewer?.snapshot()})});
+if(import.meta.env.DEV) Object.defineProperty(window,'__moboStudy',{value:()=>({loading:loading.snapshot(),intro:intro.snapshot(),guidance:guidance.snapshot(),dofEnabled,tour:tour.snapshot(),cabinet:{...cabinet},state:{...state},viewMode,exploring,phase,lighting:{...lighting},viewer:viewer?.snapshot()})});
 void start();
 

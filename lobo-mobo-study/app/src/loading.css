@@ -1,0 +1,9 @@
+.scene-loading{position:absolute;inset:0;z-index:6;display:grid;place-items:center;overflow:hidden;background:#d9d3c7;opacity:1;transition:opacity 600ms ease;cursor:default}
+.scene-loading[hidden]{display:none!important}.scene-loading[data-state=leaving]{opacity:0;pointer-events:none}
+.stage .scene-loading img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#d9d3c7;filter:blur(2px);transform:scale(1.015)}
+.scene-loading::after{content:'';position:absolute;inset:0;background:rgba(238,234,224,.38)}
+.scene-loading-copy{position:relative;z-index:1;display:flex;align-items:center;gap:13px;padding:15px 20px;background:rgba(250,250,248,.94);border:1px solid #ffffff70;color:#46463f;font:11px/1.5 Arial,Helvetica,sans-serif;letter-spacing:.7px}
+.scene-loading-indicator{width:15px;height:15px;border:1px solid #aaa99f;border-top-color:#393a34;border-radius:50%;animation:scene-loading-spin 1.3s linear infinite}
+@keyframes scene-loading-spin{to{transform:rotate(360deg)}}
+@media(max-width:720px){.scene-loading-copy{font-size:10px;padding:13px 16px;gap:11px}}
+@media(prefers-reduced-motion:reduce){.scene-loading{transition:none}.scene-loading-indicator{animation:none}}

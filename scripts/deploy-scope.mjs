@@ -168,6 +168,7 @@ const PROJECT_SCOPE_RULES = {
     'vercel.json',
   ],
   'lobo-mobo-study': [
+    'scripts/deploy-production.mjs',
     'lobo-mobo-study/',
     'public/demos/lobo-mobo-study/',
     'scripts/build-lobo-mobo-study.mjs',
