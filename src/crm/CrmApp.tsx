@@ -81,6 +81,13 @@ import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
 import { LeadList } from './LeadList'
 import { hasNeedsReview } from './leadTags'
+import {
+  applyDetailFetchResult,
+  isFullLeadRecord,
+  mergeFullLead,
+  planDetailFetch,
+  type DetailLoadStatus,
+} from './leadFormHydration'
 import { ProjectsView } from './ProjectsView'
 import { ClientAccountsView } from './ClientAccountsView'
 import { ClientPortalView } from './ClientPortalView'
@@ -314,6 +321,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [authReady, setAuthReady] = useState(() => sandboxed)
   const [leads, setLeads] = useState<Lead[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [detailStatus, setDetailStatus] = useState<Record<string, DetailLoadStatus>>({})
+  const [detailRetry, setDetailRetry] = useState(0)
   const [view, setView] = useState<View>('list')
   const [section, setSection] = useState<CrmSection>('leads')
   const [focusProjectId, setFocusProjectId] = useState<string | null>(null)
@@ -482,12 +491,16 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   const leadsRef = useRef(leads)
   leadsRef.current = leads
+  const selectedIdRef = useRef(selectedId)
+  selectedIdRef.current = selectedId
+  const detailStatusRef = useRef(detailStatus)
+  detailStatusRef.current = detailStatus
+  const loadTokenRef = useRef<Record<string, number>>({})
   const userRef = useRef(user)
   userRef.current = user
   const tRef = useRef(t)
   tRef.current = t
   const backfillDoneRef = useRef(false)
-  const hydratedLeadIds = useRef(new Set<string>())
 
   const refreshLeads = useCallback(async () => {
     // Soft refresh: keep current cards painted; only show the loading
@@ -563,9 +576,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         next = preserveAtlasEvalFields(next, prev)
         next = preserveOutreachFields(next, prev)
         next = preserveSlimCatalogFields(next, prev)
-        for (const row of next) {
-          if (row.initial_email_body?.trim()) hydratedLeadIds.current.add(row.id)
-        }
         return next
       })
       setSelectedId((prev) => {
@@ -602,28 +612,20 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   }, [])
 
   const upsertLeadInList = useCallback((lead: Lead) => {
-    if (
-      lead.initial_email_body?.trim() ||
-      lead.initial_email_subject?.trim() ||
-      lead.notes?.trim() ||
-      lead.offer?.trim() ||
-      lead.contact_role?.trim() ||
-      lead.company_focus?.trim() ||
-      (lead.links?.length ?? 0) > 0 ||
-      (lead.emails?.length ?? 0) > 0
-    ) {
-      hydratedLeadIds.current.add(lead.id)
+    const current = leadsRef.current.find((row) => row.id === lead.id)
+    const merged = (
+      current ? { ...mergeFullLead(current, lead), updated_at: current.updated_at } : lead
+    ) as Lead
+    if (isFullLeadRecord(merged)) {
+      setDetailStatus((prev) => (prev[lead.id] === 'ready' ? prev : { ...prev, [lead.id]: 'ready' }))
     }
     setLeads((prev) => {
-      const idx = prev.findIndex((l) => l.id === lead.id)
-      if (idx < 0) return [lead, ...prev]
-      const current = prev[idx]
+      const idx = prev.findIndex((row) => row.id === lead.id)
+      if (idx < 0) return [merged, ...prev]
+      const row = prev[idx]
       const next = [...prev]
       // Keep list order stable — a stamp heal must not jump the card to the top.
-      next[idx] = {
-        ...lead,
-        updated_at: current.updated_at,
-      }
+      next[idx] = { ...mergeFullLead(row, lead), updated_at: row.updated_at }
       return next
     })
   }, [])
@@ -685,28 +687,64 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   useEffect(() => {
     if (!selectedId || sandboxed || !useLiveCrmBackend()) return
-    if (hydratedLeadIds.current.has(selectedId)) return
-    let alive = true
-    void getLead(selectedId)
+    const id = selectedId
+    const current = leadsRef.current.find((row) => row.id === id) ?? null
+    const statusNow = detailStatusRef.current[id]
+    const plan = planDetailFetch({
+      lead: current,
+      status: statusNow,
+      token: loadTokenRef.current[id] ?? 0,
+      restart: statusNow !== 'error',
+    })
+    if (!plan.start) {
+      if (plan.status === 'ready' && statusNow !== 'ready') {
+        detailStatusRef.current = { ...detailStatusRef.current, [id]: 'ready' }
+        setDetailStatus((prev) => (prev[id] === 'ready' ? prev : { ...prev, [id]: 'ready' }))
+      }
+      return
+    }
+    loadTokenRef.current[id] = plan.token
+    detailStatusRef.current = { ...detailStatusRef.current, [id]: 'loading' }
+    setDetailStatus((prev) => ({ ...prev, [id]: 'loading' }))
+    let cancelled = false
+    const finish = (result: { ok: true; lead: Lead | null } | { ok: false }) => {
+      const outcome = applyDetailFetchResult({
+        requestId: id,
+        selectedId: selectedIdRef.current,
+        token: plan.token,
+        activeToken: loadTokenRef.current[id] ?? 0,
+        cancelled,
+        current: leadsRef.current.find((row) => row.id === id) ?? null,
+        result,
+        draft: null,
+        draftDirty: false,
+      })
+      if (outcome.ignored) return
+      detailStatusRef.current = { ...detailStatusRef.current, [id]: outcome.status }
+      setDetailStatus((prev) => ({ ...prev, [id]: outcome.status }))
+      if (outcome.status !== 'ready' || !outcome.lead || !isFullLeadRecord(outcome.lead)) return
+      const loaded = outcome.lead as Lead
+      if (loaded.id !== id) return
+      setLeads((prev) =>
+        prev.map((row) =>
+          row.id === id ? { ...mergeFullLead(row, loaded), updated_at: row.updated_at } : row,
+        ),
+      )
+    }
+    void getLead(id)
       .then((full) => {
-        hydratedLeadIds.current.add(selectedId)
-        if (!alive || !full) return
-        setLeads((prev) =>
-          prev.map((row) =>
-            row.id === full.id
-              ? { ...row, ...full, updated_at: row.updated_at }
-              : row,
-          ),
-        )
+        finish({ ok: true, lead: full })
       })
       .catch(() => {
-        hydratedLeadIds.current.add(selectedId)
-        /* keep the slim list row if the detail fetch fails */
+        finish({ ok: false })
       })
     return () => {
-      alive = false
+      cancelled = true
+      if (loadTokenRef.current[id] === plan.token) {
+        loadTokenRef.current[id] = plan.token + 1
+      }
     }
-  }, [selectedId, sandboxed])
+  }, [selectedId, sandboxed, detailRetry])
 
   const handleCreate = async (input: LeadInput) => {
     const lead = await createLead(input)
@@ -797,7 +835,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setView('list')
     setLoading(true)
     backfillDoneRef.current = false
-    hydratedLeadIds.current.clear()
+    loadTokenRef.current = {}
+    setDetailStatus({})
   }
 
   const handleResetDemo = () => {
@@ -1616,15 +1655,32 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               <main className="crm-main">
                 {selected ? (
                   <LeadDetail
+                    key={selected.id}
                     lead={selected}
                     currentUser={user}
                     staffById={staffById}
                     clientLocaleSchemaMissing={clientLocaleSchemaMissing}
                     outreachSchemaMissing={outreachSchemaMissing}
                     pollEnabled={section === 'leads'}
+                    detailLoad={
+                      sandboxed || !useLiveCrmBackend()
+                        ? 'ready'
+                        : (detailStatus[selected.id] ?? 'idle')
+                    }
+                    onRetryDetail={() => {
+                      const id = selected.id
+                      setDetailStatus((prev) => ({ ...prev, [id]: 'idle' }))
+                      setDetailRetry((n) => n + 1)
+                    }}
                     onChanged={handleLeadChanged}
                     onDeleted={(deletedId) => {
-                      hydratedLeadIds.current.delete(deletedId)
+                      delete loadTokenRef.current[deletedId]
+                      setDetailStatus((prev) => {
+                        if (!(deletedId in prev)) return prev
+                        const next = { ...prev }
+                        delete next[deletedId]
+                        return next
+                      })
                       setLeads((prev) => prev.filter((row) => row.id !== deletedId))
                       setSelectedId((current) =>
                         current === deletedId ? null : current,

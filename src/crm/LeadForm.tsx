@@ -14,6 +14,7 @@ import { EMPTY_LEAD_INPUT } from './constants'
 import { LEAD_STATUS_VALUES, LEAD_TEMP_VALUES, useCrmI18n } from './i18n'
 import { LeadChatGptPanel } from './LeadChatGptPanel'
 import { mergeLeadImport } from './leadChatGpt'
+import { buildLeadSubmit, buildLeadUpdate, canStartLeadEdit, loadedLeadText, leadTextReady } from './leadFormHydration'
 import { LeadTagsField } from './LeadTagsField'
 import { normalizeLeadTags } from './leadTags'
 import {
@@ -30,11 +31,10 @@ import {
   normalizeValueEmoji,
 } from './valueEmoji'
 
-interface LeadFormProps {
-  initial?: Lead | null
-  onSubmit: (input: LeadInput) => Promise<void>
-  onCancel: () => void
-}
+type LeadFormProps = { onCancel: () => void } & (
+  | { initial: Lead; onSubmit: (input: Partial<LeadInput>) => Promise<void> }
+  | { initial?: null; onSubmit: (input: LeadInput) => Promise<void> }
+)
 
 type LinkDraft = LeadLink
 type EmailDraft = LeadEmail
@@ -47,7 +47,12 @@ function emptyEmailRow(): EmailDraft {
   return { label: '', email: '' }
 }
 
-function leadToForm(initial: Lead): LeadInput {
+type LeadFormValues = Omit<LeadInput, 'offer' | 'notes'> & {
+  offer?: string
+  notes?: string
+}
+
+function leadToForm(initial: Lead): LeadFormValues {
   const links = normalizeLeadLinks(initial.links)
   const emails = normalizeLeadEmails(initial.emails)
   return {
@@ -59,9 +64,9 @@ function leadToForm(initial: Lead): LeadInput {
     email: initial.email,
     emails: emails.length > 0 ? emails : [],
     phone: initial.phone,
-    offer: initial.offer,
+    offer: loadedLeadText(initial, 'offer'),
     company_focus: initial.company_focus ?? '',
-    notes: initial.notes,
+    notes: loadedLeadText(initial, 'notes'),
     initial_email_subject: initial.initial_email_subject ?? '',
     initial_email_body: initial.initial_email_body ?? '',
     initial_email_drafted_at: initial.initial_email_drafted_at ?? null,
@@ -87,11 +92,13 @@ function leadToForm(initial: Lead): LeadInput {
 
 export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
   const { t, statusLabel, tempLabel } = useCrmI18n()
-  const [form, setForm] = useState<LeadInput>(() =>
+  // initial is read once. A later load must not replace what the user is typing.
+  const [form, setForm] = useState<LeadFormValues>(() =>
     initial
       ? leadToForm(initial)
       : { ...EMPTY_LEAD_INPUT, links: [], emails: [], atlas_eval: { ...EMPTY_ATLAS_EVAL } },
   )
+  const [editBaseline] = useState(form)
   const [tzQuery, setTzQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -193,6 +200,10 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
     setBusy(true)
     setError('')
     try {
+      if (initial && !canStartLeadEdit(initial)) throw new Error(t('form.incompleteLead'))
+      const built = buildLeadSubmit(form, initial ? 'edit' : 'create')
+      if (!built.ok) throw new Error(t('form.incompleteLead'))
+
       const city = form.client_city.trim()
       const country = form.client_country.trim()
       let timezone = form.client_timezone.trim()
@@ -232,7 +243,7 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         city !== (initial.client_city ?? '').trim() ||
         country !== (initial.client_country ?? '').trim()
 
-      if (city && (placeChanged || lat == null || lon == null)) {
+      if (city && (placeChanged || (!initial && (lat == null || lon == null)))) {
         const geo = await geocodeClientLocation(city, country)
         if (geo) {
           lat = geo.lat
@@ -250,7 +261,7 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         lon = null
       }
 
-      await onSubmit({
+      const prepared: LeadInput = {
         ...form,
         company_name: form.company_name.trim(),
         contact_name: form.contact_name.trim(),
@@ -261,8 +272,8 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         emails,
         email: form.email.trim(),
         phone: form.phone.trim(),
-        offer: form.offer.trim(),
-        notes: form.notes.trim(),
+        offer: built.value.offer,
+        notes: built.value.notes,
         initial_email_subject: form.initial_email_subject.trim(),
         initial_email_body: form.initial_email_body.trim(),
         initial_email_drafted_at:
@@ -283,7 +294,9 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         client_country: country,
         client_lat: lat,
         client_lon: lon,
-      })
+      }
+      if (initial) await onSubmit(buildLeadUpdate(editBaseline, form, prepared))
+      else await onSubmit(prepared)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('form.saveFailed'))
       setBusy(false)
@@ -298,7 +311,9 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         <LeadChatGptPanel
           seedHint={form.company_name || form.website}
           onImport={(data) => {
-            setForm((prev) => mergeLeadImport(prev, data))
+            setForm((prev) =>
+              mergeLeadImport({ ...prev, offer: prev.offer ?? '', notes: prev.notes ?? '' }, data),
+            )
             if (data.client_timezone?.trim()) setTzQuery(data.client_timezone.trim())
             setError('')
           }}
@@ -681,7 +696,7 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         <textarea
           className="crm-input crm-textarea"
           rows={3}
-          value={form.offer}
+          value={form.offer ?? ''}
           onChange={(e) => set('offer')(e.target.value)}
           placeholder={t('form.offerPlaceholder')}
           disabled={busy}
@@ -693,7 +708,7 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         <textarea
           className="crm-input crm-textarea crm-textarea--notes"
           rows={7}
-          value={form.notes}
+          value={form.notes ?? ''}
           onChange={(e) => set('notes')(e.target.value)}
           disabled={busy}
         />
@@ -717,7 +732,16 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>
           {t('form.cancel')}
         </button>
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={busy || (initial != null && (!canStartLeadEdit(initial) || !leadTextReady(form.offer, form.notes, 'edit')))}
+          title={
+            initial != null && (!canStartLeadEdit(initial) || !leadTextReady(form.offer, form.notes, 'edit'))
+              ? t('form.incompleteLead')
+              : undefined
+          }
+        >
           {busy ? t('form.saving') : initial ? t('form.save') : t('form.add')}
         </button>
       </div>

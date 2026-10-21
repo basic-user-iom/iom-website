@@ -10,6 +10,7 @@ import { EmailThreadPanel } from './EmailThreadPanel'
 import { InitialOutreachPanel } from './InitialOutreachPanel'
 import { LeadNdaPanel } from './LeadNdaPanel'
 import { LeadForm } from './LeadForm'
+import { beginLeadEdit, canStartLeadEdit, type DetailLoadStatus } from './leadFormHydration'
 import { normalizeLeadEmails } from './api'
 import { LeadTagsDisplay } from './LeadTagsField'
 import { hasNeedsReview, normalizeLeadTags, withoutNeedsReview } from './leadTags'
@@ -61,6 +62,9 @@ interface LeadDetailProps {
   onOpenIdeas?: (leadId: string) => void
   /** False while the Leads tab is hidden — CRM stays mounted across sections. */
   pollEnabled?: boolean
+  /** Live detail fetch. Omitted for a local record that is already complete. */
+  detailLoad?: DetailLoadStatus
+  onRetryDetail?: () => void
 }
 
 export function LeadDetail({
@@ -74,9 +78,12 @@ export function LeadDetail({
   onOpenProject,
   onOpenIdeas,
   pollEnabled = true,
+  detailLoad,
+  onRetryDetail,
 }: LeadDetailProps) {
   const { t, statusLabel, tempLabel, activityLabel, locale } = useCrmI18n()
   const [editing, setEditing] = useState(false)
+  const [editBase, setEditBase] = useState<Lead | null>(null)
   const [expanded, setExpanded] = useState(readDetailExpanded)
   const [error, setError] = useState('')
   const [claiming, setClaiming] = useState(false)
@@ -184,9 +191,33 @@ export function LeadDetail({
     }
   }
 
-  const handleSave = async (input: LeadInput) => {
-    const updated = await updateLead(lead.id, input)
+  useEffect(() => {
     setEditing(false)
+    setEditBase(null)
+  }, [lead.id])
+
+  const beginEdit = () => {
+    const base = beginLeadEdit(lead)
+    if (!base) return
+    setEditBase(base)
+    setEditing(true)
+  }
+
+  const closeEdit = () => {
+    setEditing(false)
+    setEditBase(null)
+  }
+
+  const handleSave = async (input: Partial<LeadInput>) => {
+    if (!editBase || editBase.id !== lead.id || !canStartLeadEdit(editBase)) {
+      throw new Error(t('form.incompleteLead'))
+    }
+    if (Object.keys(input).length === 0) {
+      closeEdit()
+      return
+    }
+    const updated = await updateLead(lead.id, input)
+    closeEdit()
     onChanged(updated)
   }
 
@@ -297,11 +328,11 @@ export function LeadDetail({
     ? t('detail.priorityClear')
     : t('detail.prioritySet')
 
-  if (editing) {
+  if (editing && editBase) {
     return (
       <div className="crm-detail">
         <h2 className="crm-detail-title">{t('detail.editTitle')}</h2>
-        <LeadForm initial={lead} onSubmit={handleSave} onCancel={() => setEditing(false)} />
+        <LeadForm initial={editBase} onSubmit={handleSave} onCancel={closeEdit} />
       </div>
     )
   }
@@ -489,7 +520,32 @@ export function LeadDetail({
           >
             {t('detail.collapse')}
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
+          {!canStartLeadEdit(lead) && (
+            <span className="crm-muted" role="status">
+              {detailLoad === 'error' || detailLoad === 'ready'
+                ? t('detail.leadLoadFailed')
+                : t('detail.leadLoading')}
+            </span>
+          )}
+          {(detailLoad === 'error' || (detailLoad === 'ready' && !canStartLeadEdit(lead))) &&
+            onRetryDetail && (
+              <button type="button" className="btn btn-ghost" onClick={onRetryDetail}>
+                {t('detail.retryLoad')}
+              </button>
+            )}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={!canStartLeadEdit(lead)}
+            title={
+              canStartLeadEdit(lead)
+                ? undefined
+                : detailLoad === 'error' || detailLoad === 'ready'
+                  ? t('detail.leadLoadFailed')
+                  : t('detail.leadLoading')
+            }
+            onClick={beginEdit}
+          >
             {t('detail.edit')}
           </button>
           <button

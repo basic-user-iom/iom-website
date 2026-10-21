@@ -294,6 +294,9 @@ const en: Dict = {
   'detail.kicker': 'Lead',
   'detail.untitled': 'Untitled company',
   'detail.edit': 'Edit',
+  'detail.leadLoading': 'Loading the full lead…',
+  'detail.leadLoadFailed': 'The full lead did not load. Editing stays off until it does.',
+  'detail.retryLoad': 'Retry',
   'detail.delete': 'Delete',
   'detail.editTitle': 'Edit lead',
   'detail.addedBy': 'Added by',
@@ -1313,6 +1316,7 @@ const en: Dict = {
   'form.add': 'Add lead',
   'form.saving': 'Saving…',
   'form.saveFailed': 'Save failed.',
+  'form.incompleteLead': 'This lead is incomplete, so the change was not saved.',
 
   'act.title': 'Communication log',
   'act.blurb':
@@ -2100,6 +2104,9 @@ const sr: Dict = {
   'detail.kicker': 'Lead',
   'detail.untitled': 'Firma bez naziva',
   'detail.edit': 'Izmeni',
+  'detail.leadLoading': 'Učitavam ceo lead…',
+  'detail.leadLoadFailed': 'Ceo lead nije učitan. Izmena je isključena dok učitavanje ne uspe.',
+  'detail.retryLoad': 'Pokušaj ponovo',
   'detail.delete': 'Obriši',
   'detail.editTitle': 'Izmeni lead',
   'detail.addedBy': 'Dodao/la',
@@ -3126,6 +3133,7 @@ const sr: Dict = {
   'form.add': 'Dodaj lead',
   'form.saving': 'Čuvanje…',
   'form.saveFailed': 'Čuvanje nije uspelo.',
+  'form.incompleteLead': 'Lead nije potpuno učitan, pa izmena nije sačuvana.',
 
   'act.title': 'Dnevnik komunikacije',
   'act.blurb':
