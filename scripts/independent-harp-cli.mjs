@@ -2,6 +2,7 @@
  * Never invoked by the delivered tests. Uses existing authentication; does not install or link. */
 import {spawnSync} from 'node:child_process';
 import {dirname,join} from 'node:path';
+import {createHash} from 'node:crypto';
 
 const fail=code=>{const e=new Error(code);e.name='DeployBlockedError';throw e;};
 function run(file,args,options={}){
@@ -10,6 +11,14 @@ function run(file,args,options={}){
  return {stdout:String(r.stdout??''),stderr:String(r.stderr??'')};
 }
 function json(text){try{return JSON.parse(text.trim());}catch{fail('HARP_REMOTE_JSON_INVALID');}}
+export function parseStageResult(stdout){
+ let result;try{result=JSON.parse(stdout.trim());}catch{fail('STAGE_RESULT_UNKNOWN_INSPECT_BEFORE_RETRY');}
+ const d=result?.deployment;
+ if(result?.status!=='ok'||!d||d.error||typeof d.id!=='string'||!/^dpl_[A-Za-z0-9]+$/.test(d.id)||d.readyState!=='READY'||d.target!=='production')fail('STAGE_RESULT_REFUSED_INSPECT_BEFORE_RETRY');
+ let u;try{u=new URL(d.url);}catch{fail('STAGE_RESULT_URL_REFUSED');}
+ if(typeof d.url!=='string'||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app\/?$/.test(d.url)||u.origin+(d.url.endsWith('/')?'/':'')!==d.url)fail('STAGE_RESULT_URL_REFUSED');
+ return {id:d.id,hostname:u.hostname}; // Never execute CLI guidance or trust its API URL.
+}
 export function createHarpCliAdapter(root,execute=run){
  const win=process.platform==='win32';
  const runner=win?process.execPath:'npx';
@@ -19,7 +28,8 @@ export function createHarpCliAdapter(root,execute=run){
   const version=execute(runner,[...prefix,'--no-install','vercel','--version'],{cwd:root,env:boundEnv});
   const match=(version.stdout+'\n'+version.stderr).match(/^(?:Vercel CLI\s+)?(\d+\.\d+\.\d+)\s*$/m);
   if(!match||match[1]!==b.cliVersion)fail('VERCEL_CLI_VERSION_MISMATCH');
-  return execute(runner,[...prefix,'--no-install','vercel',...args,'--cwd',options.cwd??root,'--scope',b.teamId,'--non-interactive'],{cwd:root,env:boundEnv,timeout:options.timeout}).stdout;
+  // CLI 59.16.0 reads process.cwd()/vercel.json before processing --cwd.
+  return execute(runner,[...prefix,'--no-install','vercel',...args,'--cwd',options.cwd??root,'--scope',b.teamId,'--non-interactive'],{cwd:options.cwd??root,env:boundEnv,timeout:options.timeout}).stdout;
  };
  const api=(b,route)=>json(invoke(b,['api',route]));
  const projectRoute=b=>'/v9/projects/'+b.projectId+'?teamId='+b.teamId;
@@ -45,12 +55,40 @@ export function createHarpCliAdapter(root,execute=run){
   stage(b,r){
    const stdout=invoke(b,['deploy','--prebuilt','--prod','--skip-domain','--yes',
     '--meta','iomCommitSha='+r.sourceCommit,'--meta','iomHarpArtifact='+r.artifactDigest,'--meta','iomHarpAttempt='+r.attempt],{cwd:r.payload,timeout:300000});
-   const line=stdout.trim().split(/\r?\n/).findLast(s=>/^https:\/\/[^\s]+\.vercel\.app\/?$/.test(s.trim()));
-   if(!line)fail('STAGE_RESULT_URL_UNKNOWN_INSPECT_BEFORE_RETRY');
-   const u=new URL(line.trim());if(u.username||u.password||u.search||u.hash)fail('STAGE_RESULT_URL_REFUSED');
-   return deployment(b,u.hostname);
+   const ref=parseStageResult(stdout),d=deployment(b,ref.id);
+   if(d?.id!==ref.id||d.url!==ref.hostname)fail('STAGE_RESULT_BINDING_MISMATCH');
+   return d;
   },
   inspectDeployment:deployment,
+  inspectRecovery(b,id){
+   // Read-only, bounded to the approved child and the existing root hostname.
+   const deployments=api(b,'/v6/deployments?projectId='+b.projectId+'&teamId='+b.teamId+'&limit=20');
+   const d=deployment(b,id);
+   const tree=api(b,'/v6/deployments/'+encodeURIComponent(id)+'/files?teamId='+b.teamId),entries=[];
+   function walk(nodes,prefix=''){
+    if(!Array.isArray(nodes))fail('RECOVERY_REMOTE_TREE_INVALID');
+    for(const n of nodes){
+     if(typeof n.name!=='string'||!n.name||n.name.includes('/')||n.name.includes('\\')||n.name==='.'||n.name==='..')fail('RECOVERY_REMOTE_TREE_INVALID');
+     const name=prefix+n.name;
+     if(n.type==='directory')walk(n.children,name+'/');
+     else if(n.type==='file'&&/^[a-f0-9]{40}$/.test(n.uid??'')&&name.startsWith('src/.vercel/output/'))entries.push({path:name.slice(4),uid:n.uid});
+     else fail('RECOVERY_REMOTE_TREE_INVALID');
+    }
+   }
+   walk(tree);if(entries.length!==12)fail('RECOVERY_REMOTE_TREE_CLOSURE');
+   const files=entries.map(f=>{
+    const result=api(b,'/v8/deployments/'+encodeURIComponent(id)+'/files/'+f.uid+'?teamId='+b.teamId);
+    if(typeof result.data!=='string')fail('RECOVERY_REMOTE_FILE_UNREADABLE');
+    const bytes=Buffer.from(result.data,'base64'),sha1=createHash('sha1').update(bytes).digest('hex');
+    if(sha1!==f.uid)fail('RECOVERY_REMOTE_FILE_UID_MISMATCH');
+    return {path:f.path,bytes:bytes.length,sha1,sha256:createHash('sha256').update(bytes).digest('hex')};
+   });
+   const p=api(b,projectRoute(b));
+   const project=Object.fromEntries(['id','accountId','name','framework','buildCommand','installCommand','outputDirectory','rootDirectory','link','ssoProtection','passwordProtection','trustedIps'].map(k=>[k,p[k]??null]));
+   const aliases=api(b,'/v4/aliases?projectId='+b.projectId+'&teamId='+b.teamId+'&limit=100');
+   const rootAliases=api(b,'/v4/aliases?projectId='+b.rootProjectId+'&domain=iobjectm.com&teamId='+b.teamId+'&limit=100');
+   return {project,deployments,deployment:d,aliases,rootAliases,files};
+  },
   promote(b,id){invoke(b,['promote',id,'--yes'],{timeout:190000});},
   inspectProduction(b){
    const host=new URL(b.productionOrigin).hostname;
