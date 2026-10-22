@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "projects": {
+    "lobo-mobo-study": {
+      "input": "public/demos/lobo-mobo-study",
+      "basePath": "/demos/lobo-mobo-study/",
+      "indexing": "noindex",
+      "status": "candidate",
+      "requiredFiles": [
+        "index.html",
+        "assets/finish-materials.json",
+        "assets/mobo-study.glb",
+        "room/room-stage.glb",
+        "room/day108-lighting-1k.exr",
+        "room/day108-panorama-2k.jpg",
+        "audio/bass.m4a",
+        "audio/brass.m4a",
+        "audio/guitar.m4a",
+        "audio/keyboard.m4a",
+        "audio/strings.m4a",
+        "audio/synth.m4a"
+      ]
+    },
+    "harp-configurator-demo": {
+      "input": "public/demos/harp-configurator-demo",
+      "basePath": "/demos/harp-configurator-demo/",
+      "indexing": "preserve",
+      "status": "candidate",
+      "normalizeEntryBase": true,
+      "requiredFiles": [
+        "index.html"
+      ]
+    },
+    "carey-beebe-responsive": {
+      "input": "public/demos/carey-beebe-responsive",
+      "basePath": "/demos/carey-beebe-responsive/",
+      "indexing": "preserve",
+      "status": "candidate",
+      "normalizeEntryBase": true,
+      "requiredFiles": [
+        "index.html"
+      ]
+    }
+  },
+  "sourceCommit": "41b1198cdf6fa736e25084ca70f405d084a597c4"
+}

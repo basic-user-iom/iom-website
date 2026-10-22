@@ -37,7 +37,7 @@ export function ConfiguratorPanel() {
           </button>
         )}
       </div>
-      <div className="panel-body">
+      <div className="panel-body" inert={isMobile && !sheetOpen}>
         {OPTION_GROUPS.map((group) => (
           <AccordionSection
             key={group.id}
