@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "cutover": {
+    "enabled": false
+  },
+  "child": {
+    "teamId": null,
+    "projectId": null,
+    "origin": null
+  },
+  "approval": {
+    "approved": false,
+    "rootProjectId": null,
+    "childTeamId": null,
+    "childProjectId": null,
+    "childOrigin": null,
+    "childDeploymentId": null,
+    "rootRollbackDeploymentId": null
+  }
+}
+

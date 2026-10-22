@@ -1,6 +1,9 @@
+import { cutoverFromSnapshot, filterHarpSourceFiles, harpOmissions, freshHarpReusePlan, assertHarpStage, assertNoHarpManifest, assertHarpRootProjectBinding, sealHarpRemoteBuild } from './harp-root-cutover.mjs'
 import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
 import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
 import {protectedRelease, releaseOperation, RELEASE_TARGET} from './crm-email-protected-release.mjs'
+import {parseHarpOperation, runHarpRelease} from './independent-harp-release.mjs'
+import {createHarpCliAdapter} from './independent-harp-cli.mjs'
 /**
  * Scoped production deployment.
  *
@@ -324,10 +327,12 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
       delete overlays[scope]
       overlays[scope] = head
     }
-    const reuse = createReusePlan({ root, deploymentId, manifest: productionManifest,
-      files: snapshotFiles(root, base, overlays), previousFiles: snapshotFiles(root, state.base, state.overlays),
-      knownValues: knownValuesFromEnvironment(process.env) })
-    const omitted = new Set(reuse.omitted)
+    const currentFiles = snapshotFiles(root, base, overlays)
+    const cutover = cutoverFromSnapshot(currentFiles, entry => git(['cat-file', 'blob', entry.oid]))
+    const reuse = freshHarpReusePlan(createReusePlan({ root, deploymentId, manifest: productionManifest,
+      files: filterHarpSourceFiles(currentFiles, cutover), previousFiles: snapshotFiles(root, state.base, state.overlays),
+      knownValues: knownValuesFromEnvironment(process.env) }), cutover)
+    const omitted = harpOmissions(reuse.omitted, cutover)
     console.log(`Reusing ${reuse.files.length} media paths (${(reuse.reusedBytes / 1_000_000).toFixed(2)} MB) without staging their payloads.`)
     exportBase(stage, base, omitted)
     const activeFiles = new Set(listCommitFiles(base))
@@ -336,20 +341,24 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
       applyScope(stage, activeFiles, scope, commit, sequence++, omitted)
     }
 
+    assertHarpStage(stage, cutover)
     const projectFile = join(root, '.vercel', 'project.json')
     if (!existsSync(projectFile)) fail('Missing .vercel/project.json; link the project first.')
+    if (cutover.enabled) assertHarpRootProjectBinding(JSON.parse(readFileSync(projectFile, 'utf8')), cutover)
     mkdirSync(join(stage, '.vercel'), { recursive: true })
     copyFileSync(projectFile, join(stage, '.vercel', 'project.json'))
 
     const reuseIdentity = prepareStagedReuse(stage, reuse)
-    return { stage, base, overlays, reuse, reuseIdentity }
+    assertHarpStage(stage, cutover)
+    return { stage, base, overlays, reuse, reuseIdentity, cutover }
   } catch (error) {
     cleanupStage(stage)
     throw error
   }
 }
 
-function buildSnapshot(stage, scopes, reuse, emailPhase) {
+function buildSnapshot(stage, scopes, reuse, emailPhase, cutover) {
+  assertHarpStage(stage, cutover)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
   // Restore the exact committed ICM GLB before the static build and R2 upload.
@@ -378,6 +387,7 @@ function buildSnapshot(stage, scopes, reuse, emailPhase) {
     rmSync(stageModules, { force: true })
   }
   if (!existsSync(join(stage, 'dist', 'index.html'))) fail('Isolated build did not produce dist/index.html.')
+  assertHarpStage(stage, cutover)
 }
 
 function demoSlugForScope(scope) {
@@ -390,7 +400,9 @@ function demoSlugForScope(scope) {
   return null
 }
 
-function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = false) {
+function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = false, cutover) {
+  if (!preparingAssets) sealHarpRemoteBuild(stage, cutover)
+  assertHarpStage(stage, cutover)
   scanOptions = { ...scanOptions, phase: preparingAssets ? 'pre-r2' : 'upload' }
   const output = packageCommand(
     npx,
@@ -431,6 +443,7 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
       fail(`${publishedIndex} is missing from the upload manifest for scope "${scope}".`)
     }
   }
+  assertNoHarpManifest(manifest, cutover)
   const scan = assertReleaseManifestSecrets(stage, manifest, scanOptions)
   console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; configured secret checks passed.\n`)
   console.log(JSON.stringify({ phase: preparingAssets ? 'pre-r2' : 'upload', files: manifest.fileCount, bytes: manifest.totalSize }))
@@ -438,6 +451,7 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
 }
 
 function deploySnapshot(snapshot, head, scopes, emailPhase) {
+  assertHarpStage(snapshot.stage, snapshot.cutover)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
   const scopeMap = Buffer.from(JSON.stringify(snapshot.overlays), 'utf8').toString('base64url')
@@ -468,6 +482,12 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
 
 function main() {
   const argv = process.argv.slice(2)
+  const harpOperation = parseHarpOperation(argv)
+  if (harpOperation) {
+    const result = runHarpRelease({root,args:harpOperation,adapter:createHarpCliAdapter(root)})
+    console.log('[harp-independent-release] '+JSON.stringify(result))
+    return
+  }
   const protectedOperation = releaseOperation(argv)
   if(protectedOperation) return runProtectedRelease(protectedOperation)
   const verifyOnly = argv.includes('--verify-only')
@@ -503,11 +523,11 @@ function main() {
   let snapshot
   try {
     snapshot = composeSnapshot(state, scopes, head, productionManifest, deployment.id)
-    buildSnapshot(snapshot.stage, scopes, snapshot.reuse, emailPhase)
+    buildSnapshot(snapshot.stage, scopes, snapshot.reuse, emailPhase, snapshot.cutover)
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.
-      verifyUploadManifest(snapshot.stage, scopes, { knownValues: knownValuesFromEnvironment(process.env) }, true)
+      verifyUploadManifest(snapshot.stage, scopes, { knownValues: knownValuesFromEnvironment(process.env) }, true, snapshot.cutover)
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
         ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
@@ -519,7 +539,7 @@ function main() {
       verifyOnly,
       // Git hooks may run during push. Re-enumerate and re-scan the exact upload
       // before publication; changed paths/bytes refuse instead of reusing a pass.
-      scan: expectedIdentity => verifyUploadManifest(snapshot.stage, scopes, { knownValues, expectedIdentity }),
+      scan: expectedIdentity => verifyUploadManifest(snapshot.stage, scopes, { knownValues, expectedIdentity }, false, snapshot.cutover),
       push: () => command('git', [
         '-c', 'http.version=HTTP/1.1',
         '-c', 'http.postBuffer=209715200',
@@ -586,15 +606,15 @@ function runProtectedRelease(operation) {
         const oldConfig=execFileSync('git',['show',`${configCommit}:vercel.json`],{cwd:root})
         const newConfig=execFileSync('git',['show',`${head}:vercel.json`],{cwd:root})
         if(!oldConfig.equals(newConfig))fail('protected_vercel_config_drift')
-        buildSnapshot(snapshot.stage,scopes,snapshot.reuse,phase)
+        buildSnapshot(snapshot.stage,scopes,snapshot.reuse,phase,snapshot.cutover)
         if(existsSync(join(snapshot.stage,'config/website-r2.json'))) {
-          verifyUploadManifest(snapshot.stage,scopes,{knownValues:knownValuesFromEnvironment(process.env)},true)
+          verifyUploadManifest(snapshot.stage,scopes,{knownValues:knownValuesFromEnvironment(process.env)},true,snapshot.cutover)
           command(process.execPath,[join(root,'scripts/prepare-r2-release.mjs'),'--stage',snapshot.stage,
             ...(snapshot.reuseIdentity?['--reuse-identity',snapshot.reuseIdentity]:[])])
         }
         const knownValues=knownValuesFromEnvironment(process.env)
         withScannedRelease({verifyOnly:false,
-          scan:expectedIdentity=>verifyUploadManifest(snapshot.stage,scopes,{knownValues,expectedIdentity}),
+          scan:expectedIdentity=>verifyUploadManifest(snapshot.stage,scopes,{knownValues,expectedIdentity},false,snapshot.cutover),
           push:()=>command('git',['-c','http.version=HTTP/1.1','-c','http.postBuffer=209715200',
             '-c','http.lowSpeedLimit=1','-c','http.lowSpeedTime=30',
             'push','origin',`${workspaceHead}:refs/heads/master`],{env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}),

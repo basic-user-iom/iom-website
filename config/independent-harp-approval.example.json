@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "approved": false,
+  "operation": "stage",
+  "bindingDigest": null,
+  "sourceCommit": null,
+  "artifactDigest": null,
+  "expiresAt": null,
+  "deploymentId": null,
+  "expectedProductionDeploymentId": null,
+  "onlineChecksPassed": false
+}

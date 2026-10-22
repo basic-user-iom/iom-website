@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "enabled": false,
+  "project": "harp-configurator-demo",
+  "basePath": "/demos/harp-configurator-demo/",
+  "teamId": "team_9wCcYQpYqlDlPAaUpCqhWXj9",
+  "rootProjectId": "prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv",
+  "projectId": null,
+  "projectName": null,
+  "productionOrigin": null,
+  "cliVersion": null,
+  "protection": null
+}
