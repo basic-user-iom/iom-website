@@ -106,6 +106,7 @@ export const PROJECTS: Project[] = [
       "url": "/blog/storm-monolith-atmosphere-materials"
     }
   ],
+  "featured": true,
   "archiveId": "OBJ-STORM01"
 },
   {
@@ -862,22 +863,6 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0143',
   },
   {
-    id: 'artist-globe',
-    title: 'Artist Globe',
-    section: '3d',
-    tags: ['webgl', 'three.js', 'globe', 'artists', 'map', 'portfolio'],
-    description:
-      'Interactive WebGL globe of photographers, painters, sculptors, sound artists, and more — filter by practice, open portfolios, highlight countries, and submit a profile for review.',
-    year: '2026',
-    url: '/artist-globe',
-    embedUrl: '/artist-globe?embed=1',
-    posterUrl: '/assets/posters/artist-globe.webp?v=20260728',
-    mobilePosterUrl: '/assets/posters/artist-globe-400.webp?v=20260728',
-    thumbnail: '/assets/posters/artist-globe-400.webp?v=20260728',
-    featured: true,
-    archiveId: 'OBJ-0150',
-  },
-  {
     id: 'gallery-of-light',
     title: 'Gallery of Light — Sculpture, Sound & Space',
     section: '3d',
@@ -1029,6 +1014,21 @@ export const PROJECTS: Project[] = [
       },
     ],
     archiveId: 'OBJ-0154',
+  },
+  {
+    id: 'artist-globe',
+    title: 'Artist Globe',
+    section: '3d',
+    tags: ['webgl', 'three.js', 'globe', 'artists', 'map', 'portfolio'],
+    description:
+      'Interactive WebGL globe of photographers, painters, sculptors, sound artists, and more — filter by practice, open portfolios, highlight countries, and submit a profile for review.',
+    year: '2026',
+    url: '/artist-globe',
+    embedUrl: '/artist-globe?embed=1',
+    posterUrl: '/assets/posters/artist-globe.webp?v=20260728',
+    mobilePosterUrl: '/assets/posters/artist-globe-400.webp?v=20260728',
+    thumbnail: '/assets/posters/artist-globe-400.webp?v=20260728',
+    archiveId: 'OBJ-0150',
   },
   {
     id: 'css3d-sprites',

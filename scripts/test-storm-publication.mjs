@@ -17,6 +17,18 @@ const cards=app.PROJECTS.filter(p=>[story.slug,'case-study-storm-monolith'].incl
 assert.equal(cards.length,2)
 assert.equal(cards.find(p=>p.id===story.slug).section,'3d')
 assert.equal(cards.find(p=>p.id===story.slug).url,story.live)
+const threeD=app.PROJECTS.filter(p=>p.section==='3d')
+assert.equal(threeD[0].id,story.slug)
+assert.equal(threeD.at(-1).id,'artist-globe')
+assert.deepEqual(threeD.filter(p=>p.featured).map(p=>p.id),[story.slug])
+for(const lang of app.SITE_LANGS){
+  const localized=threeD.map(p=>app.localizeProject(p,lang))
+  assert.equal(localized[0].featured,true)
+  assert.equal(localized.at(-1).id,'artist-globe')
+  assert.ok(!localized.at(-1).featured)
+  assert.equal(localized.at(-1).url,'/artist-globe')
+}
+
 for(const card of cards)assert.equal(app.projectAllowsHoverEmbed(card),false)
 assert.equal(new Set(app.PROJECTS.map(p=>p.id)).size,app.PROJECTS.length)
 const post=app.SITE_PUBLISHED_POSTS.find(p=>p.slug===story.article)
