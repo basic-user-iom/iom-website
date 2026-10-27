@@ -20,6 +20,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  writeFileSync,
   rmSync,
   symlinkSync,
 } from 'node:fs'
@@ -448,6 +449,13 @@ function demoSlugForScope(scope) {
   return null
 }
 
+function writeVerificationAudit(name, value) {
+  if (!process.argv.includes('--verify-only') || !requestedScopes(process.argv.slice(2)).includes('storm-publication')) return
+  const directory = join(root, '.qa-out', 'storm-verification')
+  mkdirSync(directory, { recursive: true })
+  writeFileSync(join(directory, name + '.json'), JSON.stringify(value, null, 2) + '\n')
+}
+
 function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = false, cutover) {
   if (!preparingAssets) sealHarpRemoteBuild(stage, cutover)
   assertHarpStage(stage, cutover)
@@ -493,6 +501,13 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
   }
   assertNoHarpManifest(manifest, cutover)
   const scan = assertReleaseManifestSecrets(stage, manifest, scanOptions)
+  if (process.argv.includes('--verify-only') && scopes.length === 1 && scopes[0] === 'storm-publication') {
+    writeVerificationAudit(preparingAssets ? 'pre-r2-upload' : 'final-upload', {
+      fileCount: manifest.fileCount, totalSize: manifest.totalSize,
+      files: manifest.files.map(entry => ({path: entry.path.replaceAll('\\', '/'), size: entry.size,
+        sha1: createHash('sha1').update(readFileSync(join(stage, entry.path))).digest('hex')}))
+    })
+  }
   console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; configured secret checks passed.\n`)
   console.log(JSON.stringify({ phase: preparingAssets ? 'pre-r2' : 'upload', files: manifest.fileCount, bytes: manifest.totalSize }))
   return scan
@@ -562,7 +577,9 @@ function main() {
   const state = productionState(deployment)
   const productionManifest = readProductionManifest(root, deployment, route => {
     const output = packageCommand(npx, ['--no-install', 'vercel', 'api', route], { capture: true })
-    return JSON.parse(output.slice(Math.min(...[output.indexOf('['), output.indexOf('{')].filter(n => n >= 0))))
+    const parsed = JSON.parse(output.slice(Math.min(...[output.indexOf('['), output.indexOf('{')].filter(n => n >= 0))))
+    if (route.endsWith('/files')) writeVerificationAudit('production-files', parsed)
+    return parsed
   })
   const scopes = resolveScopes(requestedScopes(argv), state.base, head)
   if(!verifyOnly && scopes.includes('crm-email'))fail('CRM release requires --scope=crm-email --crm-email-release=stage|inspect|promote|prepared|active')
@@ -582,6 +599,9 @@ function main() {
     snapshot = composeSnapshot(state, scopes, head, productionManifest, deployment.id)
     buildSnapshot(snapshot.stage, scopes, snapshot.reuse, emailPhase, snapshot.cutover)
     assertRetainedStore(snapshot)
+    writeVerificationAudit('composition', {base: snapshot.base, overlays: snapshot.overlays,
+      parentOverlays: snapshot.parentOverlays, productionId: snapshot.parentDeploymentId,
+      target: head, retainedStoreVerified: true})
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.

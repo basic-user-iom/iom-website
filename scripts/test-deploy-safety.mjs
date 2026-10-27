@@ -231,7 +231,7 @@ function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false'
     return { files, fileCount: files.length, totalSize: files.reduce((n, file) => n + file.size, 0) }
   }
   const context = vm.createContext({
-    root: '/synthetic-repository', join: path.join, Buffer,
+    root: '/synthetic-repository', join: path.join, Buffer, createHash, readFileSync: fs.readFileSync, writeVerificationAudit() {},
     process: { env, execPath: '/synthetic-node', platform: 'win32',
       argv: ['node', 'deploy', '--scope', scope, ...(verifyOnly ? ['--verify-only'] : [])] },
     console: { log() {}, error() {}, warn() {} }, npm: { name: 'npm' }, npx: { name: 'npx' },
