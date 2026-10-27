@@ -32,6 +32,12 @@
         "sourceOffset": 3017,
         "contextStart": 2983,
         "contextEnd": 3065
+      },
+      {
+        "fileDigest": "6c4fe64c2e7adb11c70ce0790eac9d48ca4ab9da710619932545b6a27306bc87",
+        "sourceOffset": 3002,
+        "contextStart": 2968,
+        "contextEnd": 3050
       }
     ]
   }

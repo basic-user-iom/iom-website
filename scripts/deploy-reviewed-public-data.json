@@ -498,6 +498,12 @@
         "literalDigests": [
           "8a9533fd4c938b86786ccb5c8b1c232d53e03a64635deb0e39645ca3232135c5"
         ]
+      },
+      {
+        "fileDigest": "6c4fe64c2e7adb11c70ce0790eac9d48ca4ab9da710619932545b6a27306bc87",
+        "literalDigests": [
+          "8a9533fd4c938b86786ccb5c8b1c232d53e03a64635deb0e39645ca3232135c5"
+        ]
       }
     ],
     "api/_lib/crm-email-oauth-issuer.mjs": [
