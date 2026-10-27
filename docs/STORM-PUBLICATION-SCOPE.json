@@ -8,6 +8,7 @@
     "public/assets/blog/storm-monolith-studio/scene-400.webp",
     "public/assets/blog/storm-monolith-studio/scene.webp",
     "scripts/build-storm-editorial-preview.mjs",
+    "scripts/deploy-scope.mjs",
     "scripts/emit-storm-monolith-blog.mjs",
     "scripts/generate-sitemap.mjs",
     "scripts/test-storm-publication.mjs",
@@ -31,5 +32,5 @@
     "vercel.json",
     "vite.config.ts"
   ],
-  "note": "Candidate allowlist only. No shared tooling modification or publication. Parent must register/review scope in isolated tooling before coordinated guarded deploy."
+  "note": "Exact 29-path Storm scope. Registration is prepared in isolated app and tooling candidates only; parent must review pins and coordinate guarded preflight/publication. No shared checkout changed."
 }
