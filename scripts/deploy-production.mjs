@@ -610,7 +610,7 @@ function main() {
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
         ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
-        ...(verifyOnly || (scopes.length === 1 && scopes[0] === 'crm') ? ['--verify-only'] : []),
+        ...(verifyOnly || (scopes.length === 1 && ['crm', 'storm-publication'].includes(scopes[0])) ? ['--verify-only'] : []),
       ])
     }
     const knownValues = knownValuesFromEnvironment(process.env)

@@ -488,3 +488,15 @@ test('release preparation modules parse in Node before orchestration', () => {
   for (const file of ['scripts/deploy-production.mjs','scripts/deploy-scope.mjs','scripts/prepare-r2-release.mjs'])
     assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',file],{stdio:'pipe',windowsHide:true}))
 })
+
+test('Storm publication only reads R2 and stops before push when media verification fails', t => {
+  const h = harness(t, { scope: 'storm-publication' }); h.run()
+  assert.equal(h.r2.length, 1)
+  assert.equal(h.r2[0].filter(x => x === '--verify-only').length, 1)
+  assert.deepEqual(h.events, ['build', 'scan', 'r2', 'scan', 'push', 'scan', 'publish', 'cleanup'])
+  const failed = harness(t, { scope: 'storm-publication', fault: 'r2' })
+  assert.throws(failed.run, /synthetic missing R2 object/)
+  assert.ok(failed.r2[0].includes('--verify-only'))
+  assert.ok(!failed.events.includes('push') && !failed.events.includes('publish'))
+  assert.equal(failed.events.at(-1), 'cleanup')
+})
