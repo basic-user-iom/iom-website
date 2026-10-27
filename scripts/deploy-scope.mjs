@@ -1,4 +1,11 @@
 const NAMED_SCOPES = {
+  // Provenance recovery changes only these four reviewed release files.
+  'release-provenance': [
+    'scripts/deploy-production.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/release-provenance.mjs',
+    'config/release-provenance.json',
+  ],
   // Exact committed store bytes, applied after the existing CRM email overlay.
   'crm-email-store': ['api/_lib/crm-email-store.mjs'],
   // Reviewed email backend and its three browser entry points only.
