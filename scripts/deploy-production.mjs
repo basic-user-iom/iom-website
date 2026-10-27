@@ -526,6 +526,7 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     snapshot.stage,
     ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
     ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
+    ...(scopes.length === 1 && scopes[0] === 'release-provenance' ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
       ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...Object.entries(metadata).flatMap(([key, value]) => ['--meta', `${key}=${value}`]),
