@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import vm from 'node:vm'
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { knownDeployScopes } from './deploy-scope.mjs'
@@ -481,4 +482,9 @@ test('public R2 verification checks streamed bytes, rejects checksum mismatch an
   received=Buffer.concat([body,body])
   await assert.rejects(context.verifyPublicMedia(expected,head),/exceeds declared size/)
   assert.match(read('scripts/prepare-r2-release.mjs'),/if \(verifyOnly\) await verifyPublicMedia\(entry, head\)/)
+})
+
+test('release preparation modules parse in Node before orchestration', () => {
+  for (const file of ['scripts/deploy-production.mjs','scripts/deploy-scope.mjs','scripts/prepare-r2-release.mjs'])
+    assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',file],{stdio:'pipe',windowsHide:true}))
 })

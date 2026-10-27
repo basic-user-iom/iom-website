@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readReusePlan, validateCanonicalReferences, assertRemoteMedia, assertRemoteRange, REUSE_FILE } from './incremental-r2-release.mjs'
 // Called for an isolated, already built release. Credentials stay in the working checkout.
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
