@@ -7,8 +7,8 @@ export const RELEASE_TARGET = Object.freeze({
   project: 'prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv',
   team: 'team_9wCcYQpYqlDlPAaUpCqhWXj9',
   domain: 'iobjectm.com',
-  notBefore: Date.parse('2026-10-27T09:00:00Z'),
-  expires: Date.parse('2026-10-27T10:30:00Z'),
+  notBefore: Date.parse('2026-10-27T00:13:00Z'),
+  expires: Date.parse('2026-10-27T01:43:00Z'),
 })
 function requireReleaseWindow(now) {
   requireRelease(now>=RELEASE_TARGET.notBefore, 'release_approval_not_open')
