@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readReusePlan, validateCanonicalReferences, assertRemoteMedia, assertRemoteRange, REUSE_FILE } from './incremental-r2-release.mjs'
 // Called for an isolated, already built release. Credentials stay in the working checkout.
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs'
@@ -22,6 +23,21 @@ function verificationAssetsClient() {
     if (method !== 'HEAD') throw new Error('Read-only verification permits HEAD only')
     return publicRequest(key, method)
   } }
+}
+
+async function verifyPublicMedia(entry, head) {
+  if (head.status !== 200 || Number(head.headers.get('content-length')) !== entry.bytes) throw new Error('Public media length/status differs: ' + entry.path)
+  // The public CDN does not expose private S3 checksum metadata. Verify actual
+  // public response bytes against the authenticated production manifest instead.
+  const response = await publicRequest(entry.key, 'GET')
+  if (response.status !== 200 || !response.body) throw new Error('Public media body unavailable: ' + entry.path)
+  const hash = createHash('sha256'); let bytes = 0
+  for await (const chunk of response.body) {
+    bytes += chunk.length
+    if (bytes > entry.bytes) throw new Error('Public media exceeds declared size: ' + entry.path)
+    hash.update(chunk)
+  }
+  if (bytes !== entry.bytes || hash.digest('hex') !== entry.sha256) throw new Error('Public media checksum differs: ' + entry.path)
 }
 
 async function publicRequest(key, method, headers = {}) {
@@ -121,7 +137,7 @@ async function prepare() {
   const client = verifyOnly ? verificationAssetsClient() : await createAssetsClient()
   const objects = [...new Map(files.map(entry => [entry.key, entry])).values()]
   let cursor = 0, verified = 0, uploaded = 0, failure
-  await Promise.all(Array.from({ length: 4 }, async () => {
+  await Promise.all(Array.from({ length: verifyOnly ? 2 : 4 }, async () => {
     while (!failure && cursor < objects.length) {
       const entry = objects[cursor++]
       try {
@@ -141,7 +157,8 @@ async function prepare() {
           created = response.ok; if (created) uploaded++
           head = await client.request('HEAD', entry.key)
         }
-        assertRemoteMedia(entry, head)
+        if (verifyOnly) await verifyPublicMedia(entry, head)
+        else assertRemoteMedia(entry, head)
         entry.contentType = head.headers.get('content-type')
         const end = Math.min(1023, entry.bytes - 1)
         const range = await publicRequest(entry.key, 'GET', { range: `bytes=0-${end}` })

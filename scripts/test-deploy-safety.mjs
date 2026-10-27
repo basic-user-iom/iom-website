@@ -467,3 +467,18 @@ test('Storm verify-only inventory handles validated directory markers without re
   assert.doesNotThrow(h.run)
   assert.ok(!h.events.includes('push') && !h.events.includes('publish'))
 })
+
+test('public R2 verification checks streamed bytes, rejects checksum mismatch and stops oversized bodies', async () => {
+  const tree=ts.createSourceFile('r2.mjs',read('scripts/prepare-r2-release.mjs'),ts.ScriptTarget.Latest,true)
+  const body=Buffer.from('public synthetic media'), expected={path:'/fixture',key:'fixture',bytes:body.length,sha256:createHash('sha256').update(body).digest('hex')}
+  const head=new Response(null,{status:200,headers:{'content-length':String(body.length)}})
+  let received=body
+  const context=vm.createContext({createHash, publicRequest:async()=>new Response(received)})
+  vm.runInContext(declaration(tree,'verifyPublicMedia').getText(tree),context)
+  await context.verifyPublicMedia(expected,head)
+  received=Buffer.from('wrong synthetic media!')
+  await assert.rejects(context.verifyPublicMedia(expected,head),/checksum differs/)
+  received=Buffer.concat([body,body])
+  await assert.rejects(context.verifyPublicMedia(expected,head),/exceeds declared size/)
+  assert.match(read('scripts/prepare-r2-release.mjs'),/if \(verifyOnly\) await verifyPublicMedia\(entry, head\)/)
+})
