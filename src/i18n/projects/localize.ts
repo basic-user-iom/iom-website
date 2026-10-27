@@ -1,3 +1,4 @@
+import storm from '../../data/stormPublication.json'
 import {
   PROJECTS,
   type Project,
@@ -37,6 +38,14 @@ export function localizedSections(lang: SiteLang) {
 }
 
 export function localizeProject(project: Project, lang: SiteLang): Project {
+  if (project.id === storm.slug || project.id === 'case-study-storm-monolith') {
+    const c=storm.locales[lang], study=project.id === 'case-study-storm-monolith'
+    return {...project,title:study?c.title:project.title,description:study?c.lead:c.card,
+      url:project.url,
+      referenceUrls:project.referenceUrls?.map(ref=>({...ref,
+        label:ref.url===storm.live?c.open:c.read,
+        url:ref.url.startsWith('/blog/')?localePath(lang,ref.url):ref.url}))}
+  }
   if (lang === 'en') return project
   const o = packs[lang]?.projects[project.id]
   if (!o) return project

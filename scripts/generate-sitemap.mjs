@@ -144,6 +144,7 @@ async function collectEntries() {
   // Public journal hub (coming-soon until BLOG_PUBLIC_ENABLED)
   add('/blog/', 0.8)
   add('/project-costs/', 0.85)
+  add('/case-studies/storm-monolith-studio/', 0.85)
   add('/case-studies/gallery-of-light/', 0.85)
   add('/case-studies/3d-viewer/', 0.85)
   add('/case-studies/black-witness/', 0.85)
@@ -155,6 +156,7 @@ async function collectEntries() {
   // Locale alternates for marketing home, case studies, blog hub, and legal
   for (const lang of ['de', 'fr', 'nl', 'it', 'es']) {
     add(`/${lang}/`, 0.95)
+    add(`/${lang}/case-studies/storm-monolith-studio/`, 0.8)
     add(`/${lang}/case-studies/gallery-of-light/`, 0.8)
     add(`/${lang}/case-studies/3d-viewer/`, 0.8)
     add(`/${lang}/case-studies/black-witness/`, 0.8)

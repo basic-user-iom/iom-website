@@ -88,6 +88,22 @@
       "destination": "/demos/dukta/index.html"
     },
     {
+      "source": "/blog/storm-monolith-atmosphere-materials",
+      "destination": "/blog/storm-monolith-atmosphere-materials/index.html"
+    },
+    {
+      "source": "/blog/storm-monolith-atmosphere-materials/",
+      "destination": "/blog/storm-monolith-atmosphere-materials/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/storm-monolith-atmosphere-materials",
+      "destination": "/:lang/blog/storm-monolith-atmosphere-materials/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/storm-monolith-atmosphere-materials/",
+      "destination": "/:lang/blog/storm-monolith-atmosphere-materials/index.html"
+    },
+    {
       "source": "/blog/gallery-of-light-sculpture-sound",
       "destination": "/blog/gallery-of-light-sculpture-sound/index.html"
     },
@@ -144,7 +160,7 @@
       "destination": "/:lang/blog/solar-system-living-observatory/index.html"
     },
     {
-      "source": "/((?!(?:de|fr|nl|it|es)/blog/gallery-of-light-sculpture-sound(?:/|$)|blog/gallery-of-light-sculpture-sound(?:/|$)|assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)|(?:de|fr|nl|it|es)/blog/robot-cell-browser-palletizing(?:/|$)|blog/robot-cell-browser-palletizing(?:/|$)).*)",
+      "source": "/((?!(?:de|fr|nl|it|es)/blog/storm-monolith-atmosphere-materials(?:/|$)|blog/storm-monolith-atmosphere-materials(?:/|$)|(?:de|fr|nl|it|es)/blog/gallery-of-light-sculpture-sound(?:/|$)|blog/gallery-of-light-sculpture-sound(?:/|$)|assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)|(?:de|fr|nl|it|es)/blog/robot-cell-browser-palletizing(?:/|$)|blog/robot-cell-browser-palletizing(?:/|$)).*)",
       "destination": "/index.html"
     }
   ],

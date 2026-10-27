@@ -1,3 +1,4 @@
+import storm from '../data/stormPublication.json'
 import { BLOG_PUBLIC_ENABLED } from '../blog/publicFlags'
 import { getUiDictionary } from '../i18n/ui/loadDictionary'
 import { localePath, type SiteLang } from '../i18n'
@@ -166,6 +167,11 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     }
   }
 
+  if (path === '/case-studies/'+storm.slug) {
+    const c=storm.locales[lang]
+    return {title:c.title+' | IOM',description:c.lead,canonical,
+      ogImage:SITE_ORIGIN+storm.image,keywords:['Storm Monolith Studio','Three.js','WebGL']}
+  }
   if (path === '/case-studies/gallery-of-light') {
     const descriptions: Record<SiteLang, string> = {
       en: 'How IOM built an interactive gallery for sculpture, light and sound: visitor routes, material studies, audio-reactive visuals and a responsive browser interface.',

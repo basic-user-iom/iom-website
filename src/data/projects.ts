@@ -84,6 +84,58 @@ export { SECTIONS, type SectionDef } from './sections'
 
 export const PROJECTS: Project[] = [
   {
+  "id": "storm-monolith-studio",
+  "title": "Storm Monolith Studio",
+  "section": "3d",
+  "tags": [
+    "three.js",
+    "webgl",
+    "volumetric clouds"
+  ],
+  "description": "Explore monumental surfaces, a moving ocean and volumetric clouds in an editable browser scene. Adjust the cloud radius, compare material detail and save your composition.",
+  "year": "2026",
+  "url": "https://storm-monolith-studio.vercel.app/",
+  "hoverEmbed": false,
+  "posterUrl": "/assets/blog/storm-monolith-studio/scene.webp",
+  "mobilePosterUrl": "/assets/blog/storm-monolith-studio/scene-400.webp",
+  "thumbnail": "/assets/blog/storm-monolith-studio/scene-400.webp",
+  "caseStudyPath": "/case-studies/storm-monolith-studio",
+  "referenceUrls": [
+    {
+      "label": "Read the article",
+      "url": "/blog/storm-monolith-atmosphere-materials"
+    }
+  ],
+  "archiveId": "OBJ-STORM01"
+},
+  {
+  "id": "case-study-storm-monolith",
+  "title": "Storm Monolith Studio — shaping atmosphere in the browser",
+  "section": "360",
+  "tags": [
+    "case study",
+    "three.js"
+  ],
+  "description": "An independent IOM environment study brings dark monoliths, sea and clouds into a scene that can be explored and adjusted in real time.",
+  "year": "2026",
+  "url": "/case-studies/storm-monolith-studio",
+  "hoverEmbed": false,
+  "posterUrl": "/assets/blog/storm-monolith-studio/scene.webp",
+  "mobilePosterUrl": "/assets/blog/storm-monolith-studio/scene-400.webp",
+  "thumbnail": "/assets/blog/storm-monolith-studio/scene-400.webp",
+  "referenceUrls": [
+    {
+      "label": "Open the studio",
+      "url": "https://storm-monolith-studio.vercel.app/"
+    },
+    {
+      "label": "Read the article",
+      "url": "/blog/storm-monolith-atmosphere-materials"
+    }
+  ],
+  "archiveId": "OBJ-CS-STORM"
+},
+  {
     id: '3d-viewer',
     title: '3D Viewer',
     section: 'software',

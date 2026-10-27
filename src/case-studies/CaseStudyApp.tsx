@@ -1,3 +1,4 @@
+import { STORM_MONOLITH_STUDY } from './stormMonolith'
 import { useEffect, useMemo, useState } from 'react'
 import { Footer } from '../components/Footer'
 import { getCaseStudyOverlay } from '../i18n/caseStudies'
@@ -325,6 +326,7 @@ const LABELLED_CURSOR_STAGES: Stage[] = [
 
 /** Homepage project-card hashes — keep in sync with public/demos/iom-back.js DEMO_CARD. */
 const CASE_STUDY_HOME_CARD: Record<string, string> = {
+  'storm-monolith-studio': 'case-study-storm-monolith',
   'gallery-of-light': 'case-study-gallery-of-light',
   '3d-viewer': 'case-study-3d-viewer',
   'black-witness': 'panorama-suite',
@@ -338,6 +340,7 @@ function caseStudyBackHref(slug: string): string {
 }
 
 const STUDIES: Record<string, CaseStudySpec> = {
+  'storm-monolith-studio': STORM_MONOLITH_STUDY,
   'gallery-of-light': {
     "slug": "gallery-of-light",
     "eyebrow": "Case study · Interactive 3D",
@@ -540,7 +543,7 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
           {localized.secondaryCta ? (
             <a
               className="btn btn-ghost"
-              href={spec.slug === 'gallery-of-light' ? href(localized.secondaryCta.href) : localized.secondaryCta.href}
+              href={['gallery-of-light', 'storm-monolith-studio'].includes(spec.slug) ? href(localized.secondaryCta.href) : localized.secondaryCta.href}
             >
               {localized.secondaryCta.label}
             </a>
@@ -667,7 +670,7 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
 
   return (
     <>
-      <a href={caseStudyBackHref(slug)} className="case-study-back" aria-label="Back to IOM">
+      <a href={slug === 'storm-monolith-studio' ? href(caseStudyBackHref(slug)) : caseStudyBackHref(slug)} className="case-study-back" aria-label="Back to IOM">
         ← Back to IOM
       </a>
       <main id="main-content" className="case-study-main">
@@ -679,7 +682,10 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
               <h1 className="case-study-title">{t('case.listTitle')}</h1>
               <p className="case-study-lead">{t('case.listLead')}</p>
               <div className="case-study-hero-actions">
-                <a className="btn btn-primary" href={href('/case-studies/gallery-of-light')}>
+                <a className="btn btn-primary" href={href('/case-studies/storm-monolith-studio')}>
+                  {localizeSpec(STUDIES['storm-monolith-studio']!, lang).title}
+                </a>
+                <a className="btn btn-ghost" href={href('/case-studies/gallery-of-light')}>
                   {localizeSpec(STUDIES['gallery-of-light']!, lang).title}
                 </a>
                 <a className="btn btn-ghost" href={href('/case-studies/3d-viewer')}>

@@ -1,0 +1,50 @@
+{
+  "id": "site-blog-storm-monolith-studio",
+  "slug": "storm-monolith-atmosphere-materials",
+  "published_at": "2026-10-27T12:00:00.000Z",
+  "cover_image_url": "/assets/blog/storm-monolith-studio/scene.webp",
+  "author_name": "IOM",
+  "tags": [
+    "STORM MONOLITH",
+    "INTERACTIVE 3D",
+    "VOLUMETRIC CLOUDS"
+  ],
+  "locales": {
+    "en": {
+      "title": "Storm Monolith Studio — shaping atmosphere in the browser",
+      "excerpt": "An independent IOM environment study brings dark monoliths, sea and clouds into a scene that can be explored and adjusted in real time.",
+      "seo_title": "Storm Monolith Studio — shaping atmosphere in the browser | IOM",
+      "seo_description": "Explore monumental surfaces, a moving ocean and volumetric clouds in an editable browser scene. Adjust the cloud radius, compare material detail and save your composition."
+    },
+    "de": {
+      "title": "Storm Monolith Studio — Atmosphäre im Browser gestalten",
+      "excerpt": "Eine unabhängige Umgebungsstudie von IOM verbindet dunkle Monolithen, Meer und Wolken zu einer Szene, die sich in Echtzeit erkunden und verändern lässt.",
+      "seo_title": "Storm Monolith Studio — Atmosphäre im Browser gestalten | IOM",
+      "seo_description": "Erkunde monumentale Oberflächen, bewegtes Meer und volumetrische Wolken in einer editierbaren Browserszene. Passe den Wolkenradius an, vergleiche Materialdetails und speichere deine Komposition."
+    },
+    "fr": {
+      "title": "Storm Monolith Studio — composer une atmosphère dans le navigateur",
+      "excerpt": "Cette étude d’environnement indépendante d’IOM réunit des monolithes sombres, la mer et les nuages dans une scène à explorer et à modifier en temps réel.",
+      "seo_title": "Storm Monolith Studio — composer une atmosphère dans le navigateur | IOM",
+      "seo_description": "Explorez des surfaces monumentales, une mer animée et des nuages volumétriques dans une scène modifiable. Réglez le rayon des nuages, comparez les détails des matériaux et enregistrez votre composition."
+    },
+    "nl": {
+      "title": "Storm Monolith Studio — sfeer vormgeven in de browser",
+      "excerpt": "Een onafhankelijke omgevingsstudie van IOM brengt donkere monolieten, zee en wolken samen in een scène die je in realtime kunt verkennen en aanpassen.",
+      "seo_title": "Storm Monolith Studio — sfeer vormgeven in de browser | IOM",
+      "seo_description": "Verken monumentale oppervlakken, een bewegende zee en volumetrische wolken in een bewerkbare browserscène. Pas de wolkenradius aan, vergelijk materiaaldetails en sla je compositie op."
+    },
+    "it": {
+      "title": "Storm Monolith Studio — costruire l’atmosfera nel browser",
+      "excerpt": "Uno studio ambientale indipendente di IOM riunisce monoliti scuri, mare e nuvole in una scena da esplorare e modificare in tempo reale.",
+      "seo_title": "Storm Monolith Studio — costruire l’atmosfera nel browser | IOM",
+      "seo_description": "Esplora superfici monumentali, un mare in movimento e nuvole volumetriche in una scena modificabile nel browser. Regola il raggio delle nuvole, confronta i dettagli dei materiali e salva la composizione."
+    },
+    "es": {
+      "title": "Storm Monolith Studio — crear atmósfera en el navegador",
+      "excerpt": "Un estudio ambiental independiente de IOM reúne monolitos oscuros, mar y nubes en una escena que se puede explorar y ajustar en tiempo real.",
+      "seo_title": "Storm Monolith Studio — crear atmósfera en el navegador | IOM",
+      "seo_description": "Explora superficies monumentales, un mar en movimiento y nubes volumétricas en una escena editable. Ajusta el radio de las nubes, compara los detalles de los materiales y guarda tu composición."
+    }
+  }
+}

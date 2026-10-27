@@ -1,0 +1,278 @@
+{
+  "slug": "storm-monolith-studio",
+  "article": "storm-monolith-atmosphere-materials",
+  "live": "https://storm-monolith-studio.vercel.app/",
+  "image": "/assets/blog/storm-monolith-studio/scene.webp",
+  "locales": {
+    "en": {
+      "title": "Storm Monolith Studio — shaping atmosphere in the browser",
+      "card": "Explore monumental surfaces, a moving ocean and volumetric clouds in an editable browser scene. Adjust the cloud radius, compare material detail and save your composition.",
+      "eyebrow": "Case study · Interactive 3D",
+      "lead": "An independent IOM environment study brings dark monoliths, sea and clouds into a scene that can be explored and adjusted in real time.",
+      "impact": "A public browser studio makes atmosphere and surface detail directly comparable, with scene settings that can be saved and reopened.",
+      "open": "Open the studio",
+      "read": "Read the article",
+      "case": "View the case study",
+      "stages": [
+        {
+          "title": "Challenge — keeping the scene editable",
+          "summary": "Give a cinematic setting practical controls.",
+          "detail": "The monoliths rise above moving water while cloud banks pass between the structures. The task was to preserve that sense of scale while letting a visitor change the camera, lighting and weather. This is an independent visual study, not a commissioned client project.",
+          "alt": "Dark monoliths and an arch above the ocean, surrounded by warm clouds"
+        },
+        {
+          "title": "Solution — clouds with a defined reach",
+          "summary": "Control where clouds extend and where detail is spent.",
+          "detail": "A world-space radius centres cloud coverage on the monolith area, with a soft boundary. Nearby clouds use finer volumetric sampling and distant clouds gradually use coarser sampling. This changes ray-marching detail; the quality setting controls render resolution. Visible clouds and their shadow calculations use the same spatial boundary.",
+          "alt": "Volumetric clouds around the monolith assembly"
+        },
+        {
+          "title": "Solution — surface detail without replacing the originals",
+          "summary": "Compare a shared detail layer with the original material.",
+          "detail": "The monoliths retain their original colour, normal and metallic/roughness maps. A shared 1K Dark Concrete normal and roughness layer adds adjustable surface detail. Its normal pattern repeats at twice the earlier frequency, making features smaller without reducing their strength. A comparison toggle restores the original surface.",
+          "alt": "Close view of the monolith surface and its fine normal-map detail"
+        },
+        {
+          "title": "Deliverables — an independent browser studio",
+          "summary": "Explore, adjust and keep a scene.",
+          "detail": "The standalone application includes orbit and fly cameras, weather controls, scene JSON and portable package export. Optimized models share resources; static transforms and cloud-shadow scheduling reduce repeated work. Frame rate still depends on the device, view and quality settings. The homepage links to the studio through a static poster so browsing the portfolio does not start another 3D renderer.",
+          "alt": "Storm Monolith Studio scene with monoliths, clouds and ocean"
+        }
+      ],
+      "deliverables": [
+        "Standalone public studio",
+        "Cloud radius with a soft boundary",
+        "Distance-adaptive volumetric sampling",
+        "Original/detail material comparison",
+        "Saved startup settings and scene export"
+      ],
+      "tryTitle": "Try the scene",
+      "tryText": "Start with the authored view, then use WEATHER → VOLUMETRIC CLOUDS to change Cloud radius or Near detail distance. Select Near left monolith and open MATERIALS to compare Dark Concrete detail. Change one setting at a time: broader cloud coverage and more detailed rendering can increase GPU work. Export Scene JSON to keep the settings, or a package when the scene also needs its runtime assets."
+    },
+    "de": {
+      "title": "Storm Monolith Studio — Atmosphäre im Browser gestalten",
+      "card": "Erkunde monumentale Oberflächen, bewegtes Meer und volumetrische Wolken in einer editierbaren Browserszene. Passe den Wolkenradius an, vergleiche Materialdetails und speichere deine Komposition.",
+      "eyebrow": "Fallstudie · Interaktives 3D",
+      "lead": "Eine unabhängige Umgebungsstudie von IOM verbindet dunkle Monolithen, Meer und Wolken zu einer Szene, die sich in Echtzeit erkunden und verändern lässt.",
+      "impact": "Im öffentlichen Browserstudio lassen sich Atmosphäre und Oberflächendetails direkt vergleichen. Szeneneinstellungen können gespeichert und wieder geöffnet werden.",
+      "open": "Studio öffnen",
+      "read": "Artikel lesen",
+      "case": "Fallstudie ansehen",
+      "stages": [
+        {
+          "title": "Aufgabe — eine editierbare Szene",
+          "summary": "Eine filmische Umgebung mit praktischen Bedienelementen verbinden.",
+          "detail": "Die Monolithen ragen über bewegtem Wasser auf, während Wolken zwischen den Bauwerken vorbeiziehen. Ihr Größenverhältnis sollte erhalten bleiben, auch wenn Besucher Kamera, Licht und Wetter verändern. Das Projekt ist eine unabhängige visuelle Studie, kein Kundenauftrag.",
+          "alt": "Dunkle Monolithen und ein Bogen über dem Meer, umgeben von warm beleuchteten Wolken"
+        },
+        {
+          "title": "Lösung — Wolken mit begrenzter Ausdehnung",
+          "summary": "Wolkengrenzen und Detailaufwand gezielt steuern.",
+          "detail": "Ein Radius in Weltkoordinaten begrenzt die Wolken um die Monolithen, mit einem weichen Übergang am Rand. Nahe Wolken werden feiner abgetastet; mit zunehmender Entfernung wird die Abtastung stufenlos gröber. Das verändert die Raymarching-Details. Die Qualitätsstufe bestimmt die Renderauflösung. Sichtbare Wolken und ihre Schattenberechnung nutzen dieselbe räumliche Grenze.",
+          "alt": "Volumetrische Wolken rund um die Monolithengruppe"
+        },
+        {
+          "title": "Lösung — Details ergänzen, Originale erhalten",
+          "summary": "Eine gemeinsame Detailebene mit dem ursprünglichen Material vergleichen.",
+          "detail": "Die Monolithen behalten ihre ursprünglichen Farb-, Normal- und Metallic/Roughness-Maps. Eine gemeinsam genutzte 1K-Ebene aus Dark-Concrete-Normal- und Roughness-Maps ergänzt regelbare Oberflächendetails. Das Normalmuster wiederholt sich doppelt so häufig wie zuvor: Die Strukturen werden kleiner, ihre Stärke bleibt erhalten. Ein Vergleichsschalter zeigt wieder die Originaloberfläche.",
+          "alt": "Nahaufnahme der Monolithoberfläche mit feinen Normalmap-Details"
+        },
+        {
+          "title": "Ergebnis — ein eigenständiges Browserstudio",
+          "summary": "Eine Szene erkunden, verändern und speichern.",
+          "detail": "Die eigenständige Anwendung bietet Orbit- und Flugkamera, Wettersteuerung sowie Szenenexport als JSON oder portables Paket. Optimierte Modelle teilen Ressourcen; statische Transformationen und die Planung der Wolkenschatten reduzieren wiederholte Berechnungen. Die Bildrate hängt weiterhin von Gerät, Ansicht und Qualität ab. Ein statisches Vorschaubild auf der Startseite verlinkt das Studio, ohne dort einen weiteren 3D-Renderer zu starten.",
+          "alt": "Storm Monolith Studio mit Monolithen, Wolken und Meer"
+        }
+      ],
+      "deliverables": [
+        "Eigenständiges öffentliches Studio",
+        "Wolkenradius mit weichem Rand",
+        "Entfernungsabhängige volumetrische Abtastung",
+        "Vergleich von Original und Detailebene",
+        "Gespeicherte Starteinstellungen und Szenenexport"
+      ],
+      "tryTitle": "Die Szene ausprobieren",
+      "tryText": "Beginne mit der vorgesehenen Kameraansicht. Unter WEATHER → VOLUMETRIC CLOUDS lassen sich Cloud radius und Near detail distance ändern. Wähle Near left monolith und öffne MATERIALS für den Vergleich mit Dark Concrete detail. Ändere jeweils nur eine Einstellung: Größere Wolkenflächen und feinere Darstellung können mehr GPU-Leistung benötigen. Scene JSON speichert die Einstellungen; ein Paket enthält auch die benötigten Laufzeit-Assets."
+    },
+    "fr": {
+      "title": "Storm Monolith Studio — composer une atmosphère dans le navigateur",
+      "card": "Explorez des surfaces monumentales, une mer animée et des nuages volumétriques dans une scène modifiable. Réglez le rayon des nuages, comparez les détails des matériaux et enregistrez votre composition.",
+      "eyebrow": "Étude de cas · 3D interactive",
+      "lead": "Cette étude d’environnement indépendante d’IOM réunit des monolithes sombres, la mer et les nuages dans une scène à explorer et à modifier en temps réel.",
+      "impact": "Un studio public dans le navigateur permet de comparer directement l’atmosphère et les détails de surface, puis d’enregistrer et de rouvrir les réglages de la scène.",
+      "open": "Ouvrir le studio",
+      "read": "Lire l’article",
+      "case": "Voir l’étude de cas",
+      "stages": [
+        {
+          "title": "Défi — conserver une scène modifiable",
+          "summary": "Donner des commandes pratiques à un décor cinématographique.",
+          "detail": "Les monolithes dominent une mer en mouvement, tandis que des bancs de nuages traversent les structures. Il fallait préserver cette impression d’échelle tout en permettant au visiteur de modifier la caméra, la lumière et la météo. Il s’agit d’une étude visuelle indépendante, sans commande client.",
+          "alt": "Monolithes sombres et arche au-dessus de la mer, entourés de nuages aux teintes chaudes"
+        },
+        {
+          "title": "Solution — délimiter les nuages",
+          "summary": "Choisir leur étendue et la répartition des détails.",
+          "detail": "Un rayon dans l’espace de la scène centre la couverture nuageuse sur les monolithes, avec une limite progressive. L’échantillonnage volumétrique est plus fin à proximité et devient progressivement plus grossier au loin. Il s’agit du détail du ray marching ; le réglage de qualité détermine la résolution du rendu. Les nuages visibles et le calcul de leurs ombres partagent la même limite spatiale.",
+          "alt": "Nuages volumétriques autour de l’ensemble de monolithes"
+        },
+        {
+          "title": "Solution — enrichir les surfaces en gardant les originaux",
+          "summary": "Comparer une couche de détail commune au matériau d’origine.",
+          "detail": "Les monolithes conservent leurs cartes de couleur, de normales et de métal/rugosité. Une couche Dark Concrete commune en 1K, composée de normales et de rugosité, ajoute un détail réglable. Le motif des normales se répète deux fois plus souvent qu’auparavant : les formes deviennent plus petites sans diminuer leur intensité. Un interrupteur de comparaison rétablit la surface d’origine.",
+          "alt": "Vue rapprochée de la surface d’un monolithe et de ses détails de normales"
+        },
+        {
+          "title": "Livrables — un studio autonome dans le navigateur",
+          "summary": "Explorer, modifier et conserver une scène.",
+          "detail": "L’application autonome propose des caméras orbitale et libre, des commandes météo et l’export de scène en JSON ou en paquet portable. Les modèles optimisés partagent leurs ressources ; les transformations statiques et la planification des ombres nuageuses évitent des calculs répétés. La fluidité dépend toujours de l’appareil, de la vue et de la qualité. Une image fixe sur la page d’accueil ouvre le studio sans y lancer un autre moteur 3D.",
+          "alt": "Scène de Storm Monolith Studio avec monolithes, nuages et mer"
+        }
+      ],
+      "deliverables": [
+        "Studio public autonome",
+        "Rayon des nuages à limite progressive",
+        "Échantillonnage volumétrique adapté à la distance",
+        "Comparaison entre surface d’origine et détails",
+        "Réglages de départ enregistrés et export de scène"
+      ],
+      "tryTitle": "Essayer la scène",
+      "tryText": "Commencez par la vue prévue, puis ouvrez WEATHER → VOLUMETRIC CLOUDS pour modifier Cloud radius ou Near detail distance. Sélectionnez Near left monolith et ouvrez MATERIALS pour comparer Dark Concrete detail. Changez un réglage à la fois : une couverture plus large ou davantage de détails peut solliciter davantage le GPU. Scene JSON conserve les réglages ; le paquet inclut aussi les ressources nécessaires à la scène."
+    },
+    "nl": {
+      "title": "Storm Monolith Studio — sfeer vormgeven in de browser",
+      "card": "Verken monumentale oppervlakken, een bewegende zee en volumetrische wolken in een bewerkbare browserscène. Pas de wolkenradius aan, vergelijk materiaaldetails en sla je compositie op.",
+      "eyebrow": "Casestudy · Interactieve 3D",
+      "lead": "Een onafhankelijke omgevingsstudie van IOM brengt donkere monolieten, zee en wolken samen in een scène die je in realtime kunt verkennen en aanpassen.",
+      "impact": "In een openbare browserstudio kun je sfeer en oppervlaktedetails rechtstreeks vergelijken en scène-instellingen opslaan en opnieuw openen.",
+      "open": "Open de studio",
+      "read": "Lees het artikel",
+      "case": "Bekijk de casestudy",
+      "stages": [
+        {
+          "title": "Uitdaging — de scène bewerkbaar houden",
+          "summary": "Een filmische omgeving voorzien van praktische bediening.",
+          "detail": "Monolieten rijzen op boven bewegend water, terwijl wolkenbanken tussen de bouwwerken trekken. Het doel was dat gevoel van schaal te behouden en bezoekers tegelijk de camera, verlichting en het weer te laten aanpassen. Dit is een onafhankelijke visuele studie, geen opdracht voor een klant.",
+          "alt": "Donkere monolieten en een boog boven zee, omgeven door warm verlichte wolken"
+        },
+        {
+          "title": "Oplossing — wolken met een begrensd bereik",
+          "summary": "Bepalen hoe ver wolken reiken en waar detail nodig is.",
+          "detail": "Een radius in de wereldruimte begrenst de wolken rond de monolieten, met een zachte overgang aan de rand. Nabije wolken krijgen fijnere volumetrische bemonstering; verder weg wordt die geleidelijk grover. Dit verandert het detail van ray marching. De kwaliteitsinstelling bepaalt de renderresolutie. Zichtbare wolken en hun schaduwberekening gebruiken dezelfde ruimtelijke grens.",
+          "alt": "Volumetrische wolken rond de groep monolieten"
+        },
+        {
+          "title": "Oplossing — meer detail met behoud van de originelen",
+          "summary": "Een gedeelde detaillaag vergelijken met het oorspronkelijke materiaal.",
+          "detail": "De monolieten behouden hun oorspronkelijke kleur-, normal- en metallic/roughness-maps. Een gedeelde Dark Concrete-laag met normal- en roughness-maps van 1K voegt instelbaar oppervlaktedetail toe. Het normalpatroon herhaalt zich twee keer zo vaak als voorheen: kleinere vormen met dezelfde sterkte. Met een vergelijkingsschakelaar keer je terug naar het originele oppervlak.",
+          "alt": "Close-up van het monolietoppervlak met fijne normalmap-details"
+        },
+        {
+          "title": "Resultaat — een zelfstandige browserstudio",
+          "summary": "Een scène verkennen, aanpassen en bewaren.",
+          "detail": "De zelfstandige toepassing bevat orbit- en vliegcamera’s, weerinstellingen en scène-export als JSON of draagbaar pakket. Geoptimaliseerde modellen delen middelen; statische transformaties en de planning van wolkenschaduwen beperken herhaalde berekeningen. De beeldsnelheid hangt nog steeds af van apparaat, aanzicht en kwaliteit. Een statische afbeelding op de homepage verwijst naar de studio zonder daar een extra 3D-renderer te starten.",
+          "alt": "Storm Monolith Studio met monolieten, wolken en zee"
+        }
+      ],
+      "deliverables": [
+        "Zelfstandige openbare studio",
+        "Wolkenradius met zachte rand",
+        "Volumetrische bemonstering op basis van afstand",
+        "Vergelijking tussen origineel en detaillaag",
+        "Opgeslagen begininstellingen en scène-export"
+      ],
+      "tryTitle": "Probeer de scène",
+      "tryText": "Begin bij het ingestelde camerastandpunt en open WEATHER → VOLUMETRIC CLOUDS om Cloud radius of Near detail distance te wijzigen. Selecteer Near left monolith en open MATERIALS om Dark Concrete detail te vergelijken. Verander één instelling tegelijk: meer wolken of fijnere details kunnen meer GPU-werk vragen. Scene JSON bewaart de instellingen; een pakket bevat ook de benodigde scènebestanden."
+    },
+    "it": {
+      "title": "Storm Monolith Studio — costruire l’atmosfera nel browser",
+      "card": "Esplora superfici monumentali, un mare in movimento e nuvole volumetriche in una scena modificabile nel browser. Regola il raggio delle nuvole, confronta i dettagli dei materiali e salva la composizione.",
+      "eyebrow": "Caso di studio · 3D interattivo",
+      "lead": "Uno studio ambientale indipendente di IOM riunisce monoliti scuri, mare e nuvole in una scena da esplorare e modificare in tempo reale.",
+      "impact": "Uno studio pubblico nel browser permette di confrontare direttamente atmosfera e dettagli delle superfici, salvando e riaprendo le impostazioni della scena.",
+      "open": "Apri lo studio",
+      "read": "Leggi l’articolo",
+      "case": "Scopri il caso di studio",
+      "stages": [
+        {
+          "title": "Sfida — mantenere la scena modificabile",
+          "summary": "Dare a un ambiente cinematografico controlli pratici.",
+          "detail": "I monoliti emergono dall’acqua in movimento mentre i banchi di nuvole passano tra le strutture. L’obiettivo era conservare quel senso di scala consentendo al visitatore di cambiare camera, illuminazione e meteo. È uno studio visivo indipendente, non un progetto commissionato da un cliente.",
+          "alt": "Monoliti scuri e un arco sopra il mare, circondati da nuvole dai toni caldi"
+        },
+        {
+          "title": "Soluzione — delimitare le nuvole",
+          "summary": "Controllare l’estensione e la distribuzione dei dettagli.",
+          "detail": "Un raggio nello spazio della scena concentra le nuvole intorno ai monoliti, con un margine sfumato. Le nuvole vicine usano un campionamento volumetrico più fine, che diventa gradualmente più grossolano con la distanza. Cambia il dettaglio del ray marching; l’impostazione di qualità determina la risoluzione del rendering. Nuvole visibili e calcolo delle ombre condividono lo stesso limite spaziale.",
+          "alt": "Nuvole volumetriche intorno al gruppo di monoliti"
+        },
+        {
+          "title": "Soluzione — aggiungere dettagli conservando gli originali",
+          "summary": "Confrontare uno strato condiviso con il materiale iniziale.",
+          "detail": "I monoliti conservano le mappe originali di colore, normali e metallicità/rugosità. Uno strato Dark Concrete condiviso, con mappe di normali e rugosità da 1K, aggiunge dettagli regolabili. Il motivo delle normali si ripete con frequenza doppia rispetto a prima: forme più piccole, con la stessa intensità. Un interruttore di confronto ripristina la superficie originale.",
+          "alt": "Primo piano della superficie di un monolito e dei dettagli della normal map"
+        },
+        {
+          "title": "Risultato — uno studio autonomo nel browser",
+          "summary": "Esplorare, modificare e conservare una scena.",
+          "detail": "L’applicazione autonoma offre camere orbitale e libera, controlli meteo ed esportazione della scena in JSON o come pacchetto portatile. I modelli ottimizzati condividono le risorse; trasformazioni statiche e pianificazione delle ombre delle nuvole riducono i calcoli ripetuti. La fluidità dipende comunque da dispositivo, inquadratura e qualità. Un’immagine statica sulla homepage apre lo studio senza avviare un altro renderer 3D nella pagina.",
+          "alt": "Scena di Storm Monolith Studio con monoliti, nuvole e mare"
+        }
+      ],
+      "deliverables": [
+        "Studio pubblico autonomo",
+        "Raggio delle nuvole con margine sfumato",
+        "Campionamento volumetrico adattato alla distanza",
+        "Confronto tra superficie originale e dettagli",
+        "Impostazioni iniziali salvate ed esportazione della scena"
+      ],
+      "tryTitle": "Prova la scena",
+      "tryText": "Parti dall’inquadratura prevista, poi apri WEATHER → VOLUMETRIC CLOUDS per modificare Cloud radius o Near detail distance. Seleziona Near left monolith e apri MATERIALS per confrontare Dark Concrete detail. Cambia un’impostazione alla volta: nuvole più estese e dettagli più fini possono aumentare il lavoro della GPU. Scene JSON conserva le impostazioni; il pacchetto include anche le risorse necessarie alla scena."
+    },
+    "es": {
+      "title": "Storm Monolith Studio — crear atmósfera en el navegador",
+      "card": "Explora superficies monumentales, un mar en movimiento y nubes volumétricas en una escena editable. Ajusta el radio de las nubes, compara los detalles de los materiales y guarda tu composición.",
+      "eyebrow": "Caso de estudio · 3D interactivo",
+      "lead": "Un estudio ambiental independiente de IOM reúne monolitos oscuros, mar y nubes en una escena que se puede explorar y ajustar en tiempo real.",
+      "impact": "Un estudio público en el navegador permite comparar directamente la atmósfera y los detalles de las superficies, guardar los ajustes de la escena y volver a abrirlos.",
+      "open": "Abrir el estudio",
+      "read": "Leer el artículo",
+      "case": "Ver el caso de estudio",
+      "stages": [
+        {
+          "title": "Reto — mantener la escena editable",
+          "summary": "Dotar de controles prácticos a un entorno cinematográfico.",
+          "detail": "Los monolitos se alzan sobre el agua en movimiento mientras los bancos de nubes cruzan las estructuras. El objetivo era conservar esa sensación de escala y permitir que el visitante cambiara la cámara, la iluminación y el tiempo. Se trata de un estudio visual independiente, no de un encargo de cliente.",
+          "alt": "Monolitos oscuros y un arco sobre el mar, rodeados de nubes de tonos cálidos"
+        },
+        {
+          "title": "Solución — nubes con un alcance definido",
+          "summary": "Controlar su extensión y dónde se emplea el detalle.",
+          "detail": "Un radio en el espacio de la escena centra las nubes en la zona de los monolitos, con un borde suave. Las nubes cercanas usan un muestreo volumétrico más fino que se vuelve gradualmente más grueso a distancia. Esto modifica el detalle del ray marching; el ajuste de calidad controla la resolución del renderizado. Las nubes visibles y el cálculo de sus sombras comparten el mismo límite espacial.",
+          "alt": "Nubes volumétricas alrededor del conjunto de monolitos"
+        },
+        {
+          "title": "Solución — añadir detalles conservando los originales",
+          "summary": "Comparar una capa compartida con el material original.",
+          "detail": "Los monolitos mantienen sus mapas originales de color, normales y metalicidad/rugosidad. Una capa Dark Concrete compartida, con mapas de normales y rugosidad de 1K, añade detalles ajustables. El patrón de normales se repite al doble de frecuencia que antes: las formas son más pequeñas y mantienen su intensidad. Un interruptor de comparación recupera la superficie original.",
+          "alt": "Primer plano de la superficie de un monolito y del detalle de su mapa de normales"
+        },
+        {
+          "title": "Resultado — un estudio independiente en el navegador",
+          "summary": "Explorar, ajustar y conservar una escena.",
+          "detail": "La aplicación independiente incluye cámaras orbital y libre, controles meteorológicos y exportación de la escena en JSON o como paquete portátil. Los modelos optimizados comparten recursos; las transformaciones estáticas y la planificación de sombras de nubes reducen cálculos repetidos. La fluidez sigue dependiendo del dispositivo, la vista y la calidad. Una imagen estática en la portada enlaza al estudio sin iniciar otro renderizador 3D en esa página.",
+          "alt": "Escena de Storm Monolith Studio con monolitos, nubes y mar"
+        }
+      ],
+      "deliverables": [
+        "Estudio público independiente",
+        "Radio de nubes con borde suave",
+        "Muestreo volumétrico adaptado a la distancia",
+        "Comparación entre superficie original y detalle",
+        "Ajustes iniciales guardados y exportación de escenas"
+      ],
+      "tryTitle": "Prueba la escena",
+      "tryText": "Empieza con la vista preparada y abre WEATHER → VOLUMETRIC CLOUDS para cambiar Cloud radius o Near detail distance. Selecciona Near left monolith y abre MATERIALS para comparar Dark Concrete detail. Cambia un ajuste cada vez: una cobertura mayor o más detalle puede exigir más trabajo a la GPU. Scene JSON guarda los ajustes; un paquete incluye también los recursos necesarios para la escena."
+    }
+  }
+}
