@@ -7,8 +7,13 @@ export const RELEASE_TARGET = Object.freeze({
   project: 'prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv',
   team: 'team_9wCcYQpYqlDlPAaUpCqhWXj9',
   domain: 'iobjectm.com',
-  expires: Date.parse('2026-10-21T14:00:00Z'),
+  notBefore: Date.parse('2026-10-27T09:00:00Z'),
+  expires: Date.parse('2026-10-27T10:30:00Z'),
 })
+function requireReleaseWindow(now) {
+  requireRelease(now>=RELEASE_TARGET.notBefore, 'release_approval_not_open')
+  requireRelease(now<RELEASE_TARGET.expires, 'release_approval_expired')
+}
 const PHASES = {A:'PREPARED', B:'PREPARED', C:'ACTIVE'}
 const FRESH_MS = 30 * 60_000
 export function accessDenied(response) {
@@ -38,7 +43,7 @@ export function releaseOperation(argv) {
   return values[0]
 }
 export function protectedProject(project, now=Date.now()) {
-  requireRelease(now < RELEASE_TARGET.expires, 'release_approval_expired')
+  requireReleaseWindow(now)
   requireRelease(project.id===RELEASE_TARGET.project && project.accountId===RELEASE_TARGET.team,'release_wrong_project')
   requireRelease(['all','all_except_custom_domains','prod_deployment_urls_and_all_previews']
     .includes(project.ssoProtection?.deploymentType),'release_url_protection_missing')
@@ -83,7 +88,7 @@ export function bindDomain(deployment,alias) {
   return {...deployment,domainBinding:{alias:alias.alias,projectId:alias.projectId,deploymentId:alias.deploymentId}}
 }
 export function nextBuild(state, operation, now=Date.now()) {
-  requireRelease(now<RELEASE_TARGET.expires, 'release_approval_expired')
+  requireReleaseWindow(now)
   requireRelease(state.builds.length<3 && !state.pending && !state.failed,'release_not_resumable')
   const letter=['A','B','C'][state.builds.length]
   requireRelease(({stage:'A',prepared:'B',active:'C'})[operation]===letter,'release_wrong_sequence')
@@ -95,7 +100,8 @@ export function nextBuild(state, operation, now=Date.now()) {
   return {letter,phase:PHASES[letter],started:now,status:'UNKNOWN',verified:false}
 }
 export function assertPromotable(state, now=Date.now()) {
-  requireRelease(now<RELEASE_TARGET.expires && !state.pending && !state.failed && !state.promoted &&
+  requireReleaseWindow(now)
+  requireRelease(!state.pending && !state.failed && !state.promoted &&
     state.builds.length===1 && state.builds[0].verified===true &&
     now-state.builds[0].proof.at<=FRESH_MS,'release_not_promotable')
 }
@@ -103,7 +109,7 @@ export function assertPromotable(state, now=Date.now()) {
 // All Vercel commands go through the existing CLI session. The caller provides
 // only fixed operations; the record is local, outside the upload manifest.
 export function protectedRelease({root, operation, head, api, cli, checkUrl, prepare, preflight}) {
-  const folder=join(root,'.qa-out','crm-protected-release-20261020')
+  const folder=join(root,'.qa-out','crm-protected-release-20261027')
   mkdirSync(folder,{recursive:true})
   const lock=join(folder,'lock'), statePath=join(folder,'state.json')
   let fd

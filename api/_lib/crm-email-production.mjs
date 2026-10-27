@@ -162,6 +162,7 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
   }
   const validateSchedule=async(actor,schedule)=>{
     if(!schedule)return
+    if(actor.kind==='oauth')fail('email_immediate_only')
     const grant=await grantFor(actor)
     if(!grant || !actor.scopes?.includes('iom:crm:email:schedule') || !grant.scopes.includes('iom:crm:email:schedule'))fail('email_access_denied')
     if(Date.parse(schedule.at)>=Date.parse(grant.expires_at))fail('schedule_exceeds_connection_expiry')
@@ -181,8 +182,9 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
         actor.verifiedStaff===true && actor.aal==='aal2' && actor.ownerId===pin.ownerId &&
         ['review','send'].includes(action) && (action!=='send'||env.CRM_EMAIL_SEND_ENABLED==='true') &&
         await store.staffBinding(pin,EMAIL_STAFF_REVISION)
+      if(actor.kind!=='oauth' || !['review','send'].includes(action))return false
       if(!await grantFor(actor))return false
-      return !['send','schedule'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true'
+      return action!=='send'||env.CRM_EMAIL_SEND_ENABLED==='true'
     },
     beforeDelivery:async(snapshot,context)=>{
       assertProductionTarget(env,pin)
@@ -195,6 +197,7 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
         await store.assertStaffDelivery(context.ownerId,context.jobId,EMAIL_STAFF_REVISION)
         return
       }
+      if(job?.authorization?.kind!=='oauth' || job.schedule)fail('email_immediate_only')
       if(snapshot.fromIdentity!==pin.fromIdentity || snapshot.from!==pin.fromEmail || snapshot.fromHeader!==pin.fromHeader ||
         !['initial','followup'].includes(snapshot.kind) || snapshot.inReplyTo || snapshot.attachments?.length)fail('email_sender_binding_mismatch')
       await store.assertRegularDelivery(context.ownerId,context.jobId,pin.accessRevision)
@@ -210,9 +213,10 @@ function createRegularRuntime({store,pin,dependencies,env,now}) {
     preview:async(actor,args)=>{
       if(args?.fromIdentity!==pin.fromIdentity || args?.replaceLegacySchedule)fail('email_regular_scope_only')
       if(actor.kind==='staff' && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined))fail('email_staff_immediate_only')
+      if(actor.kind==='oauth' && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined))fail('email_immediate_only')
       const review=await flow.preview(bound(actor),args)
       return {...review,authorizationExpiresAt:(await grantFor(actor))?.expires_at,
-        schedulingNote:'Delivery uses the next successful CRM scheduler run after the selected Europe/Belgrade time.'}
+        ...(actor.kind==='oauth'?{note:'Confirm this exact recipient, sender, subject and rendered content for one immediate delivery.'}:{})}
     },
     sendLegacy:async()=>fail('email_explicit_review_required'),
     list:async(actor,args)=>{

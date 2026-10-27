@@ -557,7 +557,7 @@ function main() {
 
 function runProtectedRelease(operation) {
   const workspaceHead=git(['rev-parse','HEAD'])
-  const record=join(root,'.qa-out','crm-protected-release-20261020','state.json')
+  const record=join(root,'.qa-out','crm-protected-release-20261027','state.json')
   const applicationHead=operation==='stage'?workspaceHead:JSON.parse(readFileSync(record,'utf8')).head
   ensureCommit(applicationHead,'Pinned CRM application')
   ensureAncestor(applicationHead,workspaceHead,'Pinned application is not an ancestor of the launcher.')
