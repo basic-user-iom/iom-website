@@ -4,6 +4,8 @@ import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
 import {protectedRelease, releaseOperation, releaseRecordName, operationPhase, RELEASE_TARGET} from './crm-email-protected-release.mjs'
 import {parseHarpOperation, runHarpRelease} from './independent-harp-release.mjs'
 import {createHarpCliAdapter} from './independent-harp-cli.mjs'
+import { readComposition, assertComposition, buildReleaseMetadata, collectPreflight } from './release-provenance.mjs'
+import { createHash } from 'node:crypto'
 /**
  * Scoped production deployment.
  *
@@ -232,26 +234,65 @@ function ensureAncestor(ancestor, descendant, message) {
   if (result.status !== 0) fail(message)
 }
 
-function decodeScopeMap(encoded) {
-  if (!encoded) return {}
-  try {
-    const parsed = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-  } catch {
-    fail('The live deployment has invalid scoped-snapshot metadata.')
-  }
+function productionState(deployment) {
+  // Read the reviewed committed record, never an unrelated working-tree edit.
+  const {descriptor, descriptorDigest} = JSON.parse(git(['show', 'HEAD:config/release-provenance.json']))
+  const allowedScopes = provenanceScopes(descriptor.scopeMap, deployment.meta?.iomScopeMap)
+  const state = readComposition(deployment, {descriptor, descriptorDigest, allowedScopes})
+  const missing = missingCompositionCommits(state)
+  if (missing.length) fail(`Required composition commits unavailable: ${missing.join(', ')}`)
+  return state
 }
 
-function productionState(deployment) {
-  const meta = deployment?.meta || {}
-  const base = meta.iomSnapshotBaseSha || meta.githubCommitSha
-  ensureCommit(base, 'Production baseline')
-  const overlays = decodeScopeMap(meta.iomScopeMap)
-  for (const [scope, sha] of Object.entries(overlays)) {
-    validateScopeName(scope)
-    ensureCommit(sha, `Production overlay ${scope}`)
+function provenanceScopes(...encodedMaps) {
+  const scopes = new Set(knownDeployScopes().filter(scope => !scope.includes('<')))
+  for (const encoded of encodedMaps.filter(Boolean)) {
+    const map = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'))
+    for (const scope of Object.keys(map)) { validateScopeName(scope); scopes.add(scope) }
   }
-  return { base, overlays }
+  return [...scopes]
+}
+
+function missingCompositionCommits(state) {
+  return [...new Set([state.base, ...Object.values(state.overlays)])].filter(sha =>
+    spawnSync('git', ['cat-file', '-e', `${sha}^{commit}`], {cwd:root, stdio:'ignore', windowsHide:true}).status !== 0)
+}
+
+function readOnlyPreflight() {
+  const details = [], checks = {}, expectedCurrentId = 'dpl_C5o1HEzRTwe8F5T3APau2F4SWUA3'
+  let currentId, state
+  try {
+    const {descriptor, descriptorDigest} = JSON.parse(git(['show', 'HEAD:config/release-provenance.json']))
+    const deployment = productionMetadata()
+    currentId = deployment.id
+    state = readComposition(deployment, {descriptor, descriptorDigest,
+      allowedScopes:provenanceScopes(descriptor.scopeMap, deployment.meta?.iomScopeMap)})
+    checks.sourceBindings = true
+  } catch (error) { details.push({check:'sourceBindings', code:error.code || 'committed_provenance_unavailable'}) }
+  if (state) {
+    const missing = missingCompositionCommits(state)
+    checks.gitObjects = missing.length === 0
+    if (missing.length) details.push({check:'gitObjects', missing})
+  }
+  try { checks.candidateClean = !git(['status', '--porcelain']) }
+  catch { checks.candidateClean = false }
+  // These gates require the exact prepared artifact; this cheap read-only pass
+  // reports them as pending, never substitutes a cached PASS for their checks.
+  const result = collectPreflight({expectedCurrentId:currentId && state ? currentId : expectedCurrentId,
+    currentId, checks, testReuse:[]})
+  console.log(JSON.stringify({...result, details, pending:['tests','scanner','r2','sitemap']}, null, 2))
+  return result
+}
+
+function assertRetainedStore(snapshot) {
+  const bytes = readFileSync(join(snapshot.stage, 'api', '_lib', 'crm-email-store.mjs'))
+  const expected = execFileSync('git', ['show', `${snapshot.provenance.store.commit}:api/_lib/crm-email-store.mjs`], {cwd:root})
+  // Exact bytes prevent a later overlapping scope or build from undoing it.
+  if (!bytes.equals(expected)) fail('retained_store_bytes_changed')
+  assertComposition({descriptor:snapshot.provenance, descriptorDigest:snapshot.provenanceDigest,
+    base:snapshot.base, scopeMap:Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url'),
+    files:[{path:'api/_lib/crm-email-store.mjs',sha1:createHash('sha1').update(bytes).digest('hex')}]},
+    provenanceScopes(Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url')))
 }
 
 function listCommitFiles(commit) {
@@ -323,8 +364,7 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
     const base = fullSite ? head : state.base
     const overlays = fullSite ? {} : { ...state.overlays }
     if (!fullSite) for (const scope of scopes) {
-      // The requested scope wins overlaps; unrelated scope commits remain unchanged.
-      delete overlays[scope]
+      // Replace in place: inherited precedence is part of release provenance.
       overlays[scope] = head
     }
     const currentFiles = snapshotFiles(root, base, overlays)
@@ -350,7 +390,11 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
 
     const reuseIdentity = prepareStagedReuse(stage, reuse)
     assertHarpStage(stage, cutover)
-    return { stage, base, overlays, reuse, reuseIdentity, cutover }
+    const snapshot = { stage, base, overlays, reuse, reuseIdentity, cutover,
+      provenance:state.provenance, provenanceDigest:state.provenanceDigest,
+      parentOverlays:{...state.overlays}, parentDeploymentId:deploymentId }
+    assertRetainedStore(snapshot)
+    return snapshot
   } catch (error) {
     cleanupStage(stage)
     throw error
@@ -454,11 +498,24 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
   return scan
 }
 
+function assertProductionUnchanged(snapshot) {
+  const current = productionMetadata()
+  if (current.id !== snapshot.parentDeploymentId || current.projectId !== snapshot.provenance.projectId ||
+      current.target !== 'production' || current.readyState !== 'READY') fail('production_changed_after_preparation')
+  const state = productionState(current)
+  if (JSON.stringify(state.overlays) !== JSON.stringify(snapshot.parentOverlays)) fail('production_composition_changed_after_preparation')
+}
+
 function deploySnapshot(snapshot, head, scopes, emailPhase) {
+  assertProductionUnchanged(snapshot)
   assertHarpStage(snapshot.stage, snapshot.cutover)
+  assertRetainedStore(snapshot)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
-  const scopeMap = Buffer.from(JSON.stringify(snapshot.overlays), 'utf8').toString('base64url')
+  const metadata = buildReleaseMetadata({descriptor:snapshot.provenance, descriptorDigest:snapshot.provenanceDigest,
+    base:snapshot.base, overlays:snapshot.overlays, parentOverlays:snapshot.parentOverlays,
+    head, scope:scopes.join(','), parentDeploymentId:snapshot.parentDeploymentId},
+    provenanceScopes(Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url')))
   packageCommand(npx, [
     '--yes',
     'vercel',
@@ -471,21 +528,16 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
       ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    '--meta',
-    `githubCommitRef=master`,
-    '--meta',
-    `iomCommitSha=${head}`,
-    '--meta',
-    `iomDeployScope=${scopes.join(',')}`,
-    '--meta',
-    `iomSnapshotBaseSha=${snapshot.base}`,
-    '--meta',
-    `iomScopeMap=${scopeMap}`,
+    ...Object.entries(metadata).flatMap(([key, value]) => ['--meta', `${key}=${value}`]),
   ], { cwd: snapshot.stage })
 }
 
 function main() {
   const argv = process.argv.slice(2)
+  if (argv.length === 1 && argv[0] === '--preflight') {
+    if (!readOnlyPreflight().ok) process.exitCode = 1
+    return
+  }
   const harpOperation = parseHarpOperation(argv)
   if (harpOperation) {
     const result = runHarpRelease({root,args:harpOperation,adapter:createHarpCliAdapter(root)})
@@ -528,6 +580,7 @@ function main() {
   try {
     snapshot = composeSnapshot(state, scopes, head, productionManifest, deployment.id)
     buildSnapshot(snapshot.stage, scopes, snapshot.reuse, emailPhase, snapshot.cutover)
+    assertRetainedStore(snapshot)
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.
@@ -544,13 +597,13 @@ function main() {
       // Git hooks may run during push. Re-enumerate and re-scan the exact upload
       // before publication; changed paths/bytes refuse instead of reusing a pass.
       scan: expectedIdentity => verifyUploadManifest(snapshot.stage, scopes, { knownValues, expectedIdentity }, false, snapshot.cutover),
-      push: () => command('git', [
+      push: () => { assertProductionUnchanged(snapshot); return command('git', [
         '-c', 'http.version=HTTP/1.1',
         '-c', 'http.postBuffer=209715200',
         '-c', 'http.lowSpeedLimit=1',
         '-c', 'http.lowSpeedTime=30',
         'push', 'origin', `${head}:refs/heads/master`,
-      ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }),
+      ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }) },
       publish: () => deploySnapshot(snapshot, head, scopes, emailPhase),
     })
     if (verifyOnly) console.log('Verification complete. Nothing was pushed or deployed.\n')

@@ -1,4 +1,6 @@
 const NAMED_SCOPES = {
+  // Exact committed store bytes, applied after the existing CRM email overlay.
+  'crm-email-store': ['api/_lib/crm-email-store.mjs'],
   // Reviewed email backend and its three browser entry points only.
   'crm-email': [
     'src/crm/InitialOutreachPanel.tsx',
@@ -121,6 +123,8 @@ const NAMED_SCOPES = {
     'scripts/build-streets-gl.mjs',
   ],
   deployment: [
+    'scripts/release-provenance.mjs',
+    'config/release-provenance.json',
     'scripts/harp-root-cutover.mjs',
     'config/harp-root-cutover.json',
     'scripts/independent-harp-release.mjs',
