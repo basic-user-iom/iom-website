@@ -505,7 +505,8 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
     writeVerificationAudit(preparingAssets ? 'pre-r2-upload' : 'final-upload', {
       fileCount: manifest.fileCount, totalSize: manifest.totalSize,
       files: manifest.files.map(entry => ({path: entry.path.replaceAll('\\', '/'), size: entry.size,
-        sha1: createHash('sha1').update(readFileSync(join(stage, entry.path))).digest('hex')}))
+        directory: (entry.mode & 0o170000) === 0o040000,
+        sha1: (entry.mode & 0o170000) === 0o040000 ? null : createHash('sha1').update(readFileSync(join(stage, entry.path))).digest('hex')}))
     })
   }
   console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; configured secret checks passed.\n`)

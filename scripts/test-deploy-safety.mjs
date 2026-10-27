@@ -216,7 +216,7 @@ test('real media gate keeps the 120000 ms boundary with a controlled clock', () 
   assert.equal(excess.reads, 0)
 })
 
-function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false', fault = '' } = {}) {
+function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false', fault = '', directoryMarker = false } = {}) {
   const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'iom-deploy-control-test-'))
   t.after(() => {
     assert.equal(path.dirname(stage), os.tmpdir())
@@ -224,10 +224,11 @@ function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false'
     fs.rmSync(stage, { recursive: true, force: true })
   })
   fs.writeFileSync(path.join(stage, 'app.js'), 'export const fixture = true;\n')
+  if (directoryMarker) fs.mkdirSync(path.join(stage, 'empty-directory'))
   const events = [], local = [], remote = [], r2 = []
   const env = { IOM_SKIP_BLOG_SYNC: inheritedSkip, CRM_EMAIL_RELEASE_PHASE: 'PREPARED' }
   const manifest = () => {
-    const files = fs.readdirSync(stage).map(file => ({ path: file, size: fs.statSync(path.join(stage, file)).size }))
+    const files = fs.readdirSync(stage).map(file => ({ path: file, size: fs.statSync(path.join(stage, file)).isDirectory() ? 0 : fs.statSync(path.join(stage, file)).size, mode: fs.statSync(path.join(stage, file)).isDirectory() ? 0o040755 : 0o100644 }))
     return { files, fileCount: files.length, totalSize: files.reduce((n, file) => n + file.size, 0) }
   }
   const context = vm.createContext({
@@ -459,4 +460,10 @@ test('verification-only R2 client permits public HEAD and refuses mutations with
   await assert.rejects(client.request('PUT','test-key'),/Read-only verification/)
   assert.deepEqual(requests,[{key:'test-key',method:'HEAD'}])
   assert.match(read('scripts/prepare-r2-release.mjs'),/const client = verifyOnly \? verificationAssetsClient\(\) : await createAssetsClient\(\)/)
+})
+
+test('Storm verify-only inventory handles validated directory markers without reading them as files', t => {
+  const h=harness(t,{scope:'storm-publication',verifyOnly:true,directoryMarker:true})
+  assert.doesNotThrow(h.run)
+  assert.ok(!h.events.includes('push') && !h.events.includes('publish'))
 })
