@@ -211,6 +211,8 @@ export const enUi: Dict = {
   'contact.errRequired': 'Please fill in this field.',
   'contact.errEmail': 'Enter a valid email address.',
 
+  'card.readMore': 'Read more',
+  'card.readLess': 'Read less',
   'card.open': 'Open →',
   'card.viewStudy': 'View study →',
   'card.viewGallery': 'View gallery →',

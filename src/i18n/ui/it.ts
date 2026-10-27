@@ -154,6 +154,8 @@ export const itUi: Dict = {
   'contact.errRequired': 'Compila questo campo.',
   'contact.errEmail': 'Inserisci un indirizzo email valido.',
 
+  'card.readMore': 'Leggi di più',
+  'card.readLess': 'Mostra meno',
   'card.open': 'Apri →',
   'card.viewStudy': 'Vedi case study →',
   'card.viewGallery': 'Vedi galleria →',

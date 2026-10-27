@@ -3486,6 +3486,46 @@ html.is-in-music-section .music-player-transport {
   line-height: 1.6;
 }
 
+/* Compact 3D descriptions; Software and other card sections retain their layout. */
+.project-card--3d .card-description-disclosure {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 1rem;
+}
+
+.project-card--3d .card-description-text {
+  flex: none;
+  margin: 0;
+}
+
+.project-card--3d .card-description-disclosure[data-expanded='false'] .card-description-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.project-card--3d .card-description-toggle {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.project-card--3d .card-description-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .card-footer {
   display: flex;
   flex-direction: column;

@@ -154,6 +154,8 @@ export const nlUi: Dict = {
   'contact.errRequired': 'Vul dit veld in.',
   'contact.errEmail': 'Voer een geldig e-mailadres in.',
 
+  'card.readMore': 'Lees meer',
+  'card.readLess': 'Lees minder',
   'card.open': 'Open →',
   'card.viewStudy': 'Bekijk study →',
   'card.viewGallery': 'Bekijk galerij →',

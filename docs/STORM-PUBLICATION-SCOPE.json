@@ -27,13 +27,21 @@
     "src/blog/sitePublishedPosts.ts",
     "src/case-studies/CaseStudyApp.tsx",
     "src/case-studies/stormMonolith.ts",
+    "src/components/ProjectCard.tsx",
     "src/data/projects.ts",
     "src/data/stormPublication.json",
     "src/i18n/caseStudies/index.ts",
     "src/i18n/projects/localize.ts",
+    "src/i18n/ui/de.ts",
+    "src/i18n/ui/en.ts",
+    "src/i18n/ui/es.ts",
+    "src/i18n/ui/fr.ts",
+    "src/i18n/ui/it.ts",
+    "src/i18n/ui/nl.ts",
+    "src/index.css",
     "src/seo/pageMeta.ts",
     "vercel.json",
     "vite.config.ts"
   ],
-  "note": "Exact 32-path candidate: reviewed Storm editorial and necessary isolated release preparation fixes. No shared checkout integration or publication."
+  "note": "Exact 40-path Storm candidate: prior 32 paths plus the approved 3D-only description control, scoped CSS and six UI dictionaries. No Software behavior change, standalone redeploy or CMS write."
 }

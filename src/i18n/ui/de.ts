@@ -154,6 +154,8 @@ export const deUi: Dict = {
   'contact.errRequired': 'Bitte füllen Sie dieses Feld aus.',
   'contact.errEmail': 'Geben Sie eine gültige E-Mail-Adresse ein.',
 
+  'card.readMore': 'Mehr lesen',
+  'card.readLess': 'Weniger anzeigen',
   'card.open': 'Öffnen →',
   'card.viewStudy': 'Case Study →',
   'card.viewGallery': 'Galerie →',

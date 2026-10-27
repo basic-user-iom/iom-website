@@ -175,6 +175,14 @@ const NAMED_SCOPES = {
   ],
   // Storm portfolio/editorial only; standalone deployment remains independent.
   'storm-publication': [
+    'src/components/ProjectCard.tsx',
+    'src/index.css',
+    'src/i18n/ui/en.ts',
+    'src/i18n/ui/de.ts',
+    'src/i18n/ui/fr.ts',
+    'src/i18n/ui/nl.ts',
+    'src/i18n/ui/it.ts',
+    'src/i18n/ui/es.ts',
     'scripts/deploy-production.mjs',
     'scripts/test-deploy-safety.mjs',
     'scripts/prepare-r2-release.mjs',

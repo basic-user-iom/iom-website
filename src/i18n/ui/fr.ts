@@ -154,6 +154,8 @@ export const frUi: Dict = {
   'contact.errRequired': 'Veuillez remplir ce champ.',
   'contact.errEmail': 'Entrez une adresse e-mail valide.',
 
+  'card.readMore': 'Lire la suite',
+  'card.readLess': 'Réduire',
   'card.open': 'Ouvrir →',
   'card.viewStudy': 'Voir l’étude →',
   'card.viewGallery': 'Voir la galerie →',

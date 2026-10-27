@@ -154,6 +154,8 @@ export const esUi: Dict = {
   'contact.errRequired': 'Completa este campo.',
   'contact.errEmail': 'Introduce un correo electrónico válido.',
 
+  'card.readMore': 'Leer más',
+  'card.readLess': 'Mostrar menos',
   'card.open': 'Abrir →',
   'card.viewStudy': 'Ver estudio →',
   'card.viewGallery': 'Ver galería →',

@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { cursorPropsForProject } from '../cursor'
 import { projectAllowsHoverEmbed, type Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
@@ -47,6 +47,53 @@ function useCountdown(targetIso?: string): { isPending: boolean; label: string }
   }
 }
 
+function ThreeDCardDescription({ text, moreLabel, lessLabel }: { text: string; moreLabel: string; lessLabel: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
+  const textId = useId()
+
+  useEffect(() => {
+    if (expanded) return
+    const element = textRef.current
+    if (!element) return
+    let disposed = false
+    const measure = () => {
+      if (!disposed) setOverflows(element.scrollHeight > element.clientHeight + 1)
+    }
+    measure()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(element)
+    window.addEventListener('resize', measure)
+    void document.fonts?.ready.then(measure)
+    return () => {
+      disposed = true
+      observer?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [expanded, text])
+
+  return (
+    <div className="card-description-disclosure" data-expanded={expanded}>
+      <p ref={textRef} id={textId} className="card-desc card-description-text">{text}</p>
+      {overflows || expanded ? (
+        <button
+          type="button"
+          className="card-description-toggle"
+          aria-expanded={expanded}
+          aria-controls={textId}
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((value) => !value)
+          }}
+        >
+          {expanded ? lessLabel : moreLabel}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 interface ProjectCardProps {
   project: Project
   style?: CSSProperties
@@ -60,7 +107,7 @@ export const ProjectCard = memo(function ProjectCard({
   musicActive = false,
   onMusicSelect,
 }: ProjectCardProps) {
-  const { t, href } = useSiteI18n()
+  const { t, href, lang } = useSiteI18n()
   const orbs = useSiteOrbsOptional()
   const [embedFailed, setEmbedFailed] = useState(false)
   const [embedLoaded, setEmbedLoaded] = useState(false)
@@ -99,7 +146,7 @@ export const ProjectCard = memo(function ProjectCard({
   // Live hover iframes must not sit inside a wrapping <a> (invalid HTML; browsers
   // opaque-block same-URL frames). Use the multi-link article shell instead.
   const hasEmbedPreview = Boolean(project.embedUrl)
-  const useMultiLinkShell = hasSecondaryLinks || hasEmbedPreview
+  const useMultiLinkShell = hasSecondaryLinks || hasEmbedPreview || project.section === '3d'
   const canEmbed = Boolean(project.embedUrl) && !embedFailed
   const hoverEmbedAllowed = projectAllowsHoverEmbed(project)
   const useStaticEmbed = canEmbed && (profile.useEmbedStaticFallback || !hoverEmbedAllowed)
@@ -451,7 +498,14 @@ export const ProjectCard = memo(function ProjectCard({
             ))}
           </div>
           <h3 className="card-title">{project.title}</h3>
-          <p className="card-desc">{project.description}</p>
+          {project.section === '3d' ? (
+            <ThreeDCardDescription
+              key={project.id + ':' + lang + ':' + project.description}
+              text={project.description}
+              moreLabel={t('card.readMore')}
+              lessLabel={t('card.readLess')}
+            />
+          ) : <p className="card-desc">{project.description}</p>}
           <div className="card-footer">
             <div className="card-footer-meta">
               <span className="card-year">{project.year}</span>
@@ -557,7 +611,7 @@ export const ProjectCard = memo(function ProjectCard({
     </>
   )
 
-  const className = `project-card reveal${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
+  const className = `project-card reveal${project.section === '3d' ? ' project-card--3d' : ''}${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
   const cursorProps = isComingSoon ? undefined : cursorPropsForProject(project)
 
   if (project.url && !isComingSoon && useMultiLinkShell) {
