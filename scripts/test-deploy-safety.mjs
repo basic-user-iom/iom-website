@@ -238,10 +238,16 @@ function harness(t, { scope = 'crm', verifyOnly = false, inheritedSkip = 'false'
     MAX_SOURCE_BYTES: 1_000_000_000, FORBIDDEN_UPLOAD_PREFIXES: ['.env', '.qa-out/'],
     knownDeployScopes, matchesDeployScope, inferDeployScope, isValidProjectSlug,
     isValidDemoSlug: () => false, requestedEmailReleasePhase, knownValuesFromEnvironment, withScannedRelease,
-    releaseOperation: () => null, ensureCommit() {}, ensureAncestor() {},
+    releaseOperation: () => null, parseHarpOperation: () => null, ensureCommit() {}, ensureAncestor() {},
+    // This fixture exercises build/scan/push orchestration, not external HARP or
+    // provenance providers. Their production implementations remain unchanged.
+    assertHarpStage() {}, assertNoHarpManifest() {}, sealHarpRemoteBuild() {},
+    assertRetainedStore() { if (fault === 'store') throw new Error('synthetic retained store mismatch') },
+    assertProductionUnchanged() { if (fault === 'production') throw new Error('synthetic production changed') },
+    buildReleaseMetadata: () => ({}), provenanceScopes: () => [],
     git: args => args.includes('origin/master') ? 'a'.repeat(40) : 'b'.repeat(40),
     changedFiles: () => scope === 'crm' ? crmFiles : [scope === 'crm-email'
-      ? 'api/_lib/crm-email-tools.mjs' : 'lobo-mobo-study/src/main.ts'],
+      ? 'api/_lib/crm-email-tools.mjs' : scope === 'storm-publication' ? 'src/data/stormPublication.json' : 'lobo-mobo-study/src/main.ts'],
     productionMetadata: () => ({ id: 'synthetic-deployment' }),
     productionState: () => ({ base: 'a'.repeat(40), overlays: { 'project:lobo-mobo-study': 'c'.repeat(40) } }),
     readProductionManifest: () => ({}),
@@ -335,6 +341,15 @@ test('unclear publication propagates failure with one attempt and no rollback', 
   assert.match(launcher.text, /catch \(error\)[\s\S]*process\.exitCode = 1/)
 })
 
+test('provenance guard failures stop orchestration before any push or publication', t => {
+  for (const fault of ['store', 'production']) {
+    const h = harness(t, { fault })
+    assert.throws(h.run, /synthetic retained store mismatch|synthetic production changed/)
+    assert.ok(!h.events.includes('push') && !h.events.includes('publish'))
+    assert.equal(h.events.at(-1), 'cleanup')
+  }
+})
+
 test('real R2 worker refuses a missing object before reading bytes or requesting PUT', async () => {
   const tree = ts.createSourceFile('r2.mjs', read('scripts/prepare-r2-release.mjs'), ts.ScriptTarget.Latest, true)
   const worker = declaration(tree, 'prepare').body.statements.filter(n =>
@@ -417,4 +432,31 @@ test('changed hashes/literals, copied paths, signatures and configured values st
     const prefixed = source + '\nconst fixture="sk-proj-' + 'a'.repeat(24) + '";'
     assert.ok(scanReleaseFile(file, Buffer.from(prefixed)).rules.includes('credential_token_prefix'))
   }
+})
+
+test('Storm forces blog sync off in local and remote builds without changing other scope policy', t => {
+  for (const inheritedSkip of ['false', 'true']) {
+    const h = harness(t, {scope:'storm-publication', inheritedSkip}); h.run()
+    assert.equal(h.local[0].IOM_SKIP_BLOG_SYNC,'true')
+    assert.equal(h.env.IOM_SKIP_BLOG_SYNC,inheritedSkip)
+    assert.equal(h.remote[0].filter(x=>x==='IOM_SKIP_BLOG_SYNC=true').length,1)
+    assert.equal(h.remote[0][h.remote[0].indexOf('IOM_SKIP_BLOG_SYNC=true')-1],'--build-env')
+    assert.ok(!h.remote[0].some(x=>x.startsWith('CRM_EMAIL_RELEASE_PHASE=')))
+  }
+  const h=harness(t,{scope:'storm-publication',verifyOnly:true});h.run()
+  assert.equal(h.local[0].IOM_SKIP_BLOG_SYNC,'true')
+  assert.ok(h.r2[0].includes('--verify-only'))
+  assert.ok(!h.events.includes('push') && !h.events.includes('publish'))
+})
+
+test('verification-only R2 client permits public HEAD and refuses mutations without credentials', async () => {
+  const tree=ts.createSourceFile('r2.mjs',read('scripts/prepare-r2-release.mjs'),ts.ScriptTarget.Latest,true)
+  const requests=[]
+  const context=vm.createContext({publicRequest:async(key,method)=>{requests.push({key,method});return {status:200}}})
+  vm.runInContext(declaration(tree,'verificationAssetsClient').getText(tree),context)
+  const client=context.verificationAssetsClient()
+  assert.equal((await client.request('HEAD','test-key')).status,200)
+  await assert.rejects(client.request('PUT','test-key'),/Read-only verification/)
+  assert.deepEqual(requests,[{key:'test-key',method:'HEAD'}])
+  assert.match(read('scripts/prepare-r2-release.mjs'),/const client = verifyOnly \? verificationAssetsClient\(\) : await createAssetsClient\(\)/)
 })

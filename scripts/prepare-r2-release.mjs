@@ -17,6 +17,13 @@ const stageArg = args.indexOf('--stage')
 const verifyOnly = args.includes('--verify-only')
 const PROJECT = 'prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv'
 
+function verificationAssetsClient() {
+  return { async request(method, key) {
+    if (method !== 'HEAD') throw new Error('Read-only verification permits HEAD only')
+    return publicRequest(key, method)
+  } }
+}
+
 async function publicRequest(key, method, headers = {}) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
@@ -111,7 +118,7 @@ async function prepare() {
     const bytes = readAsset(join(stage, 'dist'), entry.path)
     if (bytes.length !== entry.bytes || sha256(bytes) !== entry.sha256) throw new Error(`Public/build asset mismatch: ${entry.path}`)
   }
-  const client = await createAssetsClient()
+  const client = verifyOnly ? verificationAssetsClient() : await createAssetsClient()
   const objects = [...new Map(files.map(entry => [entry.key, entry])).values()]
   let cursor = 0, verified = 0, uploaded = 0, failure
   await Promise.all(Array.from({ length: 4 }, async () => {

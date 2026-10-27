@@ -175,6 +175,9 @@ const NAMED_SCOPES = {
   ],
   // Storm portfolio/editorial only; standalone deployment remains independent.
   'storm-publication': [
+    'scripts/deploy-production.mjs',
+    'scripts/test-deploy-safety.mjs',
+    'scripts/prepare-r2-release.mjs',
     'docs/STORM-PUBLICATION-HANDOFF.md',
     'docs/STORM-PUBLICATION-SCOPE.json',
     'public/assets/blog/storm-monolith-studio/detail.webp',
