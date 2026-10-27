@@ -6,6 +6,7 @@ const NAMED_SCOPES = {
     'src/crm/reviewedStaffEmail.ts',
     'src/crm/reviewedStaffSender.ts',
     'scripts/deploy-reviewed-public-data.json',
+    'scripts/deploy-reviewed-protocol-data.json',
     'scripts/validate-crm-email-build.mjs',
     'scripts/crm-email-release-phase.mjs',
     'scripts/crm-email-protected-release.mjs',
