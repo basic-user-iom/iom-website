@@ -10,11 +10,36 @@ export const RELEASE_TARGET = Object.freeze({
   notBefore: Date.parse('2026-10-27T00:13:00Z'),
   expires: Date.parse('2026-10-27T01:43:00Z'),
 })
-function requireReleaseWindow(now) {
-  requireRelease(now>=RELEASE_TARGET.notBefore, 'release_approval_not_open')
-  requireRelease(now<RELEASE_TARGET.expires, 'release_approval_expired')
-}
+// Separate from the expired activation window. This does not reopen it.
+export const UPGRADE_WINDOW = Object.freeze({
+  notBefore: Date.parse('2026-10-27T06:30:00Z'),
+  expires: Date.parse('2026-10-27T08:00:00Z'),
+})
+export const UPGRADE_BASELINE = Object.freeze({
+  id: 'dpl_AjxZPNnCTShXdiPz1f4pUYJkBs91',
+  base: '0d518e0c907c2859cddcf90890d3cb780ea310ac',
+})
+export const RELEASE_RECORDS = Object.freeze({
+  activation: 'crm-protected-release-20261027',
+  upgrade: 'crm-protected-release-upgrade-20261027',
+})
+const UPGRADE_OPERATIONS = new Set(['upgrade','upgrade-inspect','upgrade-promote'])
 const PHASES = {A:'PREPARED', B:'PREPARED', C:'ACTIVE'}
+export function isUpgradeOperation(operation) { return UPGRADE_OPERATIONS.has(operation) }
+export function releaseRecordName(operation) {
+  return isUpgradeOperation(operation) ? RELEASE_RECORDS.upgrade : RELEASE_RECORDS.activation
+}
+export function operationPhase(operation) {
+  return operation==='upgrade' || operation==='active' ? 'ACTIVE' : 'PREPARED'
+}
+function releaseWindow(operation) {
+  return isUpgradeOperation(operation) ? UPGRADE_WINDOW : RELEASE_TARGET
+}
+export function phaseBindingHolds(state, build) {
+  if (state?.mode==='upgrade') return build?.letter==='A' && build?.phase==='ACTIVE'
+  if (state?.mode && state.mode!=='activation') return false
+  return build?.phase===PHASES[build?.letter]
+}
 const FRESH_MS = 30 * 60_000
 export function accessDenied(response) {
   return response?.status===401 || (response?.status===302 &&
@@ -35,25 +60,28 @@ export function releaseOperation(argv) {
   }
   requireRelease(values.length<=1, 'release_operation_duplicate')
   if(!values.length)return null
-  requireRelease(['stage','inspect','promote','prepared','active'].includes(values[0]), 'release_operation_invalid')
+  requireRelease(['stage','inspect','promote','prepared','active','upgrade','upgrade-inspect','upgrade-promote'].includes(values[0]), 'release_operation_invalid')
   // Do not combine the fixed release state machine with arbitrary targets or phases.
   const allowed = ['--scope=crm-email', `--crm-email-release=${values[0]}`]
   requireRelease(args.length===2 && args.every(a=>allowed.includes(a)) &&
     args.includes('--scope=crm-email'), 'release_requires_exact_crm_options')
   return values[0]
 }
-export function protectedProject(project, now=Date.now()) {
-  requireReleaseWindow(now)
+export function protectedProject(project, now=Date.now(), window=RELEASE_TARGET) {
+  requireRelease(now>=window.notBefore, 'release_approval_not_open')
+  requireRelease(now<window.expires, 'release_approval_expired')
   requireRelease(project.id===RELEASE_TARGET.project && project.accountId===RELEASE_TARGET.team,'release_wrong_project')
   requireRelease(['all','all_except_custom_domains','prod_deployment_urls_and_all_previews']
     .includes(project.ssoProtection?.deploymentType),'release_url_protection_missing')
 }
 export function boundDeployment(d, state, build) {
   requireRelease(d.projectId===RELEASE_TARGET.project && d.target==='production', 'release_wrong_deployment')
+  requireRelease(phaseBindingHolds(state, build), 'release_deployment_binding_mismatch')
   requireRelease(d.meta?.iomReleaseRun===state.run && d.meta.iomReleaseBuild===build.letter &&
-    d.meta.iomReleasePhase===PHASES[build.letter] && d.meta.iomVerifierSha===state.verifier &&
+    d.meta.iomReleasePhase===build.phase && d.meta.iomVerifierSha===state.verifier &&
     d.meta.iomCommitSha===state.head && d.meta.iomSnapshotBaseSha===state.base &&
     d.meta.iomScopeMap===state.scopeMap, 'release_deployment_binding_mismatch')
+  requireRelease(state.mode==='upgrade' ? d.meta?.iomReleaseKind==='upgrade' : d.meta?.iomReleaseKind===undefined, 'release_deployment_binding_mismatch')
   requireRelease(typeof d.url==='string' && /^[a-z0-9-]+\.vercel\.app$/.test(d.url),'release_invalid_url')
 }
 export function proofFromLogs(logs, d, state, build, now=Date.now()) {
@@ -62,7 +90,8 @@ export function proofFromLogs(logs, d, state, build, now=Date.now()) {
   let p
   try{p=JSON.parse(lines[0].slice(lines[0].indexOf('[crm-email-proof] ')+18))}
   catch{requireRelease(false,'release_proof_malformed')}
-  requireRelease(p.run===state.run && p.build===build.letter && p.phase===PHASES[build.letter] &&
+  requireRelease(phaseBindingHolds(state, build), 'release_proof_binding_mismatch')
+  requireRelease(p.run===state.run && p.build===build.letter && p.phase===build.phase &&
     p.verifier===state.verifier && p.url===d.url && p.project===RELEASE_TARGET.project &&
     p.effective===true && p.ok===true && p.gateway==='iom_email_gateway' &&
     p.session==='iom_email_gateway' && p.combinations===12, 'release_proof_binding_mismatch')
@@ -88,9 +117,16 @@ export function bindDomain(deployment,alias) {
   return {...deployment,domainBinding:{alias:alias.alias,projectId:alias.projectId,deploymentId:alias.deploymentId}}
 }
 export function nextBuild(state, operation, now=Date.now()) {
-  requireReleaseWindow(now)
+  const window=releaseWindow(operation==='upgrade'?'upgrade':'stage')
+  requireRelease(now>=window.notBefore, 'release_approval_not_open')
+  requireRelease(now<window.expires, 'release_approval_expired')
   requireRelease(state.builds.length<3 && !state.pending && !state.failed,'release_not_resumable')
   const letter=['A','B','C'][state.builds.length]
+  if(operation==='upgrade') {
+    requireRelease(state.mode==='upgrade' && letter==='A', 'release_wrong_sequence')
+    return {letter:'A',phase:'ACTIVE',started:now,status:'UNKNOWN',verified:false}
+  }
+  requireRelease(state.mode!=='upgrade', 'release_wrong_sequence')
   requireRelease(({stage:'A',prepared:'B',active:'C'})[operation]===letter,'release_wrong_sequence')
   if(letter!=='A') {
     const previous=state.builds.at(-1)
@@ -100,16 +136,21 @@ export function nextBuild(state, operation, now=Date.now()) {
   return {letter,phase:PHASES[letter],started:now,status:'UNKNOWN',verified:false}
 }
 export function assertPromotable(state, now=Date.now()) {
-  requireReleaseWindow(now)
+  const window=releaseWindow(state.mode==='upgrade'?'upgrade':'stage')
+  requireRelease(now>=window.notBefore, 'release_approval_not_open')
+  requireRelease(now<window.expires, 'release_approval_expired')
   requireRelease(!state.pending && !state.failed && !state.promoted &&
     state.builds.length===1 && state.builds[0].verified===true &&
+    phaseBindingHolds(state, state.builds[0]) &&
     now-state.builds[0].proof.at<=FRESH_MS,'release_not_promotable')
 }
 
 // All Vercel commands go through the existing CLI session. The caller provides
 // only fixed operations; the record is local, outside the upload manifest.
-export function protectedRelease({root, operation, head, api, cli, checkUrl, prepare, preflight}) {
-  const folder=join(root,'.qa-out','crm-protected-release-20261027')
+export function protectedRelease({root, operation, head, api, cli, checkUrl, prepare, preflight, now=Date.now()}) {
+  const folder=join(root,'.qa-out',releaseRecordName(operation))
+  const step=operation==='upgrade'?'stage':operation==='upgrade-inspect'?'inspect':operation==='upgrade-promote'?'promote':operation
+  const window=releaseWindow(operation)
   mkdirSync(folder,{recursive:true})
   const lock=join(folder,'lock'), statePath=join(folder,'state.json')
   let fd
@@ -126,11 +167,11 @@ export function protectedRelease({root, operation, head, api, cli, checkUrl, pre
     }
   }
   try {
-    protectedProject(project())
+    protectedProject(project(), now, window)
     if(existsSync(statePath))state=JSON.parse(readFileSync(statePath,'utf8'))
-    if(operation==='stage')requireRelease(!state,'release_record_exists_no_retry')
+    if(step==='stage')requireRelease(!state,'release_record_exists_no_retry')
     else requireRelease(state && state.head===head,'release_source_changed')
-    if(operation==='inspect') {
+    if(step==='inspect') {
       requireRelease(state.pending && state.builds.length>0,'release_nothing_pending')
       const b=state.builds.at(-1)
       requireRelease(b.id,'release_unknown_creation_inspect_manually_no_retry')
@@ -142,52 +183,56 @@ export function protectedRelease({root, operation, head, api, cli, checkUrl, pre
       requireRelease(!d.alias?.includes(RELEASE_TARGET.domain),'release_check_unexpectedly_promoted')
       requireRelease(accessDenied(checkUrl(d.url)),'release_unauthenticated_access_not_denied')
       const logs=cli(['inspect',d.id,'--logs'],{capture:true})
-      const proof=proofFromLogs(logs,d,state,b)
+      const proof=proofFromLogs(logs,d,state,b,now)
       b.status='READY';b.verified=true;b.proof=proof;state.pending=false
       save()
       return {status:'VERIFIED',build:b.letter,id:b.id,proof}
     }
-    if(operation==='promote') {
-      assertPromotable(state);idle()
+    if(step==='promote') {
+      assertPromotable(state, now);idle()
       validateLive(live(),state,false)
       const b=state.builds[0],d=api('/v13/deployments/'+b.id)
       boundDeployment(d,state,b)
       requireRelease(d.readyState==='READY' && !d.alias?.includes(RELEASE_TARGET.domain),'release_candidate_changed')
       requireRelease(accessDenied(checkUrl(d.url)),'release_unauthenticated_access_not_denied')
-      proofFromLogs(cli(['inspect',d.id,'--logs'],{capture:true}),d,state,b)
+      proofFromLogs(cli(['inspect',d.id,'--logs'],{capture:true}),d,state,b,now)
       // Re-read immediately before the only domain-changing command.
-      protectedProject(project());validateLive(live(),state,false)
+      protectedProject(project(), now, window);validateLive(live(),state,false)
       state.pending='PROMOTION_UNKNOWN';save()
       cli(['promote',b.id,'--yes','--timeout','3m'],{capture:true})
       validateLive(live(),state,true)
-      state.promoted=true;state.pending=false;state.promotedAt=Date.now();save()
+      state.promoted=true;state.pending=false;state.promotedAt=now;save()
       return {status:'PROMOTED',id:b.id,baseline:state.baseline.id}
     }
     idle()
     preflight()
     const baseline=live()
+    if(operation==='upgrade')requireRelease(baseline.id===UPGRADE_BASELINE.id &&
+      baseline.meta?.iomSnapshotBaseSha===UPGRADE_BASELINE.base,'release_live_drift')
     if(state)validateLive(baseline,state,true)
     // prepare retains the original committed snapshot/scoped-push/secret-scanner gates.
     return prepare({baseline, state, publish: snapshot => {
       const verifier=digest(readFileSync(join(snapshot.stage,'scripts','validate-crm-email-build.mjs')))
       const config=digest(readFileSync(join(snapshot.stage,'vercel.json')))
       const scopeMap=Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url')
-      if(!state)state={run:randomUUID(),head,base:snapshot.base,scopeMap,verifier,config,
+      if(!state)state={run:randomUUID(),head,base:snapshot.base,scopeMap,verifier,config,mode:operation==='upgrade'?'upgrade':'activation',
         baseline:{id:baseline.id,base:baseline.meta.iomSnapshotBaseSha,scopeMap:baseline.meta.iomScopeMap},
-        created:Date.now(),builds:[],promoted:false,pending:false}
+        created:now,builds:[],promoted:false,pending:false}
       requireRelease(state.base===snapshot.base && state.scopeMap===scopeMap &&
         state.verifier===verifier && state.config===config,'release_snapshot_changed')
-      const b=nextBuild(state,operation)
-      protectedProject(project());idle();validateLive(live(),state,state.promoted===true)
+      const b=nextBuild(state,operation,now)
+      protectedProject(project(), now, window);idle();validateLive(live(),state,state.promoted===true)
       state.builds.push(b);state.pending=true;save() // Reserve before any remote creation.
       const args=['deploy','--prod','--skip-domain','--force','--no-wait','--yes','--cwd',snapshot.stage,
         '--project',RELEASE_TARGET.project,
         '--build-env','IOM_SKIP_BLOG_SYNC=true','--build-env',`CRM_EMAIL_RELEASE_PHASE=${b.phase}`,
         '--build-env',`CRM_EMAIL_RELEASE_RUN=${state.run}`,'--build-env',`CRM_EMAIL_RELEASE_BUILD=${b.letter}`]
-      for(const [key,value] of Object.entries({githubCommitRef:'master',iomCommitSha:head,iomDeployScope:'crm-email',
+      if(state.mode==='upgrade')args.push('--build-env','CRM_EMAIL_RELEASE_KIND=upgrade')
+      const meta={githubCommitRef:'master',iomCommitSha:head,iomDeployScope:'crm-email',
         iomSnapshotBaseSha:state.base,iomScopeMap:state.scopeMap,iomReleaseRun:state.run,
-        iomReleaseBuild:b.letter,iomReleasePhase:b.phase,iomVerifierSha:state.verifier}))
-        args.push('--meta',`${key}=${value}`)
+        iomReleaseBuild:b.letter,iomReleasePhase:b.phase,iomVerifierSha:state.verifier}
+      if(state.mode==='upgrade')meta.iomReleaseKind='upgrade'
+      for(const [key,value] of Object.entries(meta)) args.push('--meta',`${key}=${value}`)
       cli(args,{capture:true,cwd:snapshot.stage})
       // Agent-mode CLI output may be structured JSON. Resolve the one already
       // created deployment by immutable run/build metadata, never by free text.

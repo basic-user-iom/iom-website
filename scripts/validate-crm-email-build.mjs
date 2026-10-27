@@ -298,6 +298,15 @@ export async function runBuildValidation({ env, approvalPin, createClient, ident
   return { ok: results.every(row => row.status === 'PASS'), skipped: false, results }
 }
 
+// Activation keeps A/B PREPARED and C ACTIVE. An already-active upgrade may
+// prove ACTIVE only as build A, and only when the release kind is exactly upgrade.
+export function acceptedReleaseBinding(kind, build, phase) {
+  if (!['A','B','C'].includes(build) || !['PREPARED','ACTIVE'].includes(phase)) return false
+  if (kind==='upgrade') return build==='A' && phase==='ACTIVE'
+  if (kind) return false
+  return phase===(build==='C'?'ACTIVE':'PREPARED')
+}
+
 export function releaseProof(env,result,verifier,now=Date.now()) {
   requireTrue(result.ok===true && result.skipped===false &&
     result.results.every(r=>r.status==='PASS') &&
@@ -306,8 +315,8 @@ export function releaseProof(env,result,verifier,now=Date.now()) {
     ['A','B','C'].includes(env.CRM_EMAIL_RELEASE_BUILD) &&
     env.VERCEL_PROJECT_ID==='prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv' &&
     /^[a-z0-9-]+\.vercel\.app$/.test(env.VERCEL_URL||'') && /^[0-9a-f]{64}$/.test(verifier))
-  const phase=emailReleasePhase(env.CRM_EMAIL_RELEASE_PHASE)
-  requireTrue(phase===(env.CRM_EMAIL_RELEASE_BUILD==='C'?'ACTIVE':'PREPARED'))
+  const phase=env.CRM_EMAIL_RELEASE_PHASE
+  requireTrue(acceptedReleaseBinding(env.CRM_EMAIL_RELEASE_KIND||'', env.CRM_EMAIL_RELEASE_BUILD, phase))
   return {run:env.CRM_EMAIL_RELEASE_RUN,build:env.CRM_EMAIL_RELEASE_BUILD,phase,
     verifier,url:env.VERCEL_URL,project:env.VERCEL_PROJECT_ID,at:now,
     effective:true,ok:true,gateway:'iom_email_gateway',session:'iom_email_gateway',combinations:12,

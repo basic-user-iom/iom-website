@@ -1,7 +1,7 @@
 import { cutoverFromSnapshot, filterHarpSourceFiles, harpOmissions, freshHarpReusePlan, assertHarpStage, assertNoHarpManifest, assertHarpRootProjectBinding, sealHarpRemoteBuild } from './harp-root-cutover.mjs'
 import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
 import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
-import {protectedRelease, releaseOperation, RELEASE_TARGET} from './crm-email-protected-release.mjs'
+import {protectedRelease, releaseOperation, releaseRecordName, operationPhase, RELEASE_TARGET} from './crm-email-protected-release.mjs'
 import {parseHarpOperation, runHarpRelease} from './independent-harp-release.mjs'
 import {createHarpCliAdapter} from './independent-harp-cli.mjs'
 /**
@@ -357,7 +357,7 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
   }
 }
 
-function buildSnapshot(stage, scopes, reuse, emailPhase, cutover) {
+function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = '') {
   assertHarpStage(stage, cutover)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
@@ -378,10 +378,14 @@ function buildSnapshot(stage, scopes, reuse, emailPhase, cutover) {
     stageViewerModules,
     process.platform === 'win32' ? 'junction' : 'dir',
   )
+  const emailEnv = emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true', CRM_EMAIL_RELEASE_PHASE: emailPhase } : null
+  if (emailEnv) {
+    if (emailKind) emailEnv.CRM_EMAIL_RELEASE_KIND = emailKind
+    else delete emailEnv.CRM_EMAIL_RELEASE_KIND
+  }
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true', CRM_EMAIL_RELEASE_PHASE: emailPhase }
-        : crmOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
+      env: emailOnly ? emailEnv : crmOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -557,8 +561,8 @@ function main() {
 
 function runProtectedRelease(operation) {
   const workspaceHead=git(['rev-parse','HEAD'])
-  const record=join(root,'.qa-out','crm-protected-release-20261027','state.json')
-  const applicationHead=operation==='stage'?workspaceHead:JSON.parse(readFileSync(record,'utf8')).head
+  const record=join(root,'.qa-out',releaseRecordName(operation),'state.json')
+  const applicationHead=operation==='stage'||operation==='upgrade'?workspaceHead:JSON.parse(readFileSync(record,'utf8')).head
   ensureCommit(applicationHead,'Pinned CRM application')
   ensureAncestor(applicationHead,workspaceHead,'Pinned application is not an ancestor of the launcher.')
   const launcherFiles=['scripts/deploy-production.mjs','scripts/crm-email-protected-release.mjs']
@@ -592,7 +596,7 @@ function runProtectedRelease(operation) {
     prepare:({baseline,state:releaseState,publish})=>{
       const head=applicationHead,scopes=['crm-email']
       const liveState=productionState(baseline)
-      const phase=operation==='active'?'ACTIVE':'PREPARED'
+      const phase=operationPhase(operation)
       const unpushed=validateUnpushedFiles(scopes,workspaceHead)
       if(releaseState && unpushed.some(path=>!launcherFiles.includes(path)))fail('protected_check_cannot_push_new_source')
       const manifest=readProductionManifest(root,baseline,route=>JSON.parse(cli(['api',route])))
@@ -606,7 +610,7 @@ function runProtectedRelease(operation) {
         const oldConfig=execFileSync('git',['show',`${configCommit}:vercel.json`],{cwd:root})
         const newConfig=execFileSync('git',['show',`${head}:vercel.json`],{cwd:root})
         if(!oldConfig.equals(newConfig))fail('protected_vercel_config_drift')
-        buildSnapshot(snapshot.stage,scopes,snapshot.reuse,phase,snapshot.cutover)
+        buildSnapshot(snapshot.stage,scopes,snapshot.reuse,phase,snapshot.cutover,operation==='upgrade'?'upgrade':'')
         if(existsSync(join(snapshot.stage,'config/website-r2.json'))) {
           verifyUploadManifest(snapshot.stage,scopes,{knownValues:knownValuesFromEnvironment(process.env)},true,snapshot.cutover)
           command(process.execPath,[join(root,'scripts/prepare-r2-release.mjs'),'--stage',snapshot.stage,
