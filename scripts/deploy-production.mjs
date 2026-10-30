@@ -430,7 +430,7 @@ function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = ''
   }
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && scopes[0] === 'storm-publication')) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
+      env: emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && ['storm-publication', 'iom-featured-work'].includes(scopes[0]))) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -542,7 +542,7 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     snapshot.stage,
     ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
     ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    ...(scopes.length === 1 && ['release-provenance', 'storm-publication'].includes(scopes[0]) ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
+    ...(scopes.length === 1 && ['release-provenance', 'storm-publication', 'iom-featured-work'].includes(scopes[0]) ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
       ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...Object.entries(metadata).flatMap(([key, value]) => ['--meta', `${key}=${value}`]),
@@ -610,7 +610,7 @@ function main() {
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
         ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
-        ...(verifyOnly || (scopes.length === 1 && ['crm', 'storm-publication'].includes(scopes[0])) ? ['--verify-only'] : []),
+        ...(verifyOnly || (scopes.length === 1 && ['crm', 'storm-publication', 'iom-featured-work'].includes(scopes[0])) ? ['--verify-only'] : []),
       ])
     }
     const knownValues = knownValuesFromEnvironment(process.env)

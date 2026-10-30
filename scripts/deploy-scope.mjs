@@ -1,4 +1,19 @@
 const NAMED_SCOPES = {
+  // Homepage relevant-work cards and Gallery of Light pricing only.
+  'iom-featured-work': [
+    'src/components/HomeEngagementSection.tsx',
+    'src/i18n/ui/de.ts',
+    'src/i18n/ui/en.ts',
+    'src/i18n/ui/es.ts',
+    'src/i18n/ui/fr.ts',
+    'src/i18n/ui/it.ts',
+    'src/i18n/ui/nl.ts',
+    'src/project-costs/ProjectCostsApp.tsx',
+    'src/project-costs/data.ts',
+    'src/project-costs/projectCosts.css',
+    'scripts/deploy-scope.mjs',
+    'scripts/deploy-production.mjs',
+  ],
   // Provenance recovery changes only these four reviewed release files.
   'release-provenance': [
     'scripts/deploy-production.mjs',

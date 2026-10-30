@@ -69,8 +69,8 @@ export const frUi: Dict = {
   'home.engage.trust.remote': 'Collaboration à distance',
   'home.engage.trust.project': 'Par projet',
   'home.engage.proof.viewer': 'Outils de revue technique, traitement de données 3D et livraison navigateur',
-  'home.engage.proof.ssr': 'Exploration temps réel, import, inspection et expérimentation technique',
-  'home.engage.proof.witness': 'Storytelling 360° / spatial et expérience culturelle',
+  'home.engage.proof.robotCell': 'Palettisation robotisée interactive, convoyeur animé et transport autonome',
+  'home.engage.proof.galleryOfLight': 'Une galerie de sculptures interactive avec visites guidées, lumière et son',
   'home.engage.proof.miab': 'Une interaction créative complète dans le navigateur',
 
   'about.eyebrow': 'Studio',

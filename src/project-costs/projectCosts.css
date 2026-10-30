@@ -1595,3 +1595,34 @@ button.pc-learn-trigger {
     padding-top: 0.35rem !important;
   }
 }
+
+/* Optional phase breakdown for scoped reference estimates. */
+.pc-breakdown-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.pc-breakdown-table th,
+.pc-breakdown-table td {
+  padding: 0.6rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.pc-breakdown-table th:first-child { width: 40%; }
+.pc-breakdown-table th:nth-child(2) { width: 24%; }
+.pc-breakdown-table tbody th { font-weight: 400; }
+.pc-breakdown-table thead,
+.pc-breakdown-table tfoot { color: var(--text); }
+.pc-breakdown-table tfoot { font-weight: 600; }
+
+.pc-breakdown-table td { overflow-wrap: normal; }
+
+#learn-ref-gallery-of-light-panel.is-open { max-height: none; }

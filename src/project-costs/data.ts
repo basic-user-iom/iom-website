@@ -82,18 +82,18 @@ export const RELEVANT_WORK = [
     note: 'Technical review tooling, 3D data handling and browser delivery',
   },
   {
-    id: 'ssr-denoise',
-    title: 'SSR / WebGPU',
-    href: '/demos/ssr-denoise/',
-    image: '/assets/posters/ssr-denoise.jpg?v=20260822b',
-    note: 'Realtime exploration, import, inspection and technical experimentation',
+    id: 'robot-cell',
+    title: 'Robot Cell',
+    href: '/demos/robot-cell/',
+    image: '/demos/robot-cell/poster.jpg',
+    note: 'Interactive robot palletizing, conveyor animation and autonomous transport',
   },
   {
-    id: 'panorama-suite',
-    title: 'Black Witness',
-    href: '/case-studies/black-witness',
-    image: '/assets/photos/the-black-witness/photo-0.webp',
-    note: '360° / spatial storytelling and cultural experience work',
+    id: 'gallery-of-light',
+    title: 'Gallery of Light',
+    href: '/demos/gallery-of-light/',
+    image: '/assets/blog/gallery-of-light/gallery.webp',
+    note: 'An interactive sculpture gallery with guided tours, light and sound',
   },
   {
     id: 'message-in-a-bottle',
@@ -227,6 +227,18 @@ export type CostTier = {
   budget: string
 }
 
+export type CostBreakdown = {
+  title: string
+  rateNote: string
+  phaseLabel: string
+  hoursLabel: string
+  budgetLabel: string
+  phases: { label: string; hours: string; budget: string }[]
+  totalLabel: string
+  totalHours: string
+  totalBudget: string
+}
+
 export type CostReference = {
   id: string
   refLabel: string
@@ -239,6 +251,7 @@ export type CostReference = {
   imageAlt: string
   /** Quick-comparison + card tiers (cursor has a single typical range). */
   tiers: CostTier[]
+  breakdown?: CostBreakdown
   learnMoreLabel: string
   includes: string[]
   priceDrivers?: string[]
@@ -346,51 +359,95 @@ export const COST_REFERENCES: CostReference[] = [
       'This range applies when the cursor is added to an existing, functional website and the required interaction states are clearly defined. Broader interface redesign, extensive animation systems, complex CMS integration or accelerated delivery are estimated separately.',
   },
   {
-    id: 'black-witness',
-    refLabel: 'COST-REF-02',
-    category: '360° · Storytelling · WebGPU',
-    glanceCategory: 'Guided 360° experience',
-    title: 'The Black Witness',
-    description:
-      'A guided 360° storytelling experience using equirectangular scenes, structured navigation, hotspots, interface design, visual effect layers and a shareable browser-based presentation.',
-    caseStudyPath: '/case-studies/black-witness',
-    image: '/assets/posters/panorama-360-tour.webp?v=20260728',
-    imageAlt: 'The Black Witness 360° case study',
-    tiers: [
+    "id": "gallery-of-light",
+    "refLabel": "COST-REF-02",
+    "category": "3D gallery · Light · Sound",
+    "glanceCategory": "Interactive sculpture gallery",
+    "title": "Gallery of Light",
+    "description": "An independent IOM concept: thirteen sculptures across two gallery wings, with a guided tour, free exploration, adjustable light and material studies, and a six-stem soundtrack with an audio-reactive screen. The estimates below illustrate the production scope of a comparable browser experience.",
+    "caseStudyPath": "/case-studies/gallery-of-light",
+    "image": "/assets/blog/gallery-of-light/gallery.webp",
+    "imageAlt": "Gallery of Light: classical sculptures on red plinths beneath the gallery roof",
+    "tiers": [
       {
-        label: 'Focused version',
-        hours: '40–80 production hours',
-        delivery: '1–2 weeks',
-        budget: '€3,000–€6,000',
+        "label": "Focused gallery estimate",
+        "hours": "80-120 production hours",
+        "delivery": "Approximately 2-3 weeks",
+        "budget": "€7,200-€10,800"
       },
       {
-        label: 'Case-study-level build',
-        hours: '80–160 production hours',
-        delivery: '2–4 weeks',
-        budget: '€6,000–€12,000',
-      },
+        "label": "Full experience estimate",
+        "hours": "160-240 production hours",
+        "delivery": "Approximately 4-6 weeks",
+        "budget": "€14,400-€21,600"
+      }
     ],
-    learnMoreLabel: 'Learn more about scope and pricing',
-    includes: [
-      'One or more supplied 360° scenes',
-      'Hotspot and annotation system',
-      'Guided camera movement',
-      'Interface and navigation design',
-      'Responsive browser presentation',
-      'Visual effect layers',
-      'Deployment and testing',
+    "learnMoreLabel": "View scope and indicative price breakdown",
+    "includes": [
+      "Two-wing gallery assembly and preparation of thirteen supplied sculpture models",
+      "Guided camera tour, sculpture selection and free orbit navigation",
+      "Adjustable lighting and selected material and visual-effect studies",
+      "Playback and mixing of six supplied music stems with an audio-reactive screen",
+      "Responsive controls, rendering quality settings and browser optimisation",
+      "Browser testing, one consolidated review round and deployment handover"
     ],
-    priceDrivers: [
-      'Number of panoramas',
-      'Number and complexity of hotspots',
-      'Whether final imagery is already available',
-      'Custom animation or WebGPU effects',
-      'Audio, narration and accessibility',
-      'Content preparation and copywriting',
-      'Required delivery timeframe',
+    "priceDrivers": [
+      "Condition, polygon counts and texture sizes of supplied models",
+      "Changes to the gallery architecture or number of sculptures",
+      "Complexity of custom materials, lighting and visual effects",
+      "Tour length, camera choreography and interface requirements",
+      "Audio preparation, device coverage and performance targets",
+      "Additional review rounds, languages or accelerated delivery"
     ],
-    assumption:
-      'The range assumes that final 360° imagery and approved narrative content are supplied by the client. Photography, scanning, travel and content production are quoted separately.',
+    "breakdown": {
+      "title": "Full experience: indicative production breakdown",
+      "rateNote": "Planning example at a blended €90/hour, within the published €75-€110/hour production range. These project hours are estimated separately from day-rate capacity engagements.",
+      "phaseLabel": "Production phase",
+      "hoursLabel": "Hours",
+      "budgetLabel": "Estimate",
+      "phases": [
+        {
+          "label": "Scope, visitor journey and technical planning",
+          "hours": "12-16",
+          "budget": "€1,080-€1,440"
+        },
+        {
+          "label": "Gallery assembly and sculpture asset preparation",
+          "hours": "24-40",
+          "budget": "€2,160-€3,600"
+        },
+        {
+          "label": "Lighting, materials and visual-effect studies",
+          "hours": "28-44",
+          "budget": "€2,520-€3,960"
+        },
+        {
+          "label": "Guided tour, navigation and responsive interface",
+          "hours": "24-36",
+          "budget": "€2,160-€3,240"
+        },
+        {
+          "label": "Six-stem audio mixer and reactive screen",
+          "hours": "24-36",
+          "budget": "€2,160-€3,240"
+        },
+        {
+          "label": "Asset, loading and rendering optimisation",
+          "hours": "16-24",
+          "budget": "€1,440-€2,160"
+        },
+        {
+          "label": "Browser testing, review and deployment handover",
+          "hours": "32-44",
+          "budget": "€2,880-€3,960"
+        }
+      ],
+      "totalLabel": "Indicative total",
+      "totalHours": "160-240",
+      "totalBudget": "€14,400-€21,600"
+    },
+    "assumption": "Assumes usable, rights-cleared gallery and sculpture assets, approved exhibit text and six prepared music stems are supplied, with one consolidated review round and a standard delivery schedule. New modelling, scanning, original music composition, asset licences, translations, hosting, taxes and ongoing maintenance are excluded. Delivery windows assume timely feedback and available production capacity.",
+    "explainer": "The focused estimate covers a reduced gallery scope with basic lighting, navigation and a short tour; the six-stem mixer, reactive screen and extended material studies belong to the full experience. These are indicative estimates for comparable work, not a historical invoice, an agreed client price or a fixed quotation."
   },
   {
     id: 'miab',

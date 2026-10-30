@@ -81,8 +81,8 @@ export function HomeEngagementSection() {
   const options = localizedEngagementOptions(lang)
   const proofNotes = [
     t('home.engage.proof.viewer'),
-    t('home.engage.proof.ssr'),
-    t('home.engage.proof.witness'),
+    t('home.engage.proof.robotCell'),
+    t('home.engage.proof.galleryOfLight'),
     t('home.engage.proof.miab'),
   ]
 

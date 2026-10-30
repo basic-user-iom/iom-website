@@ -361,6 +361,39 @@ function ReferenceCard({
             </div>
           ) : null}
 
+          {ref.breakdown ? (
+            <div className="pc-card-block pc-breakdown" lang="en">
+              <h4 className="pc-card-sub">{ref.breakdown.title}</h4>
+              <p className="pc-card-note">{ref.breakdown.rateNote}</p>
+              <table className="pc-breakdown-table">
+                <caption className="sr-only">{ref.title}: {ref.breakdown.title}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{ref.breakdown.phaseLabel}</th>
+                    <th scope="col">{ref.breakdown.hoursLabel}</th>
+                    <th scope="col">{ref.breakdown.budgetLabel}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ref.breakdown.phases.map((phase) => (
+                    <tr key={phase.label}>
+                      <th scope="row">{phase.label}</th>
+                      <td>{phase.hours}</td>
+                      <td>{phase.budget}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">{ref.breakdown.totalLabel}</th>
+                    <td>{ref.breakdown.totalHours}</td>
+                    <td>{ref.breakdown.totalBudget}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : null}
+
           {ref.assumption ? <p className="pc-card-note">{ref.assumption}</p> : null}
           {ref.explainer ? <p className="pc-card-note">{ref.explainer}</p> : null}
 

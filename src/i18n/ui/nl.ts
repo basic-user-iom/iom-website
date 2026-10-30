@@ -69,8 +69,8 @@ export const nlUi: Dict = {
   'home.engage.trust.remote': 'Remote samenwerking',
   'home.engage.trust.project': 'Projectmatig',
   'home.engage.proof.viewer': 'Technische reviewtools, 3D-dataverwerking en browserlevering',
-  'home.engage.proof.ssr': 'Realtime verkenning, import, inspectie en technische experimenten',
-  'home.engage.proof.witness': '360° / ruimtelijke storytelling en culturele ervaring',
+  'home.engage.proof.robotCell': 'Interactief robotpalletiseren, transportbandanimatie en autonoom transport',
+  'home.engage.proof.galleryOfLight': 'Een interactieve beeldengalerie met rondleidingen, licht en geluid',
   'home.engage.proof.miab': 'Een complete creatieve interactie in de browser',
 
   'about.eyebrow': 'Studio',
