@@ -181,9 +181,9 @@ export const nlProjectCosts: ProjectCostsCopy = {
     cta: 'Gratis consult boeken',
   },
   prototype: [
-    { title: 'De uitdaging definiëren', text: 'Definieert het centrale doel, de primaire interactie en het belangrijkste projectresultaat.', stage: 'Research', stageLine: 'Begrijpt de klant, het publiek, het verhaal en de technische uitdaging voordat er iets wordt gebouwd.' },
-    { title: 'De oplossing vormen', text: 'Bouwt en test een gerichte werkversie met representatieve content en realistische technische omstandigheden.', stage: 'Form', stageLine: 'Zet het onderzoek om in een heldere visuele taal, interactiestructuur en technische aanpak.' },
-    { title: 'Het resultaat opleveren', text: 'Breidt de goedgekeurde oplossing uit tot de complete ervaring, extra content en productiedeployment.', stage: 'Output', stageLine: 'Verfijnt en levert het eindresultaat als een ervaring die mensen kunnen openen, begrijpen en gebruiken.' },
+    { title: 'De uitdaging definiëren', text: 'Definieert het centrale doel, de primaire interactie en het belangrijkste projectresultaat.', stage: 'Onderzoek', stageLine: 'Begrijpt de klant, het publiek, het verhaal en de technische uitdaging voordat er iets wordt gebouwd.' },
+    { title: 'De oplossing vormen', text: 'Bouwt en test een gerichte werkversie met representatieve content en realistische technische omstandigheden.', stage: 'Vormgeving', stageLine: 'Zet het onderzoek om in een heldere visuele taal, interactiestructuur en technische aanpak.' },
+    { title: 'Het resultaat opleveren', text: 'Breidt de goedgekeurde oplossing uit tot de complete ervaring, extra content en productiedeployment.', stage: 'Realisatie', stageLine: 'Verfijnt en levert het eindresultaat als een ervaring die mensen kunnen openen, begrijpen en gebruiken.' },
   ],
   howIomWorks: [
     { title: 'Capaciteit volgt het werk', text: 'IOM schaalt productiecapaciteit naar de behoeften van het project. Sommige fasen kan één senior specialist doen, terwijl productieve fasen groeien wanneer parallel werk écht nuttig is.' },
@@ -219,7 +219,7 @@ export const nlProjectCosts: ProjectCostsCopy = {
       { label: 'Extra studiocapaciteit', value: `vanaf €${studioFrom} / productiedag` },
       { label: 'Grotere / complete projecten', value: 'Gescooped na overleg' },
     ],
-    exclusions: ['Reizen', 'Fotografie op locatie', 'Scanning', 'Betaalde assets', 'Softwarelicenties van derden', 'Hostingkosten', 'Belastingen', 'Doorlopend onderhoud'],
+    exclusions: ['Reizen', 'Fotografie op locatie', '3D-scans', 'Betaalde assets', 'Softwarelicenties van derden', 'Hostingkosten', 'Belastingen', 'Doorlopend onderhoud'],
   },
   references: {
     cursor: {
@@ -236,22 +236,60 @@ export const nlProjectCosts: ProjectCostsCopy = {
       assumption:
         'Dit bereik geldt wanneer de cursor aan een bestaande, functionele website wordt toegevoegd en de vereiste interactiestaten duidelijk zijn. Bredere interface-herontwerpen, uitgebreide animatiesystemen, complexe CMS-integratie of versnelde levering worden apart geschat.',
     },
-    'black-witness': {
-      category: '360° · Storytelling · WebGPU',
-      glanceCategory: 'Begeleide 360°-ervaring',
-      title: 'The Black Witness',
-      description:
-        'Een begeleide 360°-storytellingervaring met equirectangulaire scènes, gestructureerde navigatie, hotspots, interfacedesign, visuele effectlagen en een deelbare browserpresentatie.',
-      imageAlt: 'Case study The Black Witness 360°',
-      learnMoreLabel: 'Meer over scope en prijs',
-      tiers: [
-        { label: 'Gerichte versie', hours: '40–80 productie-uren', delivery: '1–2 weken' },
-        { label: 'Case-study-niveau', hours: '80–160 productie-uren', delivery: '2–4 weken' },
+    'gallery-of-light': {
+      "category": "3D-galerie · Licht · Geluid",
+      "glanceCategory": "Interactieve beeldengalerie",
+      "title": "Gallery of Light",
+      "description": "Een onafhankelijk IOM-concept: dertien sculpturen in twee galerievleugels, met een rondleiding, vrije verkenning, instelbare licht- en materiaalstudies en zes afzonderlijke muzieksporen met een scherm dat op het geluid reageert. De onderstaande ramingen illustreren de productieomvang van een vergelijkbare browserervaring.",
+      "imageAlt": "Gallery of Light: klassieke sculpturen op rode sokkels onder het galeriedak",
+      "learnMoreLabel": "Bekijk de omvang en indicatieve prijsopbouw",
+      "includes": [
+        "Samenstelling van de galerie met twee vleugels en voorbereiding van dertien aangeleverde sculptuurmodellen",
+        "Geleide camerarondleiding, selectie van sculpturen en vrije orbitnavigatie",
+        "Instelbare belichting en geselecteerde materiaalstudies en visuele effecten",
+        "Afspelen en mixen van zes aangeleverde muzieksporen met een scherm dat op het geluid reageert",
+        "Responsieve bediening, instellingen voor weergavekwaliteit en browseroptimalisatie",
+        "Browsertests, één gebundelde feedbackronde en overdracht voor publicatie"
       ],
-      includes: ['Een of meer aangeleverde 360°-scènes', 'Hotspot- en annotatiesysteem', 'Begeleide camerabeweging', 'Interface- en navigatieontwerp', 'Responsive browserpresentatie', 'Visuele effectlagen', 'Deployment en tests'],
-      priceDrivers: ['Aantal panorama’s', 'Aantal en complexiteit van hotspots', 'Of eindbeeldmateriaal al beschikbaar is', 'Eigen animatie of WebGPU-effecten', 'Audio, narratie en toegankelijkheid', 'Contentvoorbereiding en copywriting', 'Gewenste levertijd'],
-      assumption:
-        'Het bereik gaat ervan uit dat definitief 360°-beeldmateriaal en goedgekeurde narratieve content door de klant worden aangeleverd. Fotografie, scanning, reizen en contentproductie worden apart geoffreerd.',
+      "priceDrivers": [
+        "Staat, aantal polygonen en textuurafmetingen van de aangeleverde modellen",
+        "Wijzigingen aan de galeriearchitectuur of het aantal sculpturen",
+        "Complexiteit van aangepaste materialen, belichting en visuele effecten",
+        "Duur van de rondleiding, camerachoreografie en interfacevereisten",
+        "Audiovoorbereiding, ondersteunde apparaten en prestatiedoelen",
+        "Extra feedbackrondes, talen of versnelde oplevering"
+      ],
+      "assumption": "De raming gaat uit van bruikbare galerie- en sculptuurmodellen met geregelde gebruiksrechten, goedgekeurde tentoonstellingsteksten en zes voorbereide muzieksporen, één gebundelde feedbackronde en een normale planning. Nieuwe modellering, scans, originele muziekcompositie, licenties voor bestanden, vertalingen, hosting, belastingen en doorlopend onderhoud zijn niet inbegrepen. De levertijden veronderstellen tijdige feedback en beschikbare productiecapaciteit.",
+      "explainer": "De afgebakende raming omvat een kleinere galerie met basisbelichting, navigatie en een korte rondleiding. De mixer met zes sporen, het scherm dat op geluid reageert en de uitgebreidere materiaalstudies horen bij de volledige ervaring. Dit zijn indicatieve ramingen voor vergelijkbaar werk, geen eerdere factuur, overeengekomen klantprijs of vaste offerte.",
+      "tiers": [
+        {
+          "label": "Raming voor een afgebakende galerie",
+          "hours": "80-120 productie-uren",
+          "delivery": "Ongeveer 2-3 weken"
+        },
+        {
+          "label": "Raming voor de volledige ervaring",
+          "hours": "160-240 productie-uren",
+          "delivery": "Ongeveer 4-6 weken"
+        }
+      ],
+      "breakdown": {
+        "title": "Volledige ervaring: indicatieve productieopbouw",
+        "rateNote": "Planningsvoorbeeld met een gemiddeld tarief van €90/uur, binnen de gepubliceerde productiebandbreedte van €75-€110/uur. Deze projecturen worden apart geraamd van capaciteitsopdrachten op basis van dagtarieven.",
+        "phaseLabel": "Productiefase",
+        "hoursLabel": "Uren",
+        "budgetLabel": "Raming",
+        "totalLabel": "Indicatief totaal",
+        "phases": [
+          "Omvang, bezoekersroute en technische planning",
+          "Galerieopbouw en voorbereiding van sculptuurmodellen",
+          "Studies van belichting, materialen en visuele effecten",
+          "Rondleiding, navigatie en responsieve interface",
+          "Audiomixer met zes sporen en scherm dat op geluid reageert",
+          "Optimalisatie van bestanden, laden en weergave",
+          "Browsertests, feedbackronde en overdracht voor publicatie"
+        ]
+      }
     },
     miab: {
       category: 'WebGPU · Oceaan · Interactie',
@@ -280,13 +318,14 @@ export const nlProjectCosts: ProjectCostsCopy = {
         { label: 'Gerichte aanpassing', hours: '120–240 productie-uren', delivery: '3–6 weken' },
         { label: 'Nieuw productplatform', hours: '320–640 productie-uren', delivery: '8–16 weken' },
       ],
-      includes: ['Projectspecifieke viewerinterface', 'Workflow voor modelimport en voorbereiding', 'Camera- en navigatiebediening', 'Objectselectie en informatie', 'Licht- en omgevingssetup', 'Performance-optimalisatie', 'Responsive interface', 'Deployment en technische tests'],
+      includes: ['Projectspecifieke viewerinterface', 'Workflow voor modelimport en voorbereiding', 'Camera- en navigatiebediening', 'Objectselectie en informatie', 'Licht- en omgevingssetup', 'Performance-optimalisatie', 'Responsieve interface', 'Deployment en technische tests'],
       productAdditions: ['Meerdere modelformaten', 'Opgeslagen standpunten', 'Metingen', 'Annotaties en hotspots', 'Kniplvlakken', 'Zichtbaarheidsbediening', 'Projectopslag', 'Gebruikersaccounts', 'Klantspecifieke branding', 'Desktop Electron-oplevering', 'Backend- of database-integratie'],
       explainer:
         'Een projectspecifieke viewer op basis van een bestaand IOM-framework kan aanzienlijk sneller worden geleverd dan een nieuw softwareplatform. Het hogere bereik geldt wanneer de viewer nieuwe interface-architectuur, eigen tools, data-afhandeling, integraties, versnelde levering en tests op productniveau vereist.',
     },
   },
   inquiry: {
+    or: 'of',
     requestType: 'Type verzoek',
     consultation: 'Gratis consult',
     estimate: 'Projectschatting',

@@ -1,6 +1,15 @@
 const NAMED_SCOPES = {
   // Homepage relevant-work cards and Gallery of Light pricing only.
   'iom-featured-work': [
+    'src/i18n/projectCosts/en.ts',
+    'src/i18n/projectCosts/de.ts',
+    'src/i18n/projectCosts/fr.ts',
+    'src/i18n/projectCosts/es.ts',
+    'src/i18n/projectCosts/it.ts',
+    'src/i18n/projectCosts/nl.ts',
+    'src/i18n/projectCosts/types.ts',
+    'src/i18n/projectCosts/index.ts',
+    'src/project-costs/ProjectCostsInquiryForm.tsx',
     'src/components/HomeEngagementSection.tsx',
     'src/i18n/ui/de.ts',
     'src/i18n/ui/en.ts',

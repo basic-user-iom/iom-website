@@ -181,9 +181,9 @@ export const itProjectCosts: ProjectCostsCopy = {
     cta: 'Prenota una consulenza gratuita',
   },
   prototype: [
-    { title: 'Definire la sfida', text: 'Definisce l’obiettivo centrale, l’interazione primaria e il risultato più importante del progetto.', stage: 'Research', stageLine: 'Comprende il cliente, il pubblico, la storia e la sfida tecnica prima di costruire qualsiasi cosa.' },
-    { title: 'Dare forma alla soluzione', text: 'Costruisce e testa una versione di lavoro mirata con contenuti rappresentativi e condizioni tecniche realistiche.', stage: 'Form', stageLine: 'Trasforma la ricerca in un linguaggio visivo chiaro, una struttura di interazione e un approccio tecnico.' },
-    { title: 'Consegnare il risultato', text: 'Estende la soluzione approvata all’esperienza completa, ai contenuti extra e al deployment di produzione.', stage: 'Output', stageLine: 'Raffina e consegna il risultato finale come un’esperienza che le persone possono aprire, comprendere e usare.' },
+    { title: 'Definire la sfida', text: 'Definisce l’obiettivo centrale, l’interazione primaria e il risultato più importante del progetto.', stage: 'Ricerca', stageLine: 'Comprende il cliente, il pubblico, la storia e la sfida tecnica prima di costruire qualsiasi cosa.' },
+    { title: 'Dare forma alla soluzione', text: 'Costruisce e testa una versione di lavoro mirata con contenuti rappresentativi e condizioni tecniche realistiche.', stage: 'Progettazione', stageLine: 'Trasforma la ricerca in un linguaggio visivo chiaro, una struttura di interazione e un approccio tecnico.' },
+    { title: 'Consegnare il risultato', text: 'Estende la soluzione approvata all’esperienza completa, ai contenuti extra e al deployment di produzione.', stage: 'Realizzazione', stageLine: 'Raffina e consegna il risultato finale come un’esperienza che le persone possono aprire, comprendere e usare.' },
   ],
   howIomWorks: [
     { title: 'La capacità segue il lavoro', text: 'IOM scala la capacità di produzione in base alle esigenze del progetto. Alcune fasi possono essere gestite da uno specialista senior, mentre le fasi intensive possono ampliarsi quando il lavoro in parallelo è davvero utile.' },
@@ -236,22 +236,60 @@ export const itProjectCosts: ProjectCostsCopy = {
       assumption:
         'Questo intervallo vale quando il cursore viene aggiunto a un sito esistente e funzionante e gli stati di interazione richiesti sono chiari. Ridefinizioni di interfaccia più ampie, sistemi di animazione estesi, integrazione CMS complessa o consegna accelerata vengono stimati a parte.',
     },
-    'black-witness': {
-      category: '360° · Storytelling · WebGPU',
-      glanceCategory: 'Esperienza 360° guidata',
-      title: 'The Black Witness',
-      description:
-        'Un’esperienza di storytelling 360° guidata con scene equirettangolari, navigazione strutturata, hotspot, design dell’interfaccia, layer di effetti visivi e una presentazione condivisibile nel browser.',
-      imageAlt: 'Studio di caso The Black Witness 360°',
-      learnMoreLabel: 'Di più su ambito e prezzo',
-      tiers: [
-        { label: 'Versione mirata', hours: '40–80 ore di produzione', delivery: '1–2 settimane' },
-        { label: 'Livello studio di caso', hours: '80–160 ore di produzione', delivery: '2–4 settimane' },
+    'gallery-of-light': {
+      "category": "Galleria 3D · Luce · Suono",
+      "glanceCategory": "Galleria di sculture interattiva",
+      "title": "Gallery of Light",
+      "description": "Un concept indipendente di IOM: tredici sculture distribuite in due ali della galleria, con visita guidata, esplorazione libera, studi regolabili di luce e materiali, e sei tracce musicali separate con uno schermo reattivo al suono. Le stime seguenti illustrano l’entità della produzione di un’esperienza comparabile nel browser.",
+      "imageAlt": "Gallery of Light: sculture classiche su piedistalli rossi sotto il tetto della galleria",
+      "learnMoreLabel": "Vedi ambito e dettaglio indicativo del prezzo",
+      "includes": [
+        "Assemblaggio della galleria a due ali e preparazione di tredici modelli di sculture forniti",
+        "Percorso guidato della camera, selezione delle sculture e navigazione orbitale libera",
+        "Illuminazione regolabile e studi selezionati di materiali ed effetti visivi",
+        "Riproduzione e mixaggio di sei tracce musicali fornite con uno schermo reattivo al suono",
+        "Controlli adattivi, impostazioni di qualità del rendering e ottimizzazione per il browser",
+        "Test nei browser, un ciclo di revisione con osservazioni consolidate e consegna per la pubblicazione"
       ],
-      includes: ['Una o più scene 360° fornite', 'Sistema di hotspot e annotazioni', 'Movimento di camera guidato', 'Design di interfaccia e navigazione', 'Presentazione responsive nel browser', 'Layer di effetti visivi', 'Deployment e test'],
-      priceDrivers: ['Numero di panorami', 'Numero e complessità degli hotspot', 'Se il materiale visivo finale è già disponibile', 'Animazione proprietaria o effetti WebGPU', 'Audio, narrazione e accessibilità', 'Preparazione dei contenuti e copywriting', 'Tempi di consegna desiderati'],
-      assumption:
-        'L’intervallo assume che il materiale 360° definitivo e i contenuti narrativi approvati siano forniti dal cliente. Fotografia, scansione, viaggi e produzione di contenuti vengono quotati a parte.',
+      "priceDrivers": [
+        "Condizioni, numero di poligoni e dimensioni delle texture dei modelli forniti",
+        "Modifiche all’architettura della galleria o al numero di sculture",
+        "Complessità di materiali, illuminazione ed effetti visivi personalizzati",
+        "Durata della visita, coreografia della camera e requisiti dell’interfaccia",
+        "Preparazione audio, dispositivi supportati e obiettivi di prestazioni",
+        "Cicli di revisione aggiuntivi, lingue o consegna accelerata"
+      ],
+      "assumption": "La stima presuppone modelli utilizzabili della galleria e delle sculture con diritti d’uso chiariti, testi espositivi approvati e sei tracce musicali preparate, un ciclo di revisione con osservazioni consolidate e un calendario ordinario. Sono esclusi nuovi modelli, scansioni, composizione musicale originale, licenze delle risorse, traduzioni, hosting, imposte e manutenzione continuativa. I tempi di consegna presuppongono riscontri tempestivi e capacità produttiva disponibile.",
+      "explainer": "La stima mirata comprende una galleria ridotta con illuminazione di base, navigazione e una breve visita. Il mixer a sei tracce, lo schermo reattivo al suono e gli studi avanzati dei materiali fanno parte dell’esperienza completa. Si tratta di stime indicative per lavori comparabili, non di una fattura precedente, di un prezzo concordato con un cliente o di un preventivo a prezzo fisso.",
+      "tiers": [
+        {
+          "label": "Stima per una galleria mirata",
+          "hours": "80-120 ore di produzione",
+          "delivery": "Circa 2-3 settimane"
+        },
+        {
+          "label": "Stima per l’esperienza completa",
+          "hours": "160-240 ore di produzione",
+          "delivery": "Circa 4-6 settimane"
+        }
+      ],
+      "breakdown": {
+        "title": "Esperienza completa: dettaglio indicativo della produzione",
+        "rateNote": "Esempio di pianificazione con una tariffa media di €90/ora, nell’intervallo di produzione pubblicato di €75-€110/ora. Queste ore di progetto sono stimate separatamente dagli incarichi di capacità produttiva a tariffa giornaliera.",
+        "phaseLabel": "Fase di produzione",
+        "hoursLabel": "Ore",
+        "budgetLabel": "Stima",
+        "totalLabel": "Totale indicativo",
+        "phases": [
+          "Ambito, percorso del visitatore e pianificazione tecnica",
+          "Assemblaggio della galleria e preparazione dei modelli di sculture",
+          "Studi di illuminazione, materiali ed effetti visivi",
+          "Visita guidata, navigazione e interfaccia adattiva",
+          "Mixer audio a sei tracce e schermo reattivo al suono",
+          "Ottimizzazione di risorse, caricamento e rendering",
+          "Test nei browser, revisione e consegna per la pubblicazione"
+        ]
+      }
     },
     miab: {
       category: 'WebGPU · Oceano · Interazione',
@@ -287,6 +325,7 @@ export const itProjectCosts: ProjectCostsCopy = {
     },
   },
   inquiry: {
+    or: 'oppure',
     requestType: 'Tipo di richiesta',
     consultation: 'Consulenza gratuita',
     estimate: 'Stima di progetto',

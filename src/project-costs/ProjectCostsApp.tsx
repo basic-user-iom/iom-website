@@ -362,7 +362,7 @@ function ReferenceCard({
           ) : null}
 
           {ref.breakdown ? (
-            <div className="pc-card-block pc-breakdown" lang="en">
+            <div className="pc-card-block pc-breakdown" lang={lang}>
               <h4 className="pc-card-sub">{ref.breakdown.title}</h4>
               <p className="pc-card-note">{ref.breakdown.rateNote}</p>
               <table className="pc-breakdown-table">

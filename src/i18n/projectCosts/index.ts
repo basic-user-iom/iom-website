@@ -79,6 +79,16 @@ export function localizedCostReferences(lang: SiteLang): CostReference[] {
       productAdditions: overlay.productAdditions,
       assumption: overlay.assumption,
       explainer: overlay.explainer,
+      breakdown: ref.breakdown && overlay.breakdown
+        ? {
+            ...ref.breakdown,
+            ...overlay.breakdown,
+            phases: ref.breakdown.phases.map((phase, index) => ({
+              ...phase,
+              label: overlay.breakdown?.phases[index] ?? phase.label,
+            })),
+          }
+        : ref.breakdown,
       tiers: ref.tiers.map((tier, index) => ({
         ...tier,
         label: overlay.tiers[index]?.label ?? tier.label,

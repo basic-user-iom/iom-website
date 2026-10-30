@@ -95,7 +95,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
         setState('error')
-        setErrorMessage(data.error || copy.error)
+        setErrorMessage(copy.error)
         return
       }
       setState('success')
@@ -274,7 +274,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
         ) : null}
 
         <p className="contact-form-alt">
-          or{' '}
+          {copy.or}{' '}
           <a className="contact-form-mailto" href={mailto} data-cursor="external">
             {copy.emailDirect}
           </a>

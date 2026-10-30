@@ -182,9 +182,9 @@ export const frProjectCosts: ProjectCostsCopy = {
     cta: 'Réserver une consultation gratuite',
   },
   prototype: [
-    { title: 'Définir le défi', text: 'Définit l’objectif central, l’interaction principale et le résultat de projet le plus important.', stage: 'Research', stageLine: 'Comprend le client, le public, l’histoire et le défi technique avant de construire quoi que ce soit.' },
-    { title: 'Former la solution', text: 'Construit et teste une version de travail ciblée avec un contenu représentatif et des conditions techniques réalistes.', stage: 'Form', stageLine: 'Transforme la recherche en langage visuel clair, structure d’interaction et approche technique.' },
-    { title: 'Livrer le résultat', text: 'Étend la solution approuvée vers l’expérience complète, le contenu supplémentaire et le déploiement de production.', stage: 'Output', stageLine: 'Affine et livre le résultat fini comme une expérience que l’on peut ouvrir, comprendre et utiliser.' },
+    { title: 'Définir le défi', text: 'Définit l’objectif central, l’interaction principale et le résultat de projet le plus important.', stage: 'Recherche', stageLine: 'Comprend le client, le public, l’histoire et le défi technique avant de construire quoi que ce soit.' },
+    { title: 'Former la solution', text: 'Construit et teste une version de travail ciblée avec un contenu représentatif et des conditions techniques réalistes.', stage: 'Conception', stageLine: 'Transforme la recherche en langage visuel clair, structure d’interaction et approche technique.' },
+    { title: 'Livrer le résultat', text: 'Étend la solution approuvée vers l’expérience complète, le contenu supplémentaire et le déploiement de production.', stage: 'Réalisation', stageLine: 'Affine et livre le résultat fini comme une expérience que l’on peut ouvrir, comprendre et utiliser.' },
   ],
   howIomWorks: [
     { title: 'La capacité suit le travail', text: 'IOM adapte la capacité de production aux besoins du projet. Certaines phases peuvent être menées par un spécialiste senior, tandis que les phases intensives peuvent s’élargir lorsque le travail parallèle est vraiment utile.' },
@@ -220,7 +220,7 @@ export const frProjectCosts: ProjectCostsCopy = {
       { label: 'Capacité studio supplémentaire', value: `à partir de €${studioFrom} / jour de production` },
       { label: 'Projets plus larges / complets', value: 'Cadrage après consultation' },
     ],
-    exclusions: ['Voyage', 'Photographie sur site', 'Scanning', 'Assets payants', 'Licences logicielles tierces', 'Frais d’hébergement', 'Taxes', 'Maintenance continue'],
+    exclusions: ['Voyage', 'Photographie sur site', 'Numérisation 3D', 'Assets payants', 'Licences logicielles tierces', 'Frais d’hébergement', 'Taxes', 'Maintenance continue'],
   },
   references: {
     cursor: {
@@ -237,22 +237,60 @@ export const frProjectCosts: ProjectCostsCopy = {
       assumption:
         'Cette fourchette s’applique lorsque le curseur est ajouté à un site existant et fonctionnel, et que les états d’interaction requis sont clairement définis. Une refonte d’interface plus large, des systèmes d’animation étendus, une intégration CMS complexe ou une livraison accélérée sont estimés séparément.',
     },
-    'black-witness': {
-      category: '360° · Storytelling · WebGPU',
-      glanceCategory: 'Expérience 360° guidée',
-      title: 'The Black Witness',
-      description:
-        'Une expérience de storytelling 360° guidée avec scènes équirectangulaires, navigation structurée, hotspots, design d’interface, calques d’effets visuels et présentation navigateur partageable.',
-      imageAlt: 'Étude de cas The Black Witness 360°',
-      learnMoreLabel: 'En savoir plus sur le périmètre et le prix',
-      tiers: [
-        { label: 'Version ciblée', hours: '40–80 heures de production', delivery: '1–2 semaines' },
-        { label: 'Niveau étude de cas', hours: '80–160 heures de production', delivery: '2–4 semaines' },
+    'gallery-of-light': {
+      "category": "Galerie 3D · Lumière · Son",
+      "glanceCategory": "Galerie de sculptures interactive",
+      "title": "Gallery of Light",
+      "description": "Un concept indépendant d’IOM : treize sculptures réparties dans deux ailes, une visite guidée, une exploration libre, des études de lumière et de matériaux réglables, ainsi que six pistes musicales séparées et un écran réactif au son. Les estimations ci-dessous illustrent l’ampleur de production d’une expérience comparable dans le navigateur.",
+      "imageAlt": "Gallery of Light : sculptures classiques sur des socles rouges sous la toiture de la galerie",
+      "learnMoreLabel": "Voir le périmètre et le détail indicatif du prix",
+      "includes": [
+        "Assemblage de la galerie à deux ailes et préparation de treize modèles de sculptures fournis",
+        "Parcours de caméra guidé, sélection des sculptures et navigation orbitale libre",
+        "Éclairage réglable et sélection d’études de matériaux et d’effets visuels",
+        "Lecture et mixage de six pistes musicales fournies, avec un écran réactif au son",
+        "Commandes adaptatives, réglages de qualité du rendu et optimisation pour le navigateur",
+        "Tests dans les navigateurs, un cycle de retours consolidés et remise pour le déploiement"
       ],
-      includes: ['Une ou plusieurs scènes 360° fournies', 'Système de hotspots et d’annotations', 'Mouvement de caméra guidé', 'Design d’interface et de navigation', 'Présentation navigateur responsive', 'Calques d’effets visuels', 'Déploiement et tests'],
-      priceDrivers: ['Nombre de panoramas', 'Nombre et complexité des hotspots', 'Disponibilité des images finales', 'Animation ou effets WebGPU sur mesure', 'Audio, narration et accessibilité', 'Préparation de contenu et rédaction', 'Délai de livraison requis'],
-      assumption:
-        'La fourchette suppose que les images 360° finales et le contenu narratif approuvé sont fournis par le client. Photographie, scanning, déplacements et production de contenu sont chiffrés à part.',
+      "priceDrivers": [
+        "État, nombre de polygones et taille des textures des modèles fournis",
+        "Modifications de l’architecture de la galerie ou du nombre de sculptures",
+        "Complexité des matériaux, de l’éclairage et des effets visuels spécifiques",
+        "Durée de la visite, chorégraphie de caméra et exigences d’interface",
+        "Préparation audio, appareils pris en charge et objectifs de performance",
+        "Cycles de retours supplémentaires, langues ou livraison accélérée"
+      ],
+      "assumption": "L’estimation suppose des modèles de galerie et de sculptures exploitables, avec les droits d’utilisation nécessaires, des textes d’exposition approuvés et six pistes musicales préparées, un cycle de retours consolidés et un calendrier normal. La création de nouveaux modèles, la numérisation, la composition musicale originale, les licences de ressources, les traductions, l’hébergement, les taxes et la maintenance continue sont exclus. Les délais supposent des retours rapides et une capacité de production disponible.",
+      "explainer": "L’estimation ciblée couvre une galerie réduite avec un éclairage de base, la navigation et une courte visite. Le mixeur à six pistes, l’écran réactif au son et les études de matériaux avancées font partie de l’expérience complète. Il s’agit d’estimations indicatives pour des travaux comparables, et non d’une facture passée, d’un prix convenu avec un client ou d’un devis forfaitaire.",
+      "tiers": [
+        {
+          "label": "Estimation pour une galerie ciblée",
+          "hours": "80-120 heures de production",
+          "delivery": "Environ 2-3 semaines"
+        },
+        {
+          "label": "Estimation pour l’expérience complète",
+          "hours": "160-240 heures de production",
+          "delivery": "Environ 4-6 semaines"
+        }
+      ],
+      "breakdown": {
+        "title": "Expérience complète : détail indicatif de la production",
+        "rateNote": "Exemple de planification avec un taux horaire moyen de €90, dans la fourchette de production publiée de €75-€110 par heure. Ces heures de projet sont estimées séparément des engagements de capacité au tarif journalier.",
+        "phaseLabel": "Phase de production",
+        "hoursLabel": "Heures",
+        "budgetLabel": "Estimation",
+        "totalLabel": "Total indicatif",
+        "phases": [
+          "Périmètre, parcours de visite et planification technique",
+          "Assemblage de la galerie et préparation des modèles de sculptures",
+          "Études d’éclairage, de matériaux et d’effets visuels",
+          "Visite guidée, navigation et interface adaptative",
+          "Mixeur audio à six pistes et écran réactif au son",
+          "Optimisation des ressources, du chargement et du rendu",
+          "Tests dans les navigateurs, retours et remise pour le déploiement"
+        ]
+      }
     },
     miab: {
       category: 'WebGPU · Océan · Interaction',
@@ -288,6 +326,7 @@ export const frProjectCosts: ProjectCostsCopy = {
     },
   },
   inquiry: {
+    or: 'ou',
     requestType: 'Type de demande',
     consultation: 'Consultation gratuite',
     estimate: 'Estimation de projet',

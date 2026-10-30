@@ -1,3 +1,5 @@
+import type { CostBreakdown } from '../../project-costs/data'
+
 export type EngagementId = 'specialist' | 'studio-capacity' | 'project-scoping'
 
 export type EngagementCopy = {
@@ -12,6 +14,7 @@ export type EngagementCopy = {
 }
 
 export type CostReferenceCopy = {
+  breakdown?: Omit<CostBreakdown, 'phases' | 'totalHours' | 'totalBudget'> & { phases: string[] }
   category: string
   glanceCategory: string
   title: string
@@ -140,6 +143,7 @@ export type ProjectCostsCopy = {
   }
   references: Record<string, CostReferenceCopy>
   inquiry: {
+    or: string
     requestType: string
     consultation: string
     estimate: string

@@ -185,19 +185,19 @@ export const deProjectCosts: ProjectCostsCopy = {
     {
       title: 'Die Herausforderung definieren',
       text: 'Definiert das zentrale Ziel, die primäre Interaktion und das wichtigste Projektergebnis.',
-      stage: 'Research',
+      stage: 'Recherche',
       stageLine: 'Versteht Kundin oder Kunde, Publikum, Geschichte und technische Herausforderung, bevor etwas gebaut wird.',
     },
     {
       title: 'Die Lösung formen',
       text: 'Baut und testet eine fokussierte Arbeitsversion mit repräsentativem Content und realistischen technischen Bedingungen.',
-      stage: 'Form',
+      stage: 'Gestaltung',
       stageLine: 'Übersetzt die Recherche in eine klare visuelle Sprache, Interaktionsstruktur und technischen Ansatz.',
     },
     {
       title: 'Das Ergebnis liefern',
       text: 'Erweitert die freigegebene Lösung zur vollständigen Erfahrung, zusätzlichem Content und Produktions-Deployment.',
-      stage: 'Output',
+      stage: 'Umsetzung',
       stageLine: 'Verfeinert und liefert das fertige Ergebnis als Erfahrung, die Menschen öffnen, verstehen und nutzen können.',
     },
   ],
@@ -248,7 +248,7 @@ export const deProjectCosts: ProjectCostsCopy = {
     exclusions: [
       'Reise',
       'Fotografie vor Ort',
-      'Scanning',
+      '3D-Scans',
       'Bezahlte Assets',
       'Drittanbieter-Softwarelizenzen',
       'Hosting-Kosten',
@@ -287,38 +287,60 @@ export const deProjectCosts: ProjectCostsCopy = {
       assumption:
         'Dieser Rahmen gilt, wenn der Cursor in eine bestehende, funktionierende Website eingefügt wird und die benötigten Interaktionszustände klar definiert sind. Breitere Interface-Neugestaltung, umfangreiche Animationssysteme, komplexe CMS-Integration oder beschleunigte Lieferung werden separat geschätzt.',
     },
-    'black-witness': {
-      category: '360° · Storytelling · WebGPU',
-      glanceCategory: 'Geführte 360°-Erfahrung',
-      title: 'The Black Witness',
-      description:
-        'Eine geführte 360°-Storytelling-Erfahrung mit equirektangularen Szenen, strukturierter Navigation, Hotspots, Interface-Design, visuellen Effektlagen und einer teilbaren browserbasierten Präsentation.',
-      imageAlt: 'Case Study The Black Witness 360°',
-      learnMoreLabel: 'Mehr zu Scope und Preis',
-      tiers: [
-        { label: 'Fokussierte Version', hours: '40–80 Produktionsstunden', delivery: '1–2 Wochen' },
-        { label: 'Case-Study-Niveau', hours: '80–160 Produktionsstunden', delivery: '2–4 Wochen' },
+    'gallery-of-light': {
+      "category": "3D-Galerie · Licht · Klang",
+      "glanceCategory": "Interaktive Skulpturengalerie",
+      "title": "Gallery of Light",
+      "description": "Ein unabhängiges IOM-Konzept: dreizehn Skulpturen in zwei Galerieflügeln, mit geführter Tour, freier Erkundung, anpassbaren Licht- und Materialstudien sowie sechs getrennten Musikspuren und einer auf den Klang reagierenden Leinwand. Die folgenden Schätzungen veranschaulichen den Produktionsumfang eines vergleichbaren Browser-Erlebnisses.",
+      "imageAlt": "Gallery of Light: klassische Skulpturen auf roten Sockeln unter dem Galeriedach",
+      "learnMoreLabel": "Umfang und unverbindliche Preisaufstellung ansehen",
+      "includes": [
+        "Zusammenstellung der Galerie mit zwei Flügeln und Aufbereitung von dreizehn bereitgestellten Skulpturenmodellen",
+        "Geführte Kameratour, Skulpturenauswahl und freie Orbit-Navigation",
+        "Anpassbare Beleuchtung sowie ausgewählte Material- und Effektstudien",
+        "Wiedergabe und Mischung von sechs bereitgestellten Musikspuren mit einer auf den Klang reagierenden Leinwand",
+        "Responsive Bedienelemente, Einstellungen zur Darstellungsqualität und Browser-Optimierung",
+        "Browsertests, eine gebündelte Korrekturrunde und Übergabe zur Veröffentlichung"
       ],
-      includes: [
-        'Eine oder mehrere gelieferte 360°-Szenen',
-        'Hotspot- und Annotationssystem',
-        'Geführte Kamerabewegung',
-        'Interface- und Navigationsdesign',
-        'Responsive Browser-Präsentation',
-        'Visuelle Effektlagen',
-        'Deployment und Tests',
+      "priceDrivers": [
+        "Zustand, Polygonanzahl und Texturgrößen der bereitgestellten Modelle",
+        "Änderungen an der Galeriearchitektur oder der Anzahl der Skulpturen",
+        "Komplexität individueller Materialien, Beleuchtung und visueller Effekte",
+        "Tourlänge, Kamerachoreografie und Anforderungen an die Benutzeroberfläche",
+        "Audioaufbereitung, unterstützte Geräte und Leistungsziele",
+        "Zusätzliche Korrekturrunden, Sprachen oder beschleunigte Lieferung"
       ],
-      priceDrivers: [
-        'Anzahl der Panoramen',
-        'Anzahl und Komplexität der Hotspots',
-        'Ob finales Bildmaterial bereits vorliegt',
-        'Eigene Animation oder WebGPU-Effekte',
-        'Audio, Narration und Barrierefreiheit',
-        'Content-Vorbereitung und Copywriting',
-        'Gewünschter Lieferzeitraum',
+      "assumption": "Vorausgesetzt werden nutzbare Galerie- und Skulpturenmodelle mit geklärten Nutzungsrechten, freigegebene Ausstellungstexte und sechs vorbereitete Musikspuren, eine gebündelte Korrekturrunde und ein regulärer Zeitplan. Neue Modellierung, Scans, Originalkompositionen, Asset-Lizenzen, Übersetzungen, Hosting, Steuern und laufende Wartung sind nicht enthalten. Die Lieferzeiträume setzen zeitnahe Rückmeldungen und verfügbare Produktionskapazität voraus.",
+      "explainer": "Die kompakte Schätzung umfasst eine reduzierte Galerie mit grundlegender Beleuchtung, Navigation und einer kurzen Tour. Der Sechs-Spur-Mixer, die auf den Klang reagierende Leinwand und erweiterte Materialstudien gehören zum vollständigen Erlebnis. Dies sind unverbindliche Schätzungen für vergleichbare Arbeiten, keine frühere Rechnung, kein vereinbarter Kundenpreis und kein Festpreisangebot.",
+      "tiers": [
+        {
+          "label": "Schätzung für eine kompakte Galerie",
+          "hours": "80-120 Produktionsstunden",
+          "delivery": "Etwa 2-3 Wochen"
+        },
+        {
+          "label": "Schätzung für das vollständige Erlebnis",
+          "hours": "160-240 Produktionsstunden",
+          "delivery": "Etwa 4-6 Wochen"
+        }
       ],
-      assumption:
-        'Der Rahmen setzt voraus, dass finales 360°-Bildmaterial und freigegebener narrativer Content vom Kunden geliefert werden. Fotografie, Scanning, Reise und Content-Produktion werden separat angeboten.',
+      "breakdown": {
+        "title": "Vollständiges Erlebnis: unverbindliche Produktionsaufstellung",
+        "rateNote": "Planungsbeispiel mit einem gemischten Stundensatz von €90 innerhalb der veröffentlichten Produktionsspanne von €75-€110 pro Stunde. Diese Projektstunden werden getrennt von Kapazitätsbuchungen zu Tagessätzen geschätzt.",
+        "phaseLabel": "Produktionsphase",
+        "hoursLabel": "Stunden",
+        "budgetLabel": "Schätzung",
+        "totalLabel": "Unverbindliche Gesamtsumme",
+        "phases": [
+          "Umfang, Besucherführung und technische Planung",
+          "Galerieaufbau und Aufbereitung der Skulpturenmodelle",
+          "Studien zu Beleuchtung, Materialien und visuellen Effekten",
+          "Geführte Tour, Navigation und responsive Oberfläche",
+          "Sechs-Spur-Audiomixer und klangreaktive Leinwand",
+          "Optimierung von Assets, Ladezeiten und Darstellung",
+          "Browsertests, Korrekturrunde und Übergabe zur Veröffentlichung"
+        ]
+      }
     },
     miab: {
       category: 'WebGPU · Ozean · Interaktion',
@@ -392,6 +414,7 @@ export const deProjectCosts: ProjectCostsCopy = {
     },
   },
   inquiry: {
+    or: 'oder',
     requestType: 'Anfrageart',
     consultation: 'Kostenlose Beratung',
     estimate: 'Projektschätzung',
