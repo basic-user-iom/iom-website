@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { isCustomCursorSupported } from './cursor/support'
 import './index.css'
+import { SeasonalTheme } from './seasonal/SeasonalTheme'
 
 const CustomCursor = lazy(() =>
   import('./cursor').then((m) => ({ default: m.CustomCursor })),
@@ -63,6 +64,7 @@ if (!rootNode) {
 } else {
   createRoot(rootNode).render(
     <StrictMode>
+      <SeasonalTheme />
       {isCustomCursorSupported() ? (
         <Suspense fallback={null}>
           <CustomCursor />

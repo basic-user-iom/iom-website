@@ -1,4 +1,18 @@
 const NAMED_SCOPES = {
+  // Reversible public-site seasonal layer; no CRM, demo, pricing or asset paths.
+  'seasonal-theme': [
+    'src/main.tsx',
+    'src/seasonal/config.ts',
+    'src/seasonal/pumpkin-lantern.svg',
+    'src/seasonal/README.md',
+    'src/seasonal/registry.ts',
+    'src/seasonal/resolve.ts',
+    'src/seasonal/seasonal.css',
+    'src/seasonal/SeasonalTheme.tsx',
+    'tests/seasonal-theme.test.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/deploy-production.mjs',
+  ],
   // Homepage relevant-work cards and Gallery of Light pricing only.
   'iom-featured-work': [
     'src/i18n/projectCosts/en.ts',

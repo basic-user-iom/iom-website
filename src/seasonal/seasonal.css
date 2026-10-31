@@ -1,0 +1,99 @@
+/* Every rule is opt-in. Removing the root attribute restores the original CSS. */
+html[data-iom-season='halloween'] {
+  --accent: #ffae73;
+  --accent-dim: #a8522e;
+  --accent-glow: rgba(255, 150, 80, 0.13);
+  --border-accent: rgba(255, 174, 115, 0.32);
+  --season-violet: #b6a0df;
+  --season-pumpkin: url('./pumpkin-lantern.svg');
+}
+
+html[data-iom-season='halloween'] body {
+  background-image:
+    radial-gradient(ellipse 55vw 440px at 12% 0, rgba(133, 65, 28, 0.11), transparent 80%),
+    radial-gradient(ellipse 45vw 400px at 92% 0, rgba(102, 71, 151, 0.12), transparent 80%);
+  background-repeat: no-repeat;
+}
+
+html[data-iom-season='halloween'] .site-header {
+  border-bottom-color: rgba(182, 160, 223, 0.18);
+  box-shadow: 0 1px 0 rgba(255, 174, 115, 0.06);
+}
+
+html[data-iom-season='halloween'] .header-brand .brand-name { white-space: nowrap; }
+
+/* Decorative SVG: a baked-in warm halo; only transform and opacity animate. */
+html[data-iom-season='halloween'] .header-brand .brand-name::after {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-inline-start: 0.55rem;
+  vertical-align: -5px;
+  background: var(--season-pumpkin) center / contain no-repeat;
+  transform-origin: 50% 75%;
+  animation: iom-pumpkin-lantern 5.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+html[data-iom-season='halloween'] .site-footer {
+  border-top-color: rgba(182, 160, 223, 0.23);
+  background-image: linear-gradient(110deg, rgba(133, 65, 28, 0.06), transparent 45%, rgba(102, 71, 151, 0.09));
+}
+
+html[data-iom-season='halloween'] .footer-brand::after {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  margin-inline-start: 0.7rem;
+  vertical-align: -8px;
+  background: var(--season-pumpkin) center / contain no-repeat;
+  transform-origin: 50% 75%;
+  animation: iom-pumpkin-lantern 5.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+
+@media (max-width: 380px) {
+  html[data-iom-season='halloween'] .header-brand .brand-name::after {
+    width: 18px;
+    height: 18px;
+    margin-inline-start: 0.25rem;
+    vertical-align: -3px;
+  }
+}
+
+@keyframes iom-pumpkin-lantern {
+  0%, 100% { transform: translateY(0) rotate(-4deg); opacity: 0.88; }
+  50% { transform: translateY(-1.5px) rotate(4deg); opacity: 1; }
+}
+
+html[data-iom-season][data-iom-season-paused] .header-brand .brand-name::after,
+html[data-iom-season][data-iom-season-paused] .footer-brand::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-iom-season] .header-brand .brand-name::after,
+  html[data-iom-season] .footer-brand::after {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Print and high-contrast modes use the original, undecorated IOM palette. */
+@media print, (forced-colors: active) {
+  html[data-iom-season] {
+    --accent: #00e5ff;
+    --accent-dim: #007a8a;
+    --accent-glow: rgba(0, 229, 255, 0.15);
+    --border-accent: rgba(0, 229, 255, 0.25);
+  }
+  html[data-iom-season] body,
+  html[data-iom-season] .site-footer { background-image: none; }
+  html[data-iom-season] .site-header { box-shadow: none; }
+  html[data-iom-season] .header-brand .brand-name::after,
+  html[data-iom-season] .footer-brand::after { display: none; animation: none; }
+}
