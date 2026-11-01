@@ -22,7 +22,7 @@ html[data-iom-season='halloween'] .site-header {
 
 html[data-iom-season='halloween'] .header-brand .brand-name { white-space: nowrap; }
 
-/* Decorative SVG: a baked-in warm halo; only transform and opacity animate. */
+/* Decorative friendly pumpkin: a brief, gentle sway; only transform animates. */
 html[data-iom-season='halloween'] .header-brand .brand-name::after {
   content: '';
   display: inline-block;
@@ -32,7 +32,7 @@ html[data-iom-season='halloween'] .header-brand .brand-name::after {
   vertical-align: -5px;
   background: var(--season-pumpkin) center / contain no-repeat;
   transform-origin: 50% 75%;
-  animation: iom-pumpkin-lantern 5.8s ease-in-out infinite;
+  animation: iom-pumpkin-lantern 7.2s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -50,7 +50,7 @@ html[data-iom-season='halloween'] .footer-brand::after {
   vertical-align: -8px;
   background: var(--season-pumpkin) center / contain no-repeat;
   transform-origin: 50% 75%;
-  animation: iom-pumpkin-lantern 5.8s ease-in-out infinite;
+  animation: iom-pumpkin-lantern 7.2s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -65,8 +65,9 @@ html[data-iom-season='halloween'] .footer-brand::after {
 }
 
 @keyframes iom-pumpkin-lantern {
-  0%, 100% { transform: translateY(0) rotate(-4deg); opacity: 0.88; }
-  50% { transform: translateY(-1.5px) rotate(4deg); opacity: 1; }
+  0%, 70%, 100% { transform: rotate(0); }
+  80% { transform: rotate(-5deg); }
+  90% { transform: rotate(4deg); }
 }
 
 html[data-iom-season][data-iom-season-paused] .header-brand .brand-name::after,

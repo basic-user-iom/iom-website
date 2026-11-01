@@ -1,14 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
-  <defs>
-    <radialGradient id="halo"><stop stop-color="#ffb45f" stop-opacity=".33"/><stop offset="1" stop-color="#ffb45f" stop-opacity="0"/></radialGradient>
-    <linearGradient id="shell" x1="20" y1="12" x2="20" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#ffbb72"/><stop offset=".5" stop-color="#ec873e"/><stop offset="1" stop-color="#a84e29"/></linearGradient>
-    <linearGradient id="light" x1="20" y1="19" x2="20" y2="29" gradientUnits="userSpaceOnUse"><stop stop-color="#fff4bf"/><stop offset="1" stop-color="#ffc77a"/></linearGradient>
-  </defs>
-  <circle cx="20" cy="23" r="19" fill="url(#halo)"/>
-  <path d="M20 13c-2-4-1-7 2-8l3 1c-3 1-4 3-3 7" fill="#8e799f" stroke="#bd9db2" stroke-width=".8"/>
-  <path d="M20 14C10 8 5 17 7 25c2 7 8 10 13 7 5 3 11 0 13-7 2-8-3-17-13-11Z" fill="url(#shell)" stroke="#ffbd78" stroke-width=".7"/>
-  <path d="M20 14c-7 3-7 15 0 18m0-18c7 3 7 15 0 18" stroke="#a9532c" stroke-opacity=".7" stroke-width="1"/>
-  <path d="m12 22 4-4 1 5Zm11 1 1-5 4 4Z" fill="url(#light)"/>
-  <path d="M13 26c4 3 10 3 14 0-2 6-12 6-14 0Z" fill="#6c361f"/>
-  <path d="M15 27c3 1.6 7 1.6 10 0-2 3.2-8 3.2-10 0Z" fill="url(#light)"/>
+ <path d="M19 13c1-5 1-7 4-8" stroke="#92a982" stroke-width="3" stroke-linecap="round"/>
+ <path d="M23 8c2-5 7-3 8-1-4 2-6 3-8 1Z" fill="#a9bb8c"/>
+ <path d="M20 13C10 8 5 16 6 24c1 9 8 12 14 10 6 2 13-1 14-10 1-8-4-16-14-11Z" fill="#f3aa6e" stroke="#ffcda3" stroke-width=".7"/>
+ <path d="M20 13c-5 3-6 15-2 21m3-21c5 4 6 14 2 21" stroke="#c57847" stroke-width=".7"/>
+ <ellipse cx="14" cy="22" rx="2.3" ry="3.1" fill="#30252b"/><ellipse cx="26" cy="22" rx="2.3" ry="3.1" fill="#30252b"/>
+ <circle cx="13.4" cy="21.1" r=".7" fill="#fff3d8"/><circle cx="25.4" cy="21.1" r=".7" fill="#fff3d8"/>
+ <path d="M16 27q4 5 8 0" stroke="#563b34" stroke-width="1.5" stroke-linecap="round"/>
+ <ellipse cx="10" cy="26" rx="2" ry="1" fill="#dc7d65"/><ellipse cx="30" cy="26" rx="2" ry="1" fill="#dc7d65"/>
 </svg>
