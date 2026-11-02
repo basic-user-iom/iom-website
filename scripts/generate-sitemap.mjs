@@ -64,6 +64,7 @@ function parseProjectUrls() {
 }
 
 const PRIVATE_DEMO_FOLDERS = new Set([
+  'wda-booth-preview',
   'stradivari-cable',
   'dukta-linar-architecture',
   'lobo-mobo-study',

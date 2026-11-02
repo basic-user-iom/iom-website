@@ -165,6 +165,7 @@
     }
   ],
   "headers": [
+    {"source":"/demos/wda-booth-preview/:path*","headers":[{"key":"X-Robots-Tag","value":"noindex, nofollow, noarchive"}]},
     { "source": "/demos/stradivari-cable(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }] },
     {
       "source": "/demos/dukta-linar-architecture(.*)",
