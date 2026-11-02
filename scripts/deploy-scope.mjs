@@ -260,6 +260,7 @@ const PROJECT_SCOPE_RULES = {
   'wda-booth-preview': [
     'wda-booth-preview/', 'public/demos/wda-booth-preview/',
     'vercel.json', 'scripts/generate-sitemap.mjs',
+    'scripts/patch-demo-back-links.mjs',
     'scripts/build-wda-booth-preview.mjs', 'scripts/deploy-scope.mjs',
     'scripts/deploy-production.mjs', '.vercelignore',
   ],
