@@ -257,6 +257,11 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'wda-booth-preview': [
+    'wda-booth-preview/', 'public/demos/wda-booth-preview/',
+    'scripts/build-wda-booth-preview.mjs', 'scripts/deploy-scope.mjs',
+    'scripts/deploy-production.mjs', '.vercelignore',
+  ],
   'stradivari-cable': [
     '.vercelignore',
     'stradivari-cable/',

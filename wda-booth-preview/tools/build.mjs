@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const dest=path.resolve(root,process.argv[2]||'dist');
+if(!dest.startsWith(path.dirname(root)+path.sep))throw Error('Output outside project workspace');
+await fs.mkdir(dest,{recursive:true});
+await fs.cp(path.join(root,'public'),dest,{recursive:true});
+await fs.cp(path.join(root,'src'),path.join(dest,'src'),{recursive:true});
+console.log(dest);

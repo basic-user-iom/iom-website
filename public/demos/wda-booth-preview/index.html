@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>WDA Booth Preview</title><link rel="stylesheet" href="./src/style.css"><link rel="stylesheet" href="./src/walk.css"><script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/addons/"}}</script></head>
+<body><main id="viewport" aria-label="Interactive booth walkthrough"><canvas id="scene" tabindex="0" aria-label="3D booth. Use Walk to enter, then W A S D or arrow keys to move, and drag to look."></canvas>
+<header><a class="brand" href="https://iobjectm.com/client-login" aria-label="We Document Art home">WE DOCUMENT ART<span>SPACE STUDY / 01</span></a><div class="top-actions"><span class="local-tag">BOOTH PREVIEW</span><button id="walk-shortcut" disabled aria-label="Enter walkthrough">Walk</button><button id="settings-button" aria-expanded="false" aria-controls="settings">View settings <span>＋</span></button></div></header>
+<section id="intro"><p class="eyebrow">THE ORIGINAL BOOTH</p><h1>A closer view.</h1><p class="intro-copy">Explore the artworks, materials and light.<br>Move at your own pace.</p><button id="walk-button" class="primary" disabled>Enter walkthrough <span>↗</span></button><p id="load-status" role="status">Preparing the space…</p></section>
+<nav id="views" aria-label="Camera views"><button data-view="entry" class="active">Entrance</button><button data-view="overview">Overview</button><button data-view="framed">Framed works</button><button data-view="drawings">Drawings</button></nav>
+<aside id="settings" hidden aria-label="View settings">
+ <div class="panel-head"><h2>View settings</h2><button id="close-settings" aria-label="Close view settings">x</button></div>
+ <label>Light <output id="light-value">100%</output><input id="light" type="range" min="60" max="150" value="100"></label>
+ <label class="check"><input type="checkbox" id="shadows" checked> Soft shadows</label>
+ <label class="floor-field" for="floor-material">Floor material<select id="floor-material" disabled aria-describedby="floor-status"><option value="original">Original client floor</option></select></label>
+ <p id="floor-status" role="status" aria-live="polite">Preparing floor materials.</p>
+ <details id="floor-surface-controls" class="material-controls"><summary>Floor surface controls</summary><div class="control-body">
+  <label for="floor-metalness">Metalness <output id="floor-metalness-value" for="floor-metalness">0.00</output><input id="floor-metalness" type="range" min="0" max="1" step="0.01" value="0" disabled></label>
+  <label for="floor-roughness">Roughness <output id="floor-roughness-value" for="floor-roughness">1.00</output><input id="floor-roughness" type="range" min="0" max="1" step="0.01" value="1" disabled aria-describedby="roughness-help"></label>
+  <p id="roughness-help" class="control-help">Multiplies the roughness texture. Lower values give a glossier surface.</p>
+  <label for="floor-relief">Surface detail <output id="floor-relief-value" for="floor-relief">100%</output><input id="floor-relief" type="range" min="0" max="2" step="0.05" value="1" disabled aria-describedby="detail-help"></label>
+  <p id="detail-help" class="control-help">Normal-map strength relative to the selected material.</p>
+  <button type="button" id="reset-floor" class="material-reset" disabled>Reset floor values</button>
+  <p class="control-help">Selecting another floor restores its default values.</p>
+ </div></details>
+ <label class="check"><input type="checkbox" id="reflections"> Floor reflections <small>Extra rendering pass</small></label>
+ <details id="reflection-controls" class="material-controls"><summary>Reflection controls</summary><div class="control-body">
+  <label for="reflection-strength">Reflection strength <output id="reflection-strength-value" for="reflection-strength">0.33</output><input id="reflection-strength" type="range" min="0" max="1" step="0.01" value="0.33" disabled></label>
+  <label for="reflection-blur">Reflection blur <output id="reflection-blur-value" for="reflection-blur">0.60</output><input id="reflection-blur" type="range" min="0" max="1" step="0.01" value="0.60" disabled></label>
+  <p class="control-help">Enable Floor reflections to adjust the reflected scene.</p>
+  <button type="button" id="reset-reflection" class="material-reset" disabled>Reset reflection values</button>
+ </div></details>
+ <div class="wall-controls"><label class="color-field" for="wall-color">Wall color <output id="wall-color-value" for="wall-color">#FFFFFF</output><input type="color" id="wall-color" value="#ffffff" disabled aria-describedby="wall-color-help"></label>
+  <p id="wall-color-help" class="control-help">Booth walls only. Artworks and trim keep their own colors.</p>
+  <button type="button" id="reset-wall-color" class="material-reset" disabled>Reset wall color</button>
+ </div>
+ <label>Detail<select id="quality"><option value="balanced">Balanced</option><option value="high">High</option></select></label><hr>
+ <p class="note">This study uses the furnished booth from the supplied Blender file. Materials and lighting are adapted for real-time viewing.</p>
+ <p class="note">Paper works include a proposed clear acrylic cover and support backing. Original artwork and frames are preserved.</p>
+ <details><summary>Model &amp; performance</summary><p id="model-stats">Loading.</p><p>Real-time lighting and reflections. No baked global illumination. Hardware frame rate has not been certified.</p></details>
+</aside>
+<footer><span id="mode-label">Drag to orbit · Scroll to approach</span><span>We Document Art · Booth Preview</span></footer><div id="fatal" role="alert" hidden></div></main><script type="module" src="./src/main.mjs"></script></body></html>

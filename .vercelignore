@@ -45,3 +45,6 @@ CRM_EMAIL_FAILURE_ANALYSIS_AND_FIX_PLAN.md
 
 # Rebuildable cable source duplicates the fully scanned public demo assets.
 /stradivari-cable/
+
+# Independent WDA source; publish only the built runtime.
+/wda-booth-preview/
