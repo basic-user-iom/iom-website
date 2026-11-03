@@ -1,20 +1,20 @@
 /* Adapted from internal IOM Gallery of Light walk HUD. No external fonts/assets. */
 #gallery-walk-controls[hidden], #gallery-walk-pad[hidden] { display:none !important; }
-#gallery-walk-controls { position:absolute; z-index:8; left:max(16px,env(safe-area-inset-left)); bottom:max(20px,env(safe-area-inset-bottom)); display:flex; align-items:center; gap:18px; max-width:calc(100% - 200px); padding:12px 14px; background:#f9f8f3ed; color:#222923; border:1px solid #d8dbd3; border-radius:12px; box-shadow:0 6px 24px #1b282914; font:400 12px/1.4 system-ui,sans-serif; }
+#gallery-walk-controls { position:absolute; z-index:8; left:max(16px,env(safe-area-inset-left)); bottom:max(20px,env(safe-area-inset-bottom)); display:flex; align-items:center; gap:18px; max-width:calc(100% - 200px); padding:12px 14px; background:#ffffffed; color:#000000; border:1px solid #d4d4d4; border-radius:12px; box-shadow:0 6px 24px #00000014; font:400 12px/1.4 system-ui,sans-serif; }
 .walk-instructions { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .walk-instructions strong { font-size:13px; font-weight:650; }
-.walk-instructions span { color:#58625b; }
+.walk-instructions span { color:#595959; }
 .walk-touch-help { display:none; }
-#gallery-walk-controls .walk-exit, #gallery-walk-pad button { min-height:44px; min-width:44px; border:1px solid #c7cec5; border-radius:8px; background:#fffdf8; color:#293b31; cursor:pointer; font:inherit; touch-action:none; user-select:none; -webkit-user-select:none; }
+#gallery-walk-controls .walk-exit, #gallery-walk-pad button { min-height:44px; min-width:44px; border:1px solid #c7d0d0; border-radius:8px; background:#ffffff; color:#023c4a; cursor:pointer; font:inherit; touch-action:none; user-select:none; -webkit-user-select:none; }
 #gallery-walk-controls .walk-exit { flex:none; padding:8px 12px; }
-#gallery-walk-pad { position:absolute; z-index:8; right:max(16px,env(safe-area-inset-right)); bottom:max(20px,env(safe-area-inset-bottom)); width:140px; height:94px; display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,44px); gap:4px; padding:6px; box-sizing:content-box; border:1px solid #d8dbd3; border-radius:12px; background:#f9f8f3e8; touch-action:none; }
+#gallery-walk-pad { position:absolute; z-index:8; right:max(16px,env(safe-area-inset-right)); bottom:max(20px,env(safe-area-inset-bottom)); width:140px; height:94px; display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,44px); gap:4px; padding:6px; box-sizing:content-box; border:1px solid #d4d4d4; border-radius:12px; background:#fffffff0; touch-action:none; }
 #gallery-walk-pad button { padding:0; font-size:23px; line-height:1; }
 #gallery-walk-pad [data-walk="forward"] { grid-column:2; }
 #gallery-walk-pad [data-walk="left"] { grid-column:1; grid-row:2; }
 #gallery-walk-pad [data-walk="back"] { grid-column:2; grid-row:2; }
 #gallery-walk-pad [data-walk="right"] { grid-column:3; grid-row:2; }
-#gallery-walk-controls .walk-exit:hover, #gallery-walk-pad button:hover, #gallery-walk-pad button.is-held { background:#dfe9de; }
-#gallery-walk-controls .walk-exit:focus-visible, #gallery-walk-pad button:focus-visible { outline:3px solid #677f64; outline-offset:3px; }
+#gallery-walk-controls .walk-exit:hover, #gallery-walk-pad button:hover, #gallery-walk-pad button.is-held { background:#c7d0d0; }
+#gallery-walk-controls .walk-exit:focus-visible, #gallery-walk-pad button:focus-visible { outline:3px solid #023c4a; outline-offset:3px; }
 #viewport.is-walking canvas { cursor:grab; touch-action:none; }
 #viewport.is-walking canvas.is-walk-looking { cursor:grabbing; }
 @media(pointer:coarse), (max-width:640px) { .walk-desktop-help { display:none; } .walk-touch-help { display:inline; } #gallery-walk-controls { padding:10px; gap:8px; left:10px; bottom:14px; max-width:calc(100% - 180px); flex-direction:column; align-items:flex-start; } #gallery-walk-controls .walk-exit { min-height:40px; } #gallery-walk-pad { right:10px; bottom:14px; } }

@@ -10,18 +10,18 @@
  <label class="floor-field" for="floor-material">Floor material<select id="floor-material" disabled aria-describedby="floor-status"><option value="original">Original client floor</option></select></label>
  <p id="floor-status" role="status" aria-live="polite">Preparing floor materials.</p>
  <details id="floor-surface-controls" class="material-controls"><summary>Floor surface controls</summary><div class="control-body">
-  <label for="floor-metalness">Metalness <output id="floor-metalness-value" for="floor-metalness">0.00</output><input id="floor-metalness" type="range" min="0" max="1" step="0.01" value="0" disabled></label>
-  <label for="floor-roughness">Roughness <output id="floor-roughness-value" for="floor-roughness">1.00</output><input id="floor-roughness" type="range" min="0" max="1" step="0.01" value="1" disabled aria-describedby="roughness-help"></label>
+  <label for="floor-metalness">Metalness <output id="floor-metalness-value" for="floor-metalness">0.20</output><input id="floor-metalness" type="range" min="0" max="1" step="0.01" value="0.2" disabled></label>
+  <label for="floor-roughness">Roughness <output id="floor-roughness-value" for="floor-roughness">0.40</output><input id="floor-roughness" type="range" min="0" max="1" step="0.01" value="0.4" disabled aria-describedby="roughness-help"></label>
   <p id="roughness-help" class="control-help">Multiplies the roughness texture. Lower values give a glossier surface.</p>
   <label for="floor-relief">Surface detail <output id="floor-relief-value" for="floor-relief">100%</output><input id="floor-relief" type="range" min="0" max="2" step="0.05" value="1" disabled aria-describedby="detail-help"></label>
   <p id="detail-help" class="control-help">Normal-map strength relative to the selected material.</p>
   <button type="button" id="reset-floor" class="material-reset" disabled>Reset floor values</button>
   <p class="control-help">Selecting another floor restores its default values.</p>
  </div></details>
- <label class="check"><input type="checkbox" id="reflections"> Floor reflections <small>Extra rendering pass</small></label>
+ <label class="check"><input type="checkbox" id="reflections" checked> Floor reflections <small>Extra rendering pass</small></label>
  <details id="reflection-controls" class="material-controls"><summary>Reflection controls</summary><div class="control-body">
-  <label for="reflection-strength">Reflection strength <output id="reflection-strength-value" for="reflection-strength">0.33</output><input id="reflection-strength" type="range" min="0" max="1" step="0.01" value="0.33" disabled></label>
-  <label for="reflection-blur">Reflection blur <output id="reflection-blur-value" for="reflection-blur">0.60</output><input id="reflection-blur" type="range" min="0" max="1" step="0.01" value="0.60" disabled></label>
+  <label for="reflection-strength">Reflection strength <output id="reflection-strength-value" for="reflection-strength">0.46</output><input id="reflection-strength" type="range" min="0" max="1" step="0.01" value="0.46" disabled></label>
+  <label for="reflection-blur">Reflection blur <output id="reflection-blur-value" for="reflection-blur">0.40</output><input id="reflection-blur" type="range" min="0" max="1" step="0.01" value="0.40" disabled></label>
   <p class="control-help">Enable Floor reflections to adjust the reflected scene.</p>
   <button type="button" id="reset-reflection" class="material-reset" disabled>Reset reflection values</button>
  </div></details>

@@ -43,7 +43,8 @@ export function createFloorMaterials({ materials = [], variants = [], anisotropy
     const repeat = variant.repeat ?? [1, 1], normalScale = variant.normalScale ?? [1, 1];
     if (repeat.length !== 2 || !repeat.every(v => Number.isFinite(v) && v > 0) ||
       normalScale.length !== 2 || !normalScale.every(Number.isFinite) ||
-      (variant.roughness !== undefined && !Number.isFinite(variant.roughness))) {
+      (variant.roughness !== undefined && !Number.isFinite(variant.roughness)) ||
+      (variant.metalness !== undefined && !Number.isFinite(variant.metalness))) {
       throw new TypeError(`Invalid floor scale or roughness: ${variant.id}`);
     }
     choices.set(variant.id, { ...variant, maps: { ...variant.maps }, repeat: [...repeat], normalScale: [...normalScale] });
@@ -86,7 +87,7 @@ export function createFloorMaterials({ materials = [], variants = [], anisotropy
       Object.assign(material, maps);
       material.color.set(variant.color ?? 0xffffff);
       material.roughness = THREE.MathUtils.clamp(variant.roughness ?? 1, 0, 1);
-      material.metalness = 0; material.normalMapType = THREE.TangentSpaceNormalMap;
+      material.metalness = THREE.MathUtils.clamp(variant.metalness ?? 0, 0, 1); material.normalMapType = THREE.TangentSpaceNormalMap;
       material.normalScale.fromArray(variant.normalScale); material.needsUpdate = true;
     }
   }

@@ -38,7 +38,8 @@ function setShadowVariant(variant){
 }
 setShadowVariant(shadowVariant);
 const lights=[];
-const views={entry:{position:[8.7,2.1,1.2],target:[-.4,1.55,0],fov:54},overview:{position:[8,7.5,8],target:[0,1.3,0],fov:54},framed:{position:[.1,1.72,-.2],target:[.1,1.8,2.5],fov:57},drawings:{position:[.1,1.72,.3],target:[.1,1.84,-2.5],fov:57}};
+const reflectionDefaults={enabled:true,intensity:.46,roughness:.4};
+const views={entry:{position:[8.7,2.1,1.2],target:[-.4,1.55,0],fov:54},overview:{position:[12.051316116641255,.9999153634083802,-4.595185422555213],target:[0,1.3,0],fov:54},framed:{position:[.1,1.72,-.2],target:[.1,1.8,2.5],fov:57},drawings:{position:[.1,1.72,.3],target:[.1,1.84,-2.5],fov:57}};
 function setView(name,instant=false){const pose=views[name];if(!pose)return false;walk?.exit();viewport.classList.toggle('viewing',name!=='entry');for(const b of document.querySelectorAll('[data-view]'))b.classList.toggle('active',b.dataset.view===name);transition={start:performance.now(),duration:instant||reduced?0:850,from:camera.position.clone(),to:new THREE.Vector3(...pose.position),targetFrom:controls.target.clone(),targetTo:new THREE.Vector3(...pose.target),fovFrom:camera.fov,fovTo:pose.fov};invalidate();return true;}
 function frame(now){raf=0;if(disposed||document.hidden)return;const started=performance.now();let animate=false;
  if(transition){const t=transition.duration?Math.min(1,(now-transition.start)/transition.duration):1,s=t*t*(3-2*t);camera.position.lerpVectors(transition.from,transition.to,s);controls.target.lerpVectors(transition.targetFrom,transition.targetTo,s);camera.fov=THREE.MathUtils.lerp(transition.fovFrom,transition.fovTo,s);camera.updateProjectionMatrix();if(t===1)transition=null;else animate=true;}
@@ -76,7 +77,7 @@ function syncMaterialControls(){
 for(const [id,key] of [['floor-metalness','metalness'],['floor-roughness','roughness'],['floor-relief','normalStrength']])$(id).oninput=()=>{floorMaterials?.setSurface({[key]:Number($(id).value)});};
 $('reset-floor').onclick=()=>floorMaterials?.resetSurface();
 for(const [id,key] of [['reflection-strength','intensity'],['reflection-blur','roughness']])$(id).oninput=()=>{reflection?.set({[key]:Number($(id).value)});syncMaterialControls();invalidate();};
-$('reset-reflection').onclick=()=>{reflection?.set({intensity:.33,roughness:.6});syncMaterialControls();invalidate();};
+$('reset-reflection').onclick=()=>{reflection?.set({intensity:reflectionDefaults.intensity,roughness:reflectionDefaults.roughness});syncMaterialControls();invalidate();};
 $('wall-color').oninput=()=>wallColors?.setColor($('wall-color').value);
 $('reset-wall-color').onclick=()=>wallColors?.reset();
 const start=performance.now();
@@ -111,16 +112,15 @@ async function load(){
  scene.updateMatrixWorld(true);const contactCasters=[];model.traverse(o=>{if(o.isMesh&&o.castShadow)contactCasters.push(o);});
  contact=createFloorContact({floors,casters:contactCasters,resolution:512,maxHeight:.25,intensity:.28,radius:.07,enabled:shadowVariant==='after'&&$('shadows').checked});
  const floorSurfaces=[...new Set(floors.flatMap(f=>Array.isArray(f.material)?f.material:[f.material]))];
- try{const m=await import('./reflections.mjs');reflection=m.createBoothReflections({renderer,scene,camera,floors});reflection.set({enabled:false,intensity:.33,roughness:.6});}catch(e){stats.errors.push('Optional floor reflection unavailable: '+e.message);$('reflections').disabled=true;}
+ try{const m=await import('./reflections.mjs');reflection=m.createBoothReflections({renderer,scene,camera,floors});reflection.set(reflectionDefaults);}catch(e){stats.errors.push('Optional floor reflection unavailable: '+e.message);$('reflections').checked=false;$('reflections').disabled=true;}
  for(const p of floorPresets){const option=document.createElement('option');option.value=p.id;option.textContent=p.label;$('floor-material').append(option);}
  floorMaterials=createFloorMaterials({materials:floorSurfaces,variants:floorPresets,anisotropy:Math.min(4,renderer.capabilities.getMaxAnisotropy()),
-  onChange:state=>{reflection?.syncSurface();invalidate();try{localStorage.setItem('wda-walkthrough-floor-v1',state.active);}catch{}},
+  onChange:state=>{reflection?.syncSurface();invalidate();},
   onStatus:state=>{const select=$('floor-material');select.value=state.loading?state.requested:state.active;select.setAttribute('aria-busy',String(state.loading));
-   $('floor-status').textContent=state.loading?'Loading floor material…':state.error?'Could not load that floor. The previous floor is kept.':state.active==='original'?'Original client floor.':state.active==='fine-concrete'?'Fine aggregate · 1 m texture repeat':'Satin concrete · 80 cm slabs';syncMaterialControls();}
+   $('floor-status').textContent=state.loading?'Loading floor material…':state.error?'Could not load that floor. The previous floor is kept.':state.active==='original'?'Original client floor.':state.active==='oak-regular-parquet'?'Oak parquet · 7.5 cm boards · 1.8 m texture repeat':state.active==='fine-concrete'?'Fine aggregate · 1 m texture repeat':'Satin concrete · 80 cm slabs';syncMaterialControls();}
  });
  $('floor-material').disabled=false;
- let initialFloor=defaultFloor;try{initialFloor=localStorage.getItem('wda-walkthrough-floor-v1')||defaultFloor;}catch{}
- initialFloor=new URLSearchParams(location.search).get('floor')||initialFloor;
+ let initialFloor=new URLSearchParams(location.search).get('floor')||defaultFloor;
  if(initialFloor!=='original'&&!floorPresets.some(p=>p.id===initialFloor))initialFloor=defaultFloor;
  await floorMaterials.select(initialFloor);
  syncMaterialControls();

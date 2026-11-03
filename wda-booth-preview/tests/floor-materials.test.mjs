@@ -9,6 +9,24 @@ const threeURL = pathToFileURL(path.join(root, 'public/vendor/three/build/three.
 const THREE = await import(threeURL);
 const code = (await fs.readFile(path.join(root, 'src/floor-materials.mjs'), 'utf8')).replace("from 'three'", `from '${threeURL}'`);
 const { createFloorMaterials } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+const {floorPresets,defaultFloor}=await import('../src/floor-presets.mjs');
+
+test('oak preset restores the approved surface defaults and half-size pattern without changing other choices',async()=>{
+ const material=new THREE.MeshStandardMaterial();
+ const effect=createFloorMaterials({materials:[material],variants:floorPresets,loader:async()=>new THREE.Texture()});
+ assert.equal(defaultFloor,'oak-regular-parquet');
+ assert.deepEqual(floorPresets.map(p=>p.id),['light-concrete','grey-concrete','fine-concrete','oak-regular-parquet']);
+ const oak=floorPresets.at(-1);
+ assert.equal(oak.tileMeters,1.8);
+ assert.deepEqual(oak.repeat,[3.6251461880746487/1.8,3.6251461880746487/1.8]);
+ assert.equal(await effect.select(defaultFloor),true);
+ assert.deepEqual(effect.getSurface(),{metalness:.2,roughness:.4,normalStrength:1});
+ effect.setSurface({metalness:.7,roughness:.8,normalStrength:1.5});effect.resetSurface();
+ assert.deepEqual(effect.getSurface(),{metalness:.2,roughness:.4,normalStrength:1});
+ await effect.select('light-concrete');assert.deepEqual(effect.getSurface(),{metalness:0,roughness:1,normalStrength:1});
+ await effect.select(defaultFloor);assert.deepEqual(effect.getSurface(),{metalness:.2,roughness:.4,normalStrength:1});
+ effect.dispose();
+});
 const variants = ['a', 'b'].map(id => ({ id, label: `Floor ${id}`, maps: {
   map: `${id}-color.webp`, normalMap: `${id}-normal.webp`, roughnessMap: `${id}-roughness.webp`,
 }, repeat: [1.5, 1.5], normalScale: [0.22, 0.22], roughness: 1 }));
