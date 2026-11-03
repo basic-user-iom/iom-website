@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createGuide} from './guide.mjs';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
@@ -20,6 +21,7 @@ const scene=new THREE.Scene();scene.background=new THREE.Color('#e9e9e3');scene.
 const camera=new THREE.PerspectiveCamera(54,1,.05,60);camera.position.set(8.7,2.1,1.2);
 const controls=new OrbitControls(camera,canvas);controls.target.set(-.4,1.55,0);controls.enableDamping=true;controls.dampingFactor=.12;controls.maxPolarAngle=Math.PI*.72;controls.minDistance=.65;controls.maxDistance=18;
 let dirty=true,raf=0,walk,model,reflection,contact,floorMaterials,wallColors,paperProtection,transition=null,disposed=false,reflectionDirty=false;let shadowVariant=new URLSearchParams(location.search).get('shadows')==='before'?'before':'after';const frameTimes=[];
+const guide=createGuide({document,onOpen:()=>walk?.clearInput()});
 const stats={ready:false,frames:0,shadowUpdates:0,modelBytes:0,triangles:0,drawCalls:0,textureCount:0,loadMilliseconds:0,errors:[],navigation:null,quality:'balanced',shadowVariant,contactBuildMilliseconds:0};
 function invalidate(){dirty=true;if(!raf&&!document.hidden&&!disposed)raf=requestAnimationFrame(frame);}
 function shadowsDirty(){renderer.shadowMap.needsUpdate=true;reflectionDirty=true;stats.shadowUpdates++;invalidate();}

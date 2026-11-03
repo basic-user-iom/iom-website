@@ -7,3 +7,41 @@ footer>span{color:#fff;background:rgba(2,60,74,.92);padding:7px 10px;border-radi
 
 /* WDA interface palette: wedocumentart.com, verified 2026-11-03. */
 ::selection{background:#d4d4d4;color:#000}footer{align-items:center}#views button:hover{background:#c7d0d0}#views button.active,#views button.active:hover{background:#000;color:#fff}
+
+/* A non-modal welcome panel: the scene and camera views stay interactive. */
+#guide-button{font-size:12px;min-width:44px;min-height:44px;padding:10px 15px}
+#guide-button[aria-expanded=true]{background:#023c4a;color:#fff;border-color:#023c4a}
+#guide[hidden]{display:none}
+#guide{position:absolute;z-index:11;top:85px;right:30px;width:min(380px,calc(100% - 40px));max-height:calc(100dvh - 190px);display:flex;flex-direction:column;background:#fffffff5;backdrop-filter:blur(16px);border:1px solid #d4d4d4;border-radius:18px;box-shadow:0 15px 40px #00000015;color:#000}
+.guide-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 20px 12px;flex:none}
+.guide-kicker{margin:0 0 7px;font-size:9px;letter-spacing:1.8px;color:#023c4a}
+#guide-title{margin:0;font-size:22px;font-weight:400;letter-spacing:-.4px}
+#close-guide{font-size:24px;line-height:1;min-width:44px;min-height:44px;padding:8px;border:0;background:transparent}
+.guide-content{min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 20px 16px;scrollbar-gutter:stable;font-size:12px;line-height:1.55}
+.guide-content:focus-visible,#guide-title:focus-visible{outline:2px solid #023c4a;outline-offset:-2px}
+.guide-content section{padding:14px 0;border-bottom:1px solid #e2e2e2}
+.guide-content h3{font-size:13px;color:#023c4a;margin:0 0 7px;font-weight:700}
+.guide-content p{margin:5px 0;color:#404040}
+.guide-content strong{font-weight:700;color:#023c4a}
+.guide-content kbd{display:inline-block;font:11px/1.4 Arial,Helvetica,sans-serif;border:1px solid #c7d0d0;border-radius:4px;padding:1px 4px;margin:0 1px;background:#f5f5f5;color:#000}
+.guide-content dl{margin:8px 0 0}.guide-content dt{font-weight:700;color:#023c4a;margin-top:10px}.guide-content dd{margin:2px 0 0;color:#404040}
+.guide-views{display:grid;grid-template-columns:96px 1fr;gap:7px 12px}.guide-views dt,.guide-views dd{margin:0}
+.guide-settings{font-size:12px;color:#404040;line-height:1.55;padding-top:10px}
+.guide-settings summary{min-height:44px;align-content:center;font-weight:700;color:#023c4a;padding:8px 0}
+.guide-bottom{flex:none;display:flex;align-items:center;gap:14px;padding:14px 20px;border-top:1px solid #e2e2e2}
+#guide-done{min-height:44px;padding:12px 16px;white-space:nowrap}.guide-bottom p{font-size:10px;line-height:1.5;color:#595959;margin:0}
+@media(max-width:720px){#guide-button{font-size:10px;padding:9px 10px}#guide{top:80px;right:14px;width:min(380px,calc(100% - 28px));max-height:calc(100dvh - 205px)}.guide-head{padding:14px 16px 8px}.guide-content{padding:0 16px 12px}.guide-bottom{padding:10px 16px;gap:10px}}
+@media(max-width:520px){header{flex-wrap:wrap;gap:10px}.top-actions{margin-left:auto}#guide,#settings{top:122px;max-height:calc(100dvh - 245px)}.guide-views{grid-template-columns:88px 1fr;gap:7px 8px}}
+
+/* Vector icons share one optical size and cannot intercept button clicks. */
+.ui-icon{display:block;width:18px;height:18px;flex:none;pointer-events:none}
+#close-guide,#close-settings{display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;line-height:1;border:0;border-radius:50%;background:transparent;color:#023c4a}
+#close-guide:hover,#close-settings:hover{background:#c7d0d0}
+.guide-head>div{min-width:0}.panel-head{gap:12px;min-height:44px}.panel-head h2{min-width:0}
+#settings-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px}
+#settings-button .ui-icon{width:14px;height:14px}
+#settings-button[aria-expanded=true] .icon-vertical{display:none}
+#walk-shortcut{min-height:44px}
+@media(max-width:720px){#settings-button{gap:6px}}
+@media(max-width:720px){#intro{bottom:130px}}
+@media(max-width:520px){#guide,#settings{max-height:calc(100dvh - 255px)}}
