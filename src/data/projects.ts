@@ -1,3 +1,4 @@
+import aqueduct from './aqueductPublication.json'
 import type { ProjectSection } from './sections'
 export type { ProjectSection }
 
@@ -861,6 +862,21 @@ export const PROJECTS: Project[] = [
     posterUrl: '/assets/photos/celestial-current/photo-0.webp',
     mobilePosterUrl: '/assets/photos/celestial-current/photo-0.webp',
     archiveId: 'OBJ-0143',
+  },
+  {
+    id: aqueduct.slug,
+    title: aqueduct.locales.en.title,
+    section: '3d',
+    tags: ['three.js', 'webgl', 'glb'],
+    description: aqueduct.locales.en.card,
+    year: '2026',
+    url: aqueduct.demoUrl || undefined,
+    hoverEmbed: false,
+    posterUrl: '/assets/blog/roman-aqueduct/overview.webp',
+    mobilePosterUrl: '/assets/blog/roman-aqueduct/overview-400.webp',
+    thumbnail: '/assets/blog/roman-aqueduct/overview-400.webp',
+    referenceUrls: [{ label: aqueduct.locales.en.read, url: '/blog/'+aqueduct.article }],
+    archiveId: 'OBJ-AQVA01',
   },
   {
     id: 'gallery-of-light',

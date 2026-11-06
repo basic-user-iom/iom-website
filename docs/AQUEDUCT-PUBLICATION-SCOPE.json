@@ -1,0 +1,40 @@
+{
+  "proposedScope": "aqueduct-publication",
+  "registeredInReleaseTooling": false,
+  "publicationReady": false,
+  "sourceBase": "be1a50d5e410fdd9d3d9e78d72ee4155c7715c19",
+  "observedProduction": "dpl_3htf1ivjg2ajpv1upExZ72GFwN9g",
+  "demoUrl": null,
+  "files": [
+    "docs/AQUEDUCT-PUBLICATION-HANDOFF.md",
+    "docs/AQUEDUCT-PUBLICATION-SCOPE.json",
+    "public/assets/blog/roman-aqueduct/cutaway.webp",
+    "public/assets/blog/roman-aqueduct/overview-400.webp",
+    "public/assets/blog/roman-aqueduct/overview.webp",
+    "scripts/build-aqueduct-editorial-preview.mjs",
+    "scripts/emit-roman-aqueduct-blog.mjs",
+    "scripts/test-aqueduct-publication.mjs",
+    "src/blog/posts/index.ts",
+    "src/blog/posts/roman-aqueduct/de.md",
+    "src/blog/posts/roman-aqueduct/en.md",
+    "src/blog/posts/roman-aqueduct/es.md",
+    "src/blog/posts/roman-aqueduct/fr.md",
+    "src/blog/posts/roman-aqueduct/it.md",
+    "src/blog/posts/roman-aqueduct/metadata.json",
+    "src/blog/posts/roman-aqueduct/nl.md",
+    "src/blog/posts/romanAqueductPost.ts",
+    "src/blog/sitePublishedPosts.ts",
+    "src/data/aqueductPublication.json",
+    "src/data/projects.ts",
+    "src/i18n/projects/localize.ts",
+    "vercel.json",
+    "vite.config.ts"
+  ],
+  "pending": [
+    "Confirmed HTTPS standalone demo URL and corresponding card/article CTA integration",
+    "Standalone demo mobile QA and rights status from its owner worker",
+    "Fresh full production composition and explicit serialization with CRM owner",
+    "Reviewed narrow release scope registration, full composed build/media/scans; never deploy this sparse preview"
+  ],
+  "note": "This is a local preparation manifest, not a production receipt or permission override. No CRM/application CSS edits, no DB writes, no deploy."
+}

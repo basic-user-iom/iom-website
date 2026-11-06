@@ -1,3 +1,4 @@
+import aqueduct from '../../data/aqueductPublication.json'
 import storm from '../../data/stormPublication.json'
 import {
   PROJECTS,
@@ -38,6 +39,11 @@ export function localizedSections(lang: SiteLang) {
 }
 
 export function localizeProject(project: Project, lang: SiteLang): Project {
+  if (project.id === aqueduct.slug) {
+    const c = aqueduct.locales[lang]
+    return {...project, title: c.title, description: c.card,
+      referenceUrls: [{label: c.read, url: localePath(lang, '/blog/'+aqueduct.article)}]}
+  }
   if (project.id === storm.slug || project.id === 'case-study-storm-monolith') {
     const c=storm.locales[lang], study=project.id === 'case-study-storm-monolith'
     return {...project,title:study?c.title:project.title,description:study?c.lead:c.card,

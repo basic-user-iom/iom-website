@@ -1,4 +1,5 @@
 // @ts-nocheck — Vite config; blog API plugin is plain .mjs
+import { romanAqueductBlogPages } from './scripts/emit-roman-aqueduct-blog.mjs'
 import { stormMonolithBlogPages } from './scripts/emit-storm-monolith-blog.mjs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -70,6 +71,7 @@ export default defineConfig({
     robotCellBlogPages(),
     galleryOfLightBlogPages(),
     stormMonolithBlogPages(),
+    romanAqueductBlogPages(),
   ],
   build: {
     rollupOptions: {
