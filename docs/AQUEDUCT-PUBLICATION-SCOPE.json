@@ -1,19 +1,22 @@
 {
   "proposedScope": "aqueduct-publication",
-  "registeredInReleaseTooling": false,
+  "registeredInReleaseTooling": true,
   "publicationReady": false,
   "sourceBase": "be1a50d5e410fdd9d3d9e78d72ee4155c7715c19",
   "observedProduction": "dpl_3htf1ivjg2ajpv1upExZ72GFwN9g",
-  "demoUrl": null,
+  "demoUrl": "https://iom-roman-aqueduct.vercel.app/",
   "files": [
     "docs/AQUEDUCT-PUBLICATION-HANDOFF.md",
     "docs/AQUEDUCT-PUBLICATION-SCOPE.json",
-    "public/assets/blog/roman-aqueduct/cutaway.webp",
+    "public/assets/blog/roman-aqueduct/arches.webp",
     "public/assets/blog/roman-aqueduct/overview-400.webp",
     "public/assets/blog/roman-aqueduct/overview.webp",
     "scripts/build-aqueduct-editorial-preview.mjs",
+    "scripts/deploy-production.mjs",
+    "scripts/deploy-scope.mjs",
     "scripts/emit-roman-aqueduct-blog.mjs",
     "scripts/test-aqueduct-publication.mjs",
+    "scripts/test-aqueduct-release-safety.mjs",
     "src/blog/posts/index.ts",
     "src/blog/posts/roman-aqueduct/de.md",
     "src/blog/posts/roman-aqueduct/en.md",
@@ -31,10 +34,8 @@
     "vite.config.ts"
   ],
   "pending": [
-    "Confirmed HTTPS standalone demo URL and corresponding card/article CTA integration",
-    "Standalone demo mobile QA and rights status from its owner worker",
-    "Fresh full production composition and explicit serialization with CRM owner",
-    "Reviewed narrow release scope registration, full composed build/media/scans; never deploy this sparse preview"
+    "Full composed verification preserving all 26 inherited overlays",
+    "Final production/CRM serialization check and guarded release"
   ],
-  "note": "This is a local preparation manifest, not a production receipt or permission override. No CRM/application CSS edits, no DB writes, no deploy."
+  "note": "Exact aqueduct website/editorial scope. Confirmed independent demo URL; no standalone redeploy, CRM source change, database write, broad scope or scanner/media bypass."
 }

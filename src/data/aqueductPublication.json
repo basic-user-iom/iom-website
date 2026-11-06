@@ -1,7 +1,7 @@
 {
   "slug": "roman-aqueduct-living-water",
   "article": "roman-aqueduct-living-water",
-  "demoUrl": null,
+  "demoUrl": "https://iom-roman-aqueduct.vercel.app/",
   "locales": {
     "en": {
       "title": "AQVA — Living Water",
@@ -11,16 +11,17 @@
       "excerpt": "An interactive 3D study makes the route from source to distribution visible through guided views and an openable channel.",
       "intro": "A row of arches is only part of the story. AQVA — Living Water follows a water route across a modelled valley, from an upstream settling tank to a distribution basin. Five chapters connect the overview with closer views of the channel, maintenance openings and outgoing pipes.",
       "h1": "A route you can explore",
-      "p1": "Choose a chapter to move the camera, or orbit the scene yourself. The cutaway reveals the channel behind the masonry. Flow markers can be switched on and off, and Reset returns to the opening view. A quality selector offers a practical way to adjust rendering on your device.",
+      "p1": "Choose a chapter to move the camera, or orbit the scene yourself. The cutaway reveals the channel behind the masonry. Flow markers can be switched on and off, and Overview returns to the opening view. A quality selector offers a practical way to adjust rendering on your device.",
       "h2": "Materials that explain the model",
       "p2": "Pale masonry, red-finished channel walls and a separate light floor distinguish the structural and interior surfaces. The distribution view removes service covers so the modelled pipe openings are easier to inspect. These views explain the construction choices in this scene; they are not records of a surveyed monument.",
       "h3": "An illustration, with explicit limits",
       "p3": "The scene combines selected references into an educational reconstruction. It is not an exact replica of Pont du Gard or a hydraulic or structural simulation. The shortened approaches, three outlet branches and visible section cuts are modelling choices. Animated markers communicate direction; they do not measure flow speed or capacity.",
-      "caption": "Offline Blender render of the model; browser lighting may differ.",
-      "detailAlt": "Channel cutaway with pale masonry, red interior wall and water",
+      "caption": "Screenshot of the published AQVA browser demo (V29).",
+      "detailAlt": "Three tiers of aqueduct arches above the river in the published V29 scene",
       "h4": "Built for exploration",
       "p4": "The demo uses Three.js and a locally bundled GLB model. Chapter buttons provide an alternative to free camera movement, and the interface includes reduced-motion handling and help. The standalone interface is in English; this article is available in all six IOM website languages. Performance depends on the device, browser and selected quality.",
-      "back": "Back to the 3D collection"
+      "back": "Back to the 3D collection",
+      "open": "Explore the aqueduct"
     },
     "de": {
       "title": "AQVA — Lebendiges Wasser",
@@ -30,16 +31,17 @@
       "excerpt": "Eine interaktive 3D-Studie macht den Weg von der Quelle bis zur Verteilung durch geführte Ansichten und einen aufklappbaren Kanal sichtbar.",
       "intro": "Eine Reihe von Bögen erzählt nur einen Teil der Geschichte. AQVA — Living Water folgt einem Wasserweg durch ein modelliertes Tal, vom vorgelagerten Absetzbecken bis zum Verteilerbecken. Fünf Kapitel verbinden die Übersicht mit Nahansichten des Kanals, der Wartungsöffnungen und der abgehenden Leitungen.",
       "h1": "Ein Weg zum Erkunden",
-      "p1": "Wähle ein Kapitel, um die Kamera zu bewegen, oder umkreise die Szene selbst. Der Schnitt legt den Kanal hinter dem Mauerwerk frei. Flussmarkierungen lassen sich ein- und ausschalten; Reset führt zur Anfangsansicht zurück. Über die Qualitätsauswahl kannst du die Darstellung an dein Gerät anpassen.",
+      "p1": "Wähle ein Kapitel, um die Kamera zu bewegen, oder umkreise die Szene selbst. Der Schnitt legt den Kanal hinter dem Mauerwerk frei. Flussmarkierungen lassen sich ein- und ausschalten; Overview führt zur Anfangsansicht zurück. Über die Qualitätsauswahl kannst du die Darstellung an dein Gerät anpassen.",
       "h2": "Materialien, die das Modell erklären",
       "p2": "Helles Mauerwerk, rot gefasste Kanalwände und ein separater heller Boden unterscheiden Tragwerk und Innenflächen. In der Verteileransicht werden Wartungsabdeckungen entfernt, damit die modellierten Rohröffnungen besser erkennbar sind. Diese Ansichten erläutern die Konstruktionsentscheidungen der Szene; sie dokumentieren kein vermessenes Monument.",
       "h3": "Eine Veranschaulichung mit klaren Grenzen",
       "p3": "Die Szene verbindet ausgewählte Referenzen zu einer didaktischen Rekonstruktion. Sie ist weder eine genaue Nachbildung des Pont du Gard noch eine hydraulische oder statische Simulation. Die verkürzten Zuführungen, drei Abzweige und sichtbaren Schnittkanten sind Modellentscheidungen. Animierte Markierungen zeigen die Richtung, messen aber weder Fließgeschwindigkeit noch Fördermenge.",
-      "caption": "Offline in Blender gerendertes Modell; die Beleuchtung im Browser kann abweichen.",
-      "detailAlt": "Kanalschnitt mit hellem Mauerwerk, roter Innenwand und Wasser",
+      "caption": "Screenshot der veröffentlichten AQVA-Browserdemo (V29).",
+      "detailAlt": "Drei Bogenreihen über dem Fluss in der veröffentlichten V29-Szene",
       "h4": "Zum Erkunden entwickelt",
       "p4": "Die Demo nutzt Three.js und ein lokal eingebundenes GLB-Modell. Kapitelschaltflächen bieten eine Alternative zur freien Kamerabewegung. Die Oberfläche berücksichtigt reduzierte Bewegung und bietet eine Hilfe. Die eigenständige Demo ist auf Englisch; dieser Artikel ist in allen sechs Sprachen der IOM-Website verfügbar. Die Leistung hängt von Gerät, Browser und Qualitätsstufe ab.",
-      "back": "Zurück zur 3D-Sammlung"
+      "back": "Zurück zur 3D-Sammlung",
+      "open": "Das Aquädukt erkunden"
     },
     "fr": {
       "title": "AQVA — L’eau en mouvement",
@@ -49,16 +51,17 @@
       "excerpt": "Une étude 3D interactive rend visible le trajet de la source à la distribution, grâce à des vues guidées et à un canal que l’on peut ouvrir.",
       "intro": "Une rangée d’arches ne raconte qu’une partie de l’histoire. AQVA — Living Water suit un parcours d’eau dans une vallée modélisée, du bassin de décantation en amont au bassin de distribution. Cinq chapitres relient la vue d’ensemble aux détails du canal, des accès d’entretien et des conduites de sortie.",
       "h1": "Un parcours à explorer",
-      "p1": "Choisissez un chapitre pour déplacer la caméra, ou faites vous-même le tour de la scène. La coupe révèle le canal derrière la maçonnerie. Les repères d’écoulement peuvent être activés ou désactivés, et Reset revient à la vue initiale. Le sélecteur de qualité permet d’adapter le rendu à votre appareil.",
+      "p1": "Choisissez un chapitre pour déplacer la caméra, ou faites vous-même le tour de la scène. La coupe révèle le canal derrière la maçonnerie. Les repères d’écoulement peuvent être activés ou désactivés, et Overview revient à la vue initiale. Le sélecteur de qualité permet d’adapter le rendu à votre appareil.",
       "h2": "Des matériaux qui expliquent le modèle",
       "p2": "La maçonnerie claire, les parois rouges du canal et son fond clair distinct différencient structure et surfaces intérieures. La vue de distribution retire les couvercles de service pour mieux montrer les ouvertures des tuyaux. Ces vues expliquent les choix de construction de cette scène ; elles ne documentent pas un monument relevé sur place.",
       "h3": "Une illustration aux limites explicites",
       "p3": "La scène rassemble des références choisies dans une reconstitution pédagogique. Ce n’est ni une réplique exacte du Pont du Gard, ni une simulation hydraulique ou structurelle. Les approches raccourcies, les trois branches de sortie et les coupes visibles sont des choix de modélisation. Les repères animés indiquent une direction, sans mesurer vitesse ni débit.",
-      "caption": "Rendu du modèle réalisé hors ligne dans Blender ; l’éclairage du navigateur peut différer.",
-      "detailAlt": "Coupe du canal avec maçonnerie claire, paroi intérieure rouge et eau",
+      "caption": "Capture de la démo AQVA publiée dans le navigateur (V29).",
+      "detailAlt": "Trois niveaux d’arches au-dessus de la rivière dans la scène V29 publiée",
       "h4": "Conçu pour l’exploration",
       "p4": "La démo utilise Three.js et un modèle GLB intégré localement. Les boutons de chapitre offrent une alternative à la caméra libre, avec une prise en charge des mouvements réduits et une aide. L’interface de la démo indépendante est en anglais ; cet article est disponible dans les six langues du site IOM. Les performances dépendent de l’appareil, du navigateur et de la qualité choisie.",
-      "back": "Retour à la collection 3D"
+      "back": "Retour à la collection 3D",
+      "open": "Explorer l’aqueduc"
     },
     "nl": {
       "title": "AQVA — Levend water",
@@ -68,16 +71,17 @@
       "excerpt": "Een interactieve 3D-studie maakt de route van bron tot verdeling zichtbaar met begeleide camerastandpunten en een kanaal dat je kunt openen.",
       "intro": "Een rij bogen vertelt maar een deel van het verhaal. AQVA — Living Water volgt een waterroute door een gemodelleerde vallei, van een hoger gelegen bezinkbassin tot een verdeelbassin. Vijf hoofdstukken verbinden het overzicht met details van het kanaal, onderhoudsopeningen en uitgaande leidingen.",
       "h1": "Een route om te verkennen",
-      "p1": "Kies een hoofdstuk om de camera te verplaatsen of draai zelf rond de scène. De doorsnede onthult het kanaal achter het metselwerk. Stromingsmarkeringen kun je aan- en uitzetten; Reset brengt je terug naar het begin. Met de kwaliteitskeuze pas je de weergave aan je apparaat aan.",
+      "p1": "Kies een hoofdstuk om de camera te verplaatsen of draai zelf rond de scène. De doorsnede onthult het kanaal achter het metselwerk. Stromingsmarkeringen kun je aan- en uitzetten; Overview brengt je terug naar het begin. Met de kwaliteitskeuze pas je de weergave aan je apparaat aan.",
       "h2": "Materialen die het model uitleggen",
       "p2": "Licht metselwerk, rood afgewerkte kanaalwanden en een afzonderlijke lichte bodem maken het verschil tussen draagconstructie en binnenoppervlakken zichtbaar. In het verdeelaanzicht verdwijnen de onderhoudsdeksels, zodat de gemodelleerde pijpopeningen beter te bekijken zijn. De beelden verklaren de constructiekeuzes in deze scène; ze zijn geen documentatie van een ingemeten monument.",
       "h3": "Een illustratie met duidelijke grenzen",
       "p3": "De scène combineert geselecteerde referenties tot een educatieve reconstructie. Het is geen exacte replica van de Pont du Gard en geen hydraulische of constructieve simulatie. Verkorte aanvoerroutes, drie uitgaande takken en zichtbare doorsneden zijn modelkeuzes. Bewegende markeringen tonen de richting, maar meten geen stroomsnelheid of capaciteit.",
-      "caption": "Offline Blender-render van het model; de belichting in de browser kan verschillen.",
-      "detailAlt": "Kanaaldoorsnede met licht metselwerk, rode binnenwand en water",
+      "caption": "Schermafbeelding van de gepubliceerde AQVA-browserdemo (V29).",
+      "detailAlt": "Drie lagen aquaductbogen boven de rivier in de gepubliceerde V29-scène",
       "h4": "Gemaakt om te ontdekken",
       "p4": "De demo gebruikt Three.js en een lokaal gebundeld GLB-model. Hoofdstukknoppen bieden een alternatief voor vrije camerabeweging. De interface houdt rekening met verminderde beweging en bevat hulp. De zelfstandige demo is Engelstalig; dit artikel is beschikbaar in alle zes talen van de IOM-website. Prestaties hangen af van apparaat, browser en kwaliteitsinstelling.",
-      "back": "Terug naar de 3D-collectie"
+      "back": "Terug naar de 3D-collectie",
+      "open": "Verken het aquaduct"
     },
     "it": {
       "title": "AQVA — Acqua in movimento",
@@ -87,16 +91,17 @@
       "excerpt": "Uno studio 3D interattivo rende visibile il percorso dalla sorgente alla distribuzione, con viste guidate e un canale apribile.",
       "intro": "Una fila di archi racconta solo una parte della storia. AQVA — Living Water segue un percorso d’acqua in una valle modellata, dalla vasca di decantazione a monte al bacino di distribuzione. Cinque capitoli collegano la vista generale ai dettagli del canale, degli accessi per la manutenzione e delle tubazioni in uscita.",
       "h1": "Un percorso da esplorare",
-      "p1": "Scegli un capitolo per spostare la camera oppure ruota liberamente intorno alla scena. La sezione rivela il canale dietro la muratura. Puoi attivare o disattivare gli indicatori del flusso; Reset ripristina la vista iniziale. Il selettore della qualità permette di adattare il rendering al dispositivo.",
+      "p1": "Scegli un capitolo per spostare la camera oppure ruota liberamente intorno alla scena. La sezione rivela il canale dietro la muratura. Puoi attivare o disattivare gli indicatori del flusso; Overview ripristina la vista iniziale. Il selettore della qualità permette di adattare il rendering al dispositivo.",
       "h2": "Materiali che spiegano il modello",
       "p2": "Muratura chiara, pareti del canale con finitura rossa e un fondo chiaro separato distinguono struttura e superfici interne. Nella vista della distribuzione vengono rimossi i coperchi di servizio, per rendere più leggibili le aperture delle tubazioni modellate. Queste viste spiegano le scelte costruttive della scena; non documentano un monumento rilevato sul posto.",
       "h3": "Un’illustrazione con limiti espliciti",
       "p3": "La scena combina riferimenti selezionati in una ricostruzione didattica. Non è una replica esatta del Pont du Gard né una simulazione idraulica o strutturale. Gli accessi accorciati, le tre diramazioni e le sezioni visibili sono scelte di modellazione. Gli indicatori animati comunicano la direzione, senza misurare velocità o portata.",
-      "caption": "Rendering del modello realizzato offline in Blender; l’illuminazione nel browser può differire.",
-      "detailAlt": "Sezione del canale con muratura chiara, parete interna rossa e acqua",
+      "caption": "Schermata della demo AQVA pubblicata nel browser (V29).",
+      "detailAlt": "Tre ordini di archi sopra il fiume nella scena V29 pubblicata",
       "h4": "Pensato per l’esplorazione",
       "p4": "La demo usa Three.js e un modello GLB incluso localmente. I pulsanti dei capitoli offrono un’alternativa alla camera libera; l’interfaccia supporta la riduzione del movimento e include una guida. La demo indipendente è in inglese; questo articolo è disponibile nelle sei lingue del sito IOM. Le prestazioni dipendono da dispositivo, browser e qualità selezionata.",
-      "back": "Torna alla raccolta 3D"
+      "back": "Torna alla raccolta 3D",
+      "open": "Esplora l’acquedotto"
     },
     "es": {
       "title": "AQVA — Agua en movimiento",
@@ -106,16 +111,17 @@
       "excerpt": "Un estudio 3D interactivo muestra el recorrido desde la fuente hasta la distribución mediante vistas guiadas y un canal que se puede abrir.",
       "intro": "Una fila de arcos solo cuenta parte de la historia. AQVA — Living Water sigue un recorrido de agua por un valle modelado, desde un depósito de decantación aguas arriba hasta una cuenca de distribución. Cinco capítulos conectan la vista general con detalles del canal, los accesos de mantenimiento y las tuberías de salida.",
       "h1": "Un recorrido para explorar",
-      "p1": "Elige un capítulo para mover la cámara o gira libremente alrededor de la escena. La sección revela el canal detrás de la mampostería. Puedes activar o desactivar los indicadores de flujo; Reset recupera la vista inicial. El selector de calidad permite adaptar el renderizado a tu dispositivo.",
+      "p1": "Elige un capítulo para mover la cámara o gira libremente alrededor de la escena. La sección revela el canal detrás de la mampostería. Puedes activar o desactivar los indicadores de flujo; Overview recupera la vista inicial. El selector de calidad permite adaptar el renderizado a tu dispositivo.",
       "h2": "Materiales que explican el modelo",
       "p2": "La mampostería clara, las paredes del canal con acabado rojo y el fondo claro independiente distinguen estructura y superficies interiores. La vista de distribución retira las tapas de servicio para mostrar mejor las aberturas de las tuberías modeladas. Estas vistas explican las decisiones constructivas de la escena; no documentan un monumento levantado sobre el terreno.",
       "h3": "Una ilustración con límites explícitos",
       "p3": "La escena combina referencias seleccionadas en una reconstrucción educativa. No es una réplica exacta del Pont du Gard ni una simulación hidráulica o estructural. Los accesos acortados, las tres ramificaciones y las secciones visibles son decisiones de modelado. Los indicadores animados comunican dirección; no miden velocidad ni caudal.",
-      "caption": "Render del modelo realizado sin conexión en Blender; la iluminación del navegador puede variar.",
-      "detailAlt": "Sección del canal con mampostería clara, pared interior roja y agua",
+      "caption": "Captura de la demo AQVA publicada en el navegador (V29).",
+      "detailAlt": "Tres niveles de arcos sobre el río en la escena V29 publicada",
       "h4": "Diseñado para explorar",
       "p4": "La demo utiliza Three.js y un modelo GLB incluido localmente. Los botones de capítulo ofrecen una alternativa a la cámara libre; la interfaz contempla el movimiento reducido e incluye ayuda. La demo independiente está en inglés; este artículo está disponible en los seis idiomas del sitio IOM. El rendimiento depende del dispositivo, el navegador y la calidad elegida.",
-      "back": "Volver a la colección 3D"
+      "back": "Volver a la colección 3D",
+      "open": "Explorar el acueducto"
     }
   }
 }
