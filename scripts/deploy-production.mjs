@@ -433,7 +433,7 @@ function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = ''
   }
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: needsReviewEnv ? {...process.env,...needsReviewEnv} : emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && ['storm-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]))) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
+      env: needsReviewEnv ? {...process.env,...needsReviewEnv} : emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && ['storm-publication', 'aqueduct-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]))) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -453,8 +453,9 @@ function demoSlugForScope(scope) {
 }
 
 function writeVerificationAudit(name, value) {
-  if (!process.argv.includes('--verify-only') || !requestedScopes(process.argv.slice(2)).includes('storm-publication')) return
-  const directory = join(root, '.qa-out', 'storm-verification')
+  const scope = requestedScopes(process.argv.slice(2)).find(value => ['storm-publication', 'aqueduct-publication'].includes(value))
+  if (!process.argv.includes('--verify-only') || !scope) return
+  const directory = join(root, '.qa-out', scope === 'aqueduct-publication' ? 'aqueduct-verification' : 'storm-verification')
   mkdirSync(directory, { recursive: true })
   writeFileSync(join(directory, name + '.json'), JSON.stringify(value, null, 2) + '\n')
 }
@@ -504,7 +505,7 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
   }
   assertNoHarpManifest(manifest, cutover)
   const scan = assertReleaseManifestSecrets(stage, manifest, scanOptions)
-  if (process.argv.includes('--verify-only') && scopes.length === 1 && scopes[0] === 'storm-publication') {
+  if (process.argv.includes('--verify-only') && scopes.length === 1 && ['storm-publication', 'aqueduct-publication'].includes(scopes[0])) {
     writeVerificationAudit(preparingAssets ? 'pre-r2-upload' : 'final-upload', {
       fileCount: manifest.fileCount, totalSize: manifest.totalSize,
       files: manifest.files.map(entry => ({path: entry.path.replaceAll('\\', '/'), size: entry.size,
@@ -545,7 +546,7 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
     snapshot.stage,
     ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
     ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    ...(scopes.length === 1 && ['release-provenance', 'storm-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]) ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
+    ...(scopes.length === 1 && ['release-provenance', 'storm-publication', 'aqueduct-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]) ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
       ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     ...Object.entries(metadata).flatMap(([key, value]) => ['--meta', `${key}=${value}`]),
@@ -617,7 +618,7 @@ function main() {
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
         ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
-        ...(verifyOnly || (scopes.length === 1 && ['crm', 'storm-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0])) ? ['--verify-only'] : []),
+        ...(verifyOnly || (scopes.length === 1 && ['crm', 'storm-publication', 'aqueduct-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0])) ? ['--verify-only'] : []),
       ])
     }
     const knownValues = knownValuesFromEnvironment(process.env)

@@ -8,8 +8,8 @@ export const NEEDS_REVIEW_SCOPE = 'crm-needs-review'
 export const NEEDS_REVIEW_TARGET = Object.freeze({
   projectId: 'prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv',
   teamId: 'team_9wCcYQpYqlDlPAaUpCqhWXj9', domain: 'iobjectm.com',
-  initialDeploymentId: 'dpl_3htf1ivjg2ajpv1upExZ72GFwN9g',
-  initialCommit: 'be1a50d5e410fdd9d3d9e78d72ee4155c7715c19',
+  initialDeploymentId: 'dpl_F2Ynm4MuRLbgv7qJh96dxAWP71Hx',
+  initialCommit: '070c299e4f78ca4d3be425c16e015ccc7077e539',
 })
 const hash = value => createHash('sha256').update(value).digest('hex')
 const fail = code => { throw Object.assign(Error(code), {code}) }

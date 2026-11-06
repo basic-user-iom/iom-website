@@ -41,6 +41,22 @@
       "destination": "/api/crm-needs-review"
     },
     {
+      "source": "/blog/roman-aqueduct-living-water",
+      "destination": "/blog/roman-aqueduct-living-water/index.html"
+    },
+    {
+      "source": "/blog/roman-aqueduct-living-water/",
+      "destination": "/blog/roman-aqueduct-living-water/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/roman-aqueduct-living-water",
+      "destination": "/:lang/blog/roman-aqueduct-living-water/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/roman-aqueduct-living-water/",
+      "destination": "/:lang/blog/roman-aqueduct-living-water/index.html"
+    },
+    {
       "source": "/apple-touch-icon.png",
       "destination": "https://assets.iobjectm.com/iom-website/v1/46f51d7b9bd364ee6f2986404e73087deac3cb1ff335cc9ae0fb4c05292b3a52/apple-touch-icon.png"
     },
@@ -4133,7 +4149,7 @@
       "destination": "/:lang/blog/solar-system-living-observatory/index.html"
     },
     {
-      "source": "/((?!(?:de|fr|nl|it|es)/blog/storm-monolith-atmosphere-materials(?:/|$)|blog/storm-monolith-atmosphere-materials(?:/|$)|(?:de|fr|nl|it|es)/blog/gallery-of-light-sculpture-sound(?:/|$)|blog/gallery-of-light-sculpture-sound(?:/|$)|assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)|(?:de|fr|nl|it|es)/blog/robot-cell-browser-palletizing(?:/|$)|blog/robot-cell-browser-palletizing(?:/|$)).*)",
+      "source": "/((?!(?:de|fr|nl|it|es)/blog/roman-aqueduct-living-water(?:/|$)|blog/roman-aqueduct-living-water(?:/|$)|(?:de|fr|nl|it|es)/blog/storm-monolith-atmosphere-materials(?:/|$)|blog/storm-monolith-atmosphere-materials(?:/|$)|(?:de|fr|nl|it|es)/blog/gallery-of-light-sculpture-sound(?:/|$)|blog/gallery-of-light-sculpture-sound(?:/|$)|assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)|(?:de|fr|nl|it|es)/blog/robot-cell-browser-palletizing(?:/|$)|blog/robot-cell-browser-palletizing(?:/|$)).*)",
       "destination": "/index.html"
     }
   ],

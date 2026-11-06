@@ -1,3 +1,4 @@
+import aqueduct from './aqueductPublication.json'
 import type { ProjectSection } from './sections'
 export type { ProjectSection }
 
@@ -27,6 +28,8 @@ export interface Project {
   mobilePosterUrl?: string
   /** Optional static preview image for non-embed cards */
   thumbnail?: string
+  /** Opt in to a keyboard-accessible demo link over a static thumbnail. */
+  thumbnailOpensDemo?: boolean
   /** Upstream example source on GitHub (Three.js demos, etc.) */
   sourceUrl?: string
   /** Additional upstream references (character rigs, related examples, etc.) */
@@ -861,6 +864,22 @@ export const PROJECTS: Project[] = [
     posterUrl: '/assets/photos/celestial-current/photo-0.webp',
     mobilePosterUrl: '/assets/photos/celestial-current/photo-0.webp',
     archiveId: 'OBJ-0143',
+  },
+  {
+    id: aqueduct.slug,
+    title: aqueduct.locales.en.title,
+    section: '3d',
+    tags: ['three.js', 'webgl', 'glb'],
+    description: aqueduct.locales.en.card,
+    year: '2026',
+    url: aqueduct.demoUrl || undefined,
+    thumbnailOpensDemo: true,
+    hoverEmbed: false,
+    posterUrl: '/assets/blog/roman-aqueduct/overview.webp',
+    mobilePosterUrl: '/assets/blog/roman-aqueduct/overview-400.webp',
+    thumbnail: '/assets/blog/roman-aqueduct/overview-400.webp',
+    referenceUrls: [{ label: aqueduct.locales.en.read, url: '/blog/'+aqueduct.article }],
+    archiveId: 'OBJ-AQVA01',
   },
   {
     id: 'gallery-of-light',
