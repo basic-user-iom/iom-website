@@ -391,6 +391,16 @@ export const ProjectCard = memo(function ProjectCard({
               {initials}
             </span>
           )}
+          {project.thumbnailOpensDemo && useMultiLinkShell && projectHref && !isComingSoon && !hasGallery && !hasMusicTrack ? (
+            <a
+              className="card-preview-open"
+              href={projectHref}
+              aria-label={t('card.open') + ': ' + project.title}
+              style={{ outlineOffset: -3 }}
+              onClick={handleDemoNavigate}
+              {...newTabAnchorProps(project.url)}
+            />
+          ) : null}
           {hasGallery ? (
             <span className="card-preview-overlay" aria-hidden="true">
               VIEW GALLERY →

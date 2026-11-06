@@ -28,6 +28,8 @@ export interface Project {
   mobilePosterUrl?: string
   /** Optional static preview image for non-embed cards */
   thumbnail?: string
+  /** Opt in to a keyboard-accessible demo link over a static thumbnail. */
+  thumbnailOpensDemo?: boolean
   /** Upstream example source on GitHub (Three.js demos, etc.) */
   sourceUrl?: string
   /** Additional upstream references (character rigs, related examples, etc.) */
@@ -871,6 +873,7 @@ export const PROJECTS: Project[] = [
     description: aqueduct.locales.en.card,
     year: '2026',
     url: aqueduct.demoUrl || undefined,
+    thumbnailOpensDemo: true,
     hoverEmbed: false,
     posterUrl: '/assets/blog/roman-aqueduct/overview.webp',
     mobilePosterUrl: '/assets/blog/roman-aqueduct/overview-400.webp',

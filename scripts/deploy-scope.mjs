@@ -234,6 +234,7 @@ const NAMED_SCOPES = {
     "src/blog/posts/roman-aqueduct/nl.md",
     "src/blog/posts/romanAqueductPost.ts",
     "src/blog/sitePublishedPosts.ts",
+    "src/components/ProjectCard.tsx",
     "src/data/aqueductPublication.json",
     "src/data/projects.ts",
     "src/i18n/projects/localize.ts",

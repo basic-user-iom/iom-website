@@ -4,7 +4,8 @@ import {matchesDeployScope,invalidFilesForScope} from './deploy-scope.mjs'
 const scope='aqueduct-publication'
 const manifest=JSON.parse(fs.readFileSync('docs/AQUEDUCT-PUBLICATION-SCOPE.json','utf8'))
 assert.deepEqual(invalidFilesForScope(manifest.files,scope),[])
-for(const p of ['api/crm-send-email.js','src/crm/CrmApp.tsx','src/index.css','src/components/ProjectCard.tsx','public/assets/audio/a.mp3','public/demos/roman-aqueduct/index.html','src/seasonal/index.ts'])assert.equal(matchesDeployScope(p,scope),false,p)
+for(const p of ['api/crm-send-email.js','src/crm/CrmApp.tsx','src/index.css','public/assets/audio/a.mp3','public/demos/roman-aqueduct/index.html','src/seasonal/index.ts'])assert.equal(matchesDeployScope(p,scope),false,p)
+assert.equal(matchesDeployScope('src/components/ProjectCard.tsx',scope),true)
 const source=fs.readFileSync('scripts/deploy-production.mjs','utf8')
 for(const marker of ["const emailEnv", "function writeVerificationAudit", "function deploySnapshot", "function main()"] )assert.ok(source.includes(marker))
 const local=source.slice(source.indexOf('function buildSnapshot'),source.indexOf('function demoSlugForScope'))

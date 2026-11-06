@@ -2,8 +2,8 @@
   "proposedScope": "aqueduct-publication",
   "registeredInReleaseTooling": true,
   "publicationReady": false,
-  "sourceBase": "be1a50d5e410fdd9d3d9e78d72ee4155c7715c19",
-  "observedProduction": "dpl_3htf1ivjg2ajpv1upExZ72GFwN9g",
+  "sourceBase": "c2ddcc9c6511e84f13c0d3bd0b7168a9ceb13712",
+  "observedProduction": "dpl_H1yqLdhMFGMmjmsWAaCkwyBQivAe",
   "demoUrl": "https://iom-roman-aqueduct.vercel.app/",
   "files": [
     "docs/AQUEDUCT-PUBLICATION-HANDOFF.md",
@@ -27,6 +27,7 @@
     "src/blog/posts/roman-aqueduct/nl.md",
     "src/blog/posts/romanAqueductPost.ts",
     "src/blog/sitePublishedPosts.ts",
+    "src/components/ProjectCard.tsx",
     "src/data/aqueductPublication.json",
     "src/data/projects.ts",
     "src/i18n/projects/localize.ts",
@@ -34,8 +35,8 @@
     "vite.config.ts"
   ],
   "pending": [
-    "Full composed verification preserving all 26 inherited overlays",
-    "Final production/CRM serialization check and guarded release"
+    "Guarded thumbnail follow-up release preserving all 26 other overlays and the existing AQVA content",
+    "Verify image activation on public desktop/mobile pages"
   ],
-  "note": "Exact aqueduct website/editorial scope. Confirmed independent demo URL; no standalone redeploy, CRM source change, database write, broad scope or scanner/media bypass."
+  "note": "Exact aqueduct website/editorial scope. Confirmed independent demo URL; no standalone redeploy, CRM source change, database write, broad scope or scanner/media bypass. Thumbnail follow-up: opt-in accessible image link is enabled only for AQVA; no global styling change."
 }
