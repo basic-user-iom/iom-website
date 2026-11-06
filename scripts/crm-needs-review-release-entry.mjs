@@ -9,6 +9,15 @@ import {createNeedsReviewReleaseDriver,needsReviewReleaseJournalDir,needsReviewS
 import {openNeedsReviewJournal,inspectNeedsReviewJournal} from './crm-needs-review-journal-session.mjs'
 import {assertPrivateReleaseSource,isPrivateReleaseSource,resolvePrivateJournal,assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
 
+// Provider metadata endpoints return either a JSON object or a JSON array.
+// Keep parsing strict; endpoint-specific inventory/shape checks still run.
+export function parseNeedsReviewMetadata(output) {
+  const fail=()=>{throw Object.assign(Error('needs_review_metadata_invalid_json'),{code:'needs_review_metadata_invalid_json'})}
+  if(typeof output!=='string')fail()
+  const starts=[output.indexOf('{'),output.indexOf('[')].filter(index=>index>=0)
+  if(starts.length===0)fail()
+  try{return JSON.parse(output.slice(Math.min(...starts)))}catch{fail()}
+}
 // Local diagnostics only. Never print approval, lock contents, history, errors
 // supplied by the journal, or arbitrary strings from a recovered state.
 function journalSummary(report,head,manifestSha256) {
@@ -98,7 +107,7 @@ export function runNeedsReviewEntry(operation,context) {
   }
   // The driver is lazy: plan/missing approval does not lock, access services,
   // inspect credentials, scan media or create a staging checkout.
-  const api=route=>parseJsonOutput(cli(['api',route]),'NeedsReview metadata')
+  const api=route=>parseNeedsReviewMetadata(cli(['api',route]))
   const deployment=id=>{
     const d=api('/v13/deployments/'+id)
     const identities=[d.teamId,d.ownerId,d.team?.id].filter(value=>value!==undefined&&value!==null)
