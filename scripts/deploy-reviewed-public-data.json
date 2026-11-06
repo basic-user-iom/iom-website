@@ -600,6 +600,23 @@
           "5400a9e2038ad8cfac2bdbd1bc1a64c1298adb64e9be4c5a0d587e2d0f64f23d"
         ]
       }
+    ],
+    "api/_lib/crm-capability-oauth.mjs": [
+      {
+        "fileDigest": "b0649d8966b9720aa44de09e559479df9234a4edf2d63857edc797ea055fa0a3",
+        "literalDigests": [
+          "8a9533fd4c938b86786ccb5c8b1c232d53e03a64635deb0e39645ca3232135c5"
+        ]
+      }
+    ],
+    "api/_lib/crm-needs-review-issuer.mjs": [
+      {
+        "fileDigest": "be75e3ef4d6c24775d87380c1d97f325cfcf3387f19e99d8a68c20335748ebf6",
+        "literalDigests": [
+          "12acb792d278d5e1ca8f28ddb51d69036861909c67f81e73f4a70036a12ff341",
+          "23a0a4ae756ce3dc7631e06901573d92df6d5e5b0f096b7879578fdc7dcc1bd4"
+        ]
+      }
     ]
   }
 }

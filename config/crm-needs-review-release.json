@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "scope": "crm-needs-review",
+  "target": {
+    "projectId": "prj_fWUOXHiMmeE6RXfqgAAKJCi97nrv",
+    "teamId": "team_9wCcYQpYqlDlPAaUpCqhWXj9",
+    "domain": "iobjectm.com"
+  },
+  "baseline": {
+    "id": "dpl_3htf1ivjg2ajpv1upExZ72GFwN9g",
+    "commit": "be1a50d5e410fdd9d3d9e78d72ee4155c7715c19",
+    "base": "0d518e0c907c2859cddcf90890d3cb780ea310ac",
+    "scopeMap": "eyJwcm9qZWN0OmR1a3RhLWxpbmFyLWNvbmNlcHQiOiI4ZDA4NzI2NWFiMzFhZDI4NjYxYWZkYjhkNmQxMDY2NmRlODZjN2RkIiwiZGVtbzpjYXJleS1iZWViZS1yZXNwb25zaXZlIjoiMDc0N2EwMDkxNTM5Mjc0MzNiODM4YzZjNTk3NTlhODk1ODhhNmMwMiIsImRlbW86ZHVrdGEiOiI1MGVjYjgxNjIyZGI0NDlhZWMxYTI5ZTY0YjdlNWJlZTRhNzQ4ZDZkIiwiYXV0b21vdGl2ZS1zdHVkaW8iOiI2ZDNjMmFmNjA0NjI1ODQzMDU4NTA2Mzc5ZDQ0MDQzNGRiYjg0ZTQxIiwicHJvamVjdDpzb2xhci1zeXN0ZW0iOiI2NWYyMjI5OWE5MzA4N2JhMDA1MWE4YTc1MGVjMTJhMTRmMTA1ODk0IiwicHJvamVjdDpyb2JvdC1jZWxsIjoiYWIzZjRiMmM0Nzk1ZjNkYzExZWM4MTlkMDM2ZDY1OTk1NmJjMWExMiIsImRlbW86cm9ib3QtY2VsbCI6IjQwMzc5YjQwODEyYmI0Yjc5Y2RiNWQyMjdiNGU3NGExYzIzNjdjOWEiLCJwcm9qZWN0Om5pZ2h0LWdyaWQiOiJhZDI4ZGYyNTE4YmQwMmRiMTk1MDBjNGYxYjhmZGQ5ZjNhOGRkYzQ4IiwiYnVpbGRpbmctdmlld2VyIjoiMWMyMTJiOGFjYjdiYjc4ZTdmMzliNTEwM2JlMjhhNWI5ZDg1ZWYzZSIsInByb2plY3Q6Z2FsbGVyeS1vZi1saWdodCI6ImFlNzI1NjhjNzMzNjhkNTNhMGM2ZTUxOTk1ZDRjMjNhYmIwNTBkNGMiLCJwcm9qZWN0OnN0cmFkaXZhcmktYW1hbnRlcy1zMyI6IjVhYzQ3Zjk5MDdmNzU4MTlhYjM4MjEyYjE1YzllZmFlYjdiYzgyOGUiLCJkZW1vOnByb2NlZHVyYWwtZ2wiOiI4ZmRhNTJhODZjYWE2ZWQ5OGU4ZjU2OWM2MTE5YzUwNTQ0MGViNDY5IiwiZGVtbzpnYWxsZXJ5LW9mLWxpZ2h0IjoiYTU3MTIxMjFjY2M0ZjAwYmRlNTgzODU0NzBiOWRjMzI2ZGYwOGMyNyIsImRlbW86c3RyYWRpdmFyaS1jYWJsZSI6IjE5NTRmOTE1MzFjZmRmZDJjOWY4NTAwNzUwOTk3ZmZjYTUxYjE0ZmUiLCJtZWRpYS1hc3NldHMiOiI5NTAwZmJjNzYyNzczNjRjMzMxODBmYTA1YWZkYjY3ZmU0OGUxNzY5IiwicHJvamVjdDpkdWt0YS1saW5hci1hcmNoaXRlY3R1cmUiOiJiOGExZDQyOGM5OTcwZTgwNmJmMTg1MWUyZjIxMzliZWMxOGFiNDc3IiwicHJvamVjdDpzdHJhZGl2YXJpLWNhYmxlIjoiNmQxNTBmYzA4MjNjNzA5ZGM4NmQxNjkxZWVmMTJiYzMxNWNmZmExMSIsInByb2plY3Q6bG9iby1tb2JvLXN0dWR5IjoiYmI3Y2NmMWNiNmVmMmZlZTMxNzM1NjlkOTAxYWU2YTg4NzI5ZmFhYSIsImNybSI6IjQxYjExOThjZGY2ZmE3MzZlMjUwODRjYTcwZjQwNWQwODRhNTk3YzQiLCJjcm0tZW1haWwiOiI1MTVkNGI2ZWI1NGQ3ZGE1MzYwMGQ4OTg4MjhiY2M4MDJhNWVjNGQ0IiwiY3JtLWVtYWlsLXN0b3JlIjoiNjJlMDYzMjUzODY2NjY1OGM5NWVmMjEyYjY1MjA5NzExYzViMDZhYiIsInJlbGVhc2UtcHJvdmVuYW5jZSI6Ijg1OWI2MzY0ZTk3MjZiNjEyYjMwOTVjMDRhYzk4YmU5OGRiMWRhY2YiLCJzdG9ybS1wdWJsaWNhdGlvbiI6IjU4M2IyMDYwYTg2ZDhmNjUwYzE1ZGYwZTJkMzkzMzk1Yjk4ODNmMWEiLCJpb20tZmVhdHVyZWQtd29yayI6IjkxY2M5NjM0ZmE0Y2MzMTRlYzk5MTM5MDlhYmNmYzIyZTdlYTI5MDYiLCJzZWFzb25hbC10aGVtZSI6ImY5MWJlMTgwZDhlMmQ1MTljNWE5NTMwYzdlNzA4NGMxN2U4MTlmNjYiLCJwcm9qZWN0OndkYS1ib290aC1wcmV2aWV3IjoiYmUxYTUwZDVlNDEwZmRkOWQzZDllNzhkNzJlZTQxNTVjNzcxNWMxOSJ9",
+    "sourceCount": 1261
+  },
+  "files": [
+    {
+      "path": "api/_lib/crm-capability-dispatcher.mjs",
+      "sha256": "2eb41e2278f0dfddfdee3dbe09f9c71da46ff89c0f140c861e480b8f328c280e"
+    },
+    {
+      "path": "api/_lib/crm-capability-oauth.mjs",
+      "sha256": "b0649d8966b9720aa44de09e559479df9234a4edf2d63857edc797ea055fa0a3"
+    },
+    {
+      "path": "api/_lib/crm-capability-worker-auth.mjs",
+      "sha256": "6645be4c7e73a67690e59334ed42f4bcf7949ae136fcf107de3ba55c709fe162"
+    },
+    {
+      "path": "api/_lib/crm-contact-approval.mjs",
+      "sha256": "5409069ce41db5d6e0fbf399cfadc71b40e8709406fefe5b18693407e89bc44a"
+    },
+    {
+      "path": "api/_lib/crm-email-batch-policy.mjs",
+      "sha256": "98b907d91d604a2202cd4ab1f7b4a0cf67bb9598c8f6de0b4e21f67697f0d8f7"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-composition.mjs",
+      "sha256": "b41874488836cf98a82e124d8bfe48db5cd6c34f06fa5075d360690f8b383e93"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-host.mjs",
+      "sha256": "a50242f0e350b39b351c8dce7909419343cef610080fbfd67d0bd1f2d2d255e9"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-http.mjs",
+      "sha256": "55f0e178dfbddd2c6e3c2b98112736b4b86b29b639d3bf0b723c09673d8481ce"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-issuer.mjs",
+      "sha256": "be75e3ef4d6c24775d87380c1d97f325cfcf3387f19e99d8a68c20335748ebf6"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-oauth-store.mjs",
+      "sha256": "1091a67af34c5f3e8faf47772aaf582270fab5b5642ac799328eeb8f2f179304"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-postgres.mjs",
+      "sha256": "9c256ce14b63b3e5aab21de75f1864c7879c595d409ef73e7f189216b0e3d3c0"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-receipts.mjs",
+      "sha256": "d56d76ef216ddb705b02f60dfc968ae23a932fb5e11cef4696215c50c1ee06f1"
+    },
+    {
+      "path": "api/_lib/crm-needs-review-tools.mjs",
+      "sha256": "04d6e400067081003eca88fbbf8dafc4b27d3f9f794cce0b0bfe448fb91566ab"
+    },
+    {
+      "path": "api/crm-needs-review.js",
+      "sha256": "2d654d8d426f544fb089c9ed7f4a7c3c06b09796e9ebfb2aa774a368a8719790"
+    },
+    {
+      "path": "scripts/crm-needs-review-broker.cs",
+      "sha256": "7f729fbd80407cf3b195c07fb17b22a0579a89f00eb9415bc6da48fe47a5d858"
+    },
+    {
+      "path": "scripts/crm-needs-review-broker.ps1",
+      "sha256": "af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-inspector.ps1",
+      "sha256": "714b2f376737168ffd79de64233119b3000dcfc34224c6be2a140c80bebb8e11"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-privacy.mjs",
+      "sha256": "e3649af37419e86de18fef22e96fd6069226aff372fcd5f3e512161f12c78d6d"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-session.mjs",
+      "sha256": "d46ec45d7b31919f9613114aa6d6c2115dcb2a70a4a070037cf71a9d0e46ce5b"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-worker.mjs",
+      "sha256": "4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"
+    },
+    {
+      "path": "scripts/crm-needs-review-native.cs",
+      "sha256": "28a3f74814bf6626ddbc12e6c051508489e057c58fa6699cba7bded2aa6ec033"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-driver.mjs",
+      "sha256": "434434c57440d12badf31595f0fb375bd95fd9fc650aa337a41db07fdb471299"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-entry.mjs",
+      "sha256": "7deb07a6c318930f8baa843a1831376ed09e92d7d778af21a3eb2b5875102d7d"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-guards.mjs",
+      "sha256": "312185c79503b2d1923655acf5ee0a454ca3c568a4300f4908354c7c7bb3c0a5"
+    },
+    {
+      "path": "scripts/crm-needs-review-release.mjs",
+      "sha256": "e49735b5746f2df217ab0dab416cd1435eff8e2727dad7d90ecf3e4f69ac8a18"
+    },
+    {
+      "path": "scripts/crm-needs-review-scope.mjs",
+      "sha256": "f79fa0b0b879e524037402e1e9b6d6aece2be1c7fc09294af3ad3a5aabaa0bae"
+    },
+    {
+      "path": "scripts/crm-needs-review-source-binding.mjs",
+      "sha256": "fd9ce3c386a8cbedd2f590765d38619189522f4a2709cc92d0d58424018b74ad"
+    },
+    {
+      "path": "scripts/deploy-native-source-facts.mjs",
+      "sha256": "b3bbb723136e72233ba8c741f485a51f7a73f0690fe6df2e7066627284869e9a"
+    },
+    {
+      "path": "scripts/deploy-native-source-facts.ps1",
+      "sha256": "8cf476f30e7b5c94d69f77549710f6b6b10b79c85f13f0d832f9531d572dd3aa"
+    },
+    {
+      "path": "scripts/deploy-production.mjs",
+      "sha256": "32c1890ddb7110ed6c80ec039778bfc77f657a32cee5f4784b8b7a13bd149ec6"
+    },
+    {
+      "path": "scripts/deploy-reviewed-protocol-data.json",
+      "sha256": "0515960f8fda4ff7140a9dacd95ca866f29fd435cc4d650f46e05fb3479506bf"
+    },
+    {
+      "path": "scripts/deploy-reviewed-protocol-data.mjs",
+      "sha256": "e3c885e02e6339956245fe3b4205753b425069e6cdceb3b92347b35fe82a530d"
+    },
+    {
+      "path": "scripts/deploy-reviewed-public-data.json",
+      "sha256": "f67cf904a479e96fd23fde99b6d5becdba11c5e0ca76a8470d57168a4d9c47c6"
+    },
+    {
+      "path": "scripts/deploy-scope.mjs",
+      "sha256": "b9c3733716005a3a6f1cdb98865623aab45ca869c83ce17b90f2c3c2e39ce35d"
+    },
+    {
+      "path": "scripts/deploy-secret-scan.mjs",
+      "sha256": "44384d12d679e7209a6fa61f6a4ad7b4284897ba28d337281f8edd0823e8cdbc"
+    },
+    {
+      "path": "vercel.json",
+      "sha256": "7f243d1121c41970519b82e0efbf8111e1047c805507a6a27215f03f5e082e9e"
+    }
+  ],
+  "runtimeDigest": "baaae4f02d31a0663045d57a7d8812f4eb65e971e02f4d1a07fa8663f926727d",
+  "configDigest": "7f243d1121c41970519b82e0efbf8111e1047c805507a6a27215f03f5e082e9e",
+  "productionApproval": null
+}

@@ -1,4 +1,6 @@
+import {NEEDS_REVIEW_SCOPE_FILES} from './crm-needs-review-scope.mjs'
 const NAMED_SCOPES = {
+  'crm-needs-review': NEEDS_REVIEW_SCOPE_FILES,
   // Reversible public-site seasonal layer; no CRM, demo, pricing or asset paths.
   'seasonal-theme': [
     'src/main.tsx',

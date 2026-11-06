@@ -1,3 +1,5 @@
+import {parseNeedsReviewOperation,disabledNeedsReviewEnv} from './crm-needs-review-release.mjs'
+import {runNeedsReviewEntry} from './crm-needs-review-release-entry.mjs'
 import { cutoverFromSnapshot, filterHarpSourceFiles, harpOmissions, freshHarpReusePlan, assertHarpStage, assertNoHarpManifest, assertHarpRootProjectBinding, sealHarpRemoteBuild } from './harp-root-cutover.mjs'
 import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
 import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
@@ -402,7 +404,8 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
   }
 }
 
-function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = '') {
+function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = '', needsReviewEnv = null) {
+  if(needsReviewEnv && (scopes.length!==1||scopes[0]!=='crm-needs-review'||JSON.stringify(needsReviewEnv)!==JSON.stringify(disabledNeedsReviewEnv()))) fail('needs_review_disabled_build_required')
   assertHarpStage(stage, cutover)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
@@ -430,7 +433,7 @@ function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = ''
   }
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && ['storm-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]))) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
+      env: needsReviewEnv ? {...process.env,...needsReviewEnv} : emailOnly ? emailEnv : (crmOnly || (scopes.length === 1 && ['storm-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]))) ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -551,6 +554,10 @@ function deploySnapshot(snapshot, head, scopes, emailPhase) {
 
 function main() {
   const argv = process.argv.slice(2)
+  const needsReviewOperation=parseNeedsReviewOperation(argv)
+  if(needsReviewOperation)return runNeedsReviewEntry(needsReviewOperation,{root,git,npx,fail,parseJsonOutput,productionState,composeSnapshot,readProductionManifest,snapshotFiles,withScannedRelease,cleanupStage,assertProductionUnchanged,ensureAncestor,changedFiles,matchesDeployScope,command,buildSnapshot,verifyUploadManifest,knownValuesFromEnvironment,buildReleaseMetadata,provenanceScopes})
+  if(argv.some(a=>a==='crm-needs-review'||a.includes('=crm-needs-review')))
+    fail('Needs review scope requires its exact staged adapter; generic publication is forbidden.')
   if (argv.length === 1 && argv[0] === '--preflight') {
     if (!readOnlyPreflight().ok) process.exitCode = 1
     return

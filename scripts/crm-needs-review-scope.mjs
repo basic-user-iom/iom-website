@@ -1,0 +1,41 @@
+export const NEEDS_REVIEW_RUNTIME_FILES=Object.freeze([
+  "api/_lib/crm-capability-dispatcher.mjs",
+  "api/_lib/crm-capability-oauth.mjs",
+  "api/_lib/crm-capability-worker-auth.mjs",
+  "api/_lib/crm-contact-approval.mjs",
+  "api/_lib/crm-email-batch-policy.mjs",
+  "api/_lib/crm-needs-review-composition.mjs",
+  "api/_lib/crm-needs-review-host.mjs",
+  "api/_lib/crm-needs-review-http.mjs",
+  "api/_lib/crm-needs-review-issuer.mjs",
+  "api/_lib/crm-needs-review-oauth-store.mjs",
+  "api/_lib/crm-needs-review-postgres.mjs",
+  "api/_lib/crm-needs-review-receipts.mjs",
+  "api/_lib/crm-needs-review-tools.mjs",
+  "api/crm-needs-review.js",
+  "vercel.json"
+]);
+export const NEEDS_REVIEW_TOOLING_FILES=Object.freeze([
+  "scripts/deploy-secret-scan.mjs",
+  "scripts/deploy-native-source-facts.mjs",
+  "scripts/deploy-native-source-facts.ps1",
+  "scripts/deploy-reviewed-public-data.json",
+  "scripts/deploy-reviewed-protocol-data.json",
+  "scripts/deploy-reviewed-protocol-data.mjs",
+  "scripts/crm-needs-review-source-binding.mjs",
+  "scripts/crm-needs-review-release.mjs",
+  "scripts/crm-needs-review-release-guards.mjs",
+  "scripts/crm-needs-review-release-driver.mjs",
+  "scripts/crm-needs-review-scope.mjs",
+  "scripts/crm-needs-review-release-entry.mjs",
+  "scripts/crm-needs-review-journal-privacy.mjs",
+  "scripts/crm-needs-review-journal-inspector.ps1",
+  "scripts/crm-needs-review-native.cs",
+  "scripts/crm-needs-review-broker.cs",
+  "scripts/crm-needs-review-broker.ps1",
+  "scripts/crm-needs-review-journal-worker.mjs",
+  "scripts/crm-needs-review-journal-session.mjs",
+  "scripts/deploy-production.mjs",
+  "scripts/deploy-scope.mjs"
+]);
+export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json"]);

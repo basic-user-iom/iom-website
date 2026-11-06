@@ -9,6 +9,7 @@ import { parse as parseHtml } from 'parse5'
 import { SaxesParser } from 'saxes'
 import { publicLiteralReview } from './deploy-reviewed-public-data.mjs'
 import { publicProtocolChallengeReview } from './deploy-reviewed-protocol-data.mjs'
+import { nativeSourceFacts } from './deploy-native-source-facts.mjs'
 
 const TEXT_LIMIT = 8 * 1024 * 1024
 const FILE_LIMIT = 128 * 1024 * 1024
@@ -133,6 +134,15 @@ export function scanReleaseFile(name, bytes, knownValues = []) {
   try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes) }
   catch { errors.add('INVALID_UTF8'); return result() }
   const reviewedPublicLiteral = publicLiteralReview(name, bytes)
+
+  if(/\.(?:cs|ps1)$/i.test(name)) {
+    const facts=nativeSourceFacts(path.posix.extname(name).slice(1).toLowerCase(),bytes)
+    for(const error of facts.errors)errors.add(error)
+    for(const literal of facts.literals)generic(literal)
+    for(const row of facts.assignments)if(secretName(row.key)&&row.values.some(value=>value.length&&!reviewedPublicLiteral(row.key,value)))
+      rules.add('credential_literal_assignment')
+    return result()
+  }
 
   const javascript = (source, fileName = name) => {
     const kind = /\.tsx$/i.test(fileName) ? ts.ScriptKind.TSX : /\.jsx$/i.test(fileName) ? ts.ScriptKind.JSX : /\.(?:ts|mts|cts)$/i.test(fileName) ? ts.ScriptKind.TS : ts.ScriptKind.JS

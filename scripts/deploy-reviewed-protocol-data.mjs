@@ -3,16 +3,19 @@
 import fs from 'node:fs'
 import {createHash} from 'node:crypto'
 const digest = value => createHash('sha256').update(value).digest('hex')
-const approvedPath = 'api/_lib/crm-email-mcp.mjs'
+const contexts = Object.freeze({
+  'api/_lib/crm-email-mcp.mjs': 'a073e378a3a93c9c2ea4c79ca9ebd0aa666b0cd97c7065d1effa6f8612278e54',
+  'api/_lib/crm-needs-review-http.mjs': '7841b9de872d30db1af541d780945b65e063250dfbb79073c0a344a45a1a9a91',
+})
 // Fixed hashes of the exact reviewed signature and full setHeader expression.
 // Their readable public source is recorded in reviewed-values.json.
 const signatureDigest = 'b365789ef9bf38ab991c4bf59297cd755b9fb5630be3b8bafff77399b58b1995'
 const signatureLength = 25
-const contextDigest = 'a073e378a3a93c9c2ea4c79ca9ebd0aa666b0cd97c7065d1effa6f8612278e54'
 
 export function reviewedProtocolChallenge(records, name, bytes) {
   const denied = () => false
-  if (name !== approvedPath || !Buffer.isBuffer(bytes) || !Array.isArray(records)) return denied
+  if (!Object.hasOwn(contexts,name) || !Buffer.isBuffer(bytes) || !Array.isArray(records)) return denied
+  const contextDigest=contexts[name]
   // Hash once per file, never once per regex match. Unknown bytes fail early.
   const fileDigest = digest(bytes)
   const candidates = records.filter(record => record?.fileDigest === fileDigest)
