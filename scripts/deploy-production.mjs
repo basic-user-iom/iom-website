@@ -318,6 +318,7 @@ function checkoutPaths(stage, commit, paths, suffix, omitted = new Set()) {
   try {
     for (let index = 0; index < paths.length; index += 100) {
       command('git', [
+        '-c', 'core.autocrlf=input',
         'checkout-index',
         '--force',
         `--prefix=${prefix}`,
@@ -342,7 +343,7 @@ function exportBase(stage, commit, omitted = new Set()) {
       omitted.has(file) || file === '.env.example' || file.startsWith('.cursor/') || file.startsWith('.github/'))
     for (let offset = 0; offset < developmentOnly.length; offset += 100)
       command('git', ['update-index', '--force-remove', '--', ...developmentOnly.slice(offset, offset + 100)], { env })
-    command('git', ['checkout-index', '--all', '--force', `--prefix=${prefix}`], { env })
+    command('git', ['-c', 'core.autocrlf=input', 'checkout-index', '--all', '--force', `--prefix=${prefix}`], { env })
   } finally {
     rmSync(indexFile, { force: true })
   }

@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/deploy-production.mjs",
-      "sha256": "d3093cafe49fde437acbb78f907ee2b67cdbcc65695f07d92ca67b2ad935a8d1"
+      "sha256": "e2db89761917b848a3a0f11412ec10faf185fe8a7f15f56635806535897dc40b"
     },
     {
       "path": "scripts/deploy-reviewed-protocol-data.json",
