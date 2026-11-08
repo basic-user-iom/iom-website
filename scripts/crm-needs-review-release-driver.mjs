@@ -2,7 +2,7 @@
 // provider, build, scanner and R2 operations are injected existing helpers.
 // This module has no credential client and never reads environment variables.
 import { createHash, randomUUID } from 'node:crypto'
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'
 import { NEEDS_REVIEW_TARGET as TARGET, NEEDS_REVIEW_SCOPE as SCOPE, disabledNeedsReviewEnv } from './crm-needs-review-release.mjs'
 import { NEEDS_REVIEW_RUNTIME_FILES, NEEDS_REVIEW_SCOPE_FILES } from './crm-needs-review-scope.mjs'
@@ -11,6 +11,71 @@ import { openNeedsReviewJournal, adoptNeedsReviewJournal } from './crm-needs-rev
 import {isPrivateReleaseSource,resolvePrivateJournal,assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
 
 const hash = (value, algorithm = 'sha256') => createHash(algorithm).update(value).digest('hex')
+const RECEIPT_SHA256 = /^[a-f0-9]{64}$/
+const SOURCE_IDENTITY = /^(?:git:[a-f0-9]{40}|gzip:[a-f0-9]{64})$/
+
+function receiptOf(entry) {
+  if (!entry?.reuse || !RECEIPT_SHA256.test(entry.reuse.policyId || '') || !SOURCE_IDENTITY.test(entry.reuse.sourceIdentity || '')) fail('media_receipt_mismatch')
+  return entry.reuse
+}
+function parseStableManifest(bytes) {
+  const raw = Buffer.isBuffer(bytes) ? bytes.toString('utf8') : String(bytes)
+  if (raw.includes('\u0000')) fail('media_manifest_delta_forbidden')
+  let manifest
+  try { manifest = JSON.parse(raw) } catch { fail('media_manifest_delta_forbidden') }
+  if (!manifest || manifest.version !== 1 || !Array.isArray(manifest.files) || manifest.files.length === 0) fail('media_manifest_delta_forbidden')
+  if (raw !== JSON.stringify(manifest, null, 2) + '\n') fail('media_manifest_round_trip_unstable')
+  return manifest
+}
+// The scanned reuse plan may replace only its policy id. Path, size, content
+// hash, source identity, content type and every other field stay production bytes.
+export function applyVerifiedReceipt(productionRaw, scan) {
+  if (!RECEIPT_SHA256.test(scan?.policyId || '') || !Array.isArray(scan.files)) fail('media_receipt_mismatch')
+  const manifest = parseStableManifest(productionRaw)
+  if (scan.files.length !== manifest.files.length) fail('media_receipt_mismatch')
+  const seen = new Set(), byPath = new Map()
+  for (const item of scan.files) {
+    if (!item || seen.has(item.path) || !RECEIPT_SHA256.test(item.sha256 || '') || !Number.isSafeInteger(item.bytes) || item.bytes < 1 || !SOURCE_IDENTITY.test(item.sourceIdentity || '')) fail('media_receipt_mismatch')
+    seen.add(item.path)
+    byPath.set(item.path, item)
+  }
+  for (const entry of manifest.files) {
+    const item = byPath.get(entry.path)
+    const receipt = receiptOf(entry)
+    if (!item || entry.path !== item.path || entry.bytes !== item.bytes || entry.sha256 !== item.sha256 || receipt.sourceIdentity !== item.sourceIdentity) fail('media_receipt_mismatch')
+    receipt.policyId = scan.policyId
+  }
+  const next = Buffer.from(JSON.stringify(manifest, null, 2) + '\n')
+  assertReceiptOnlyChange(productionRaw, next, scan.policyId)
+  return next
+}
+export function assertReceiptOnlyChange(beforeRaw, afterRaw, policyId) {
+  if (!RECEIPT_SHA256.test(policyId || '')) fail('media_manifest_delta_forbidden')
+  const before = parseStableManifest(beforeRaw), after = parseStableManifest(afterRaw)
+  if (before.files.length !== after.files.length || before.origin !== after.origin) fail('media_manifest_delta_forbidden')
+  for (let index = 0; index < before.files.length; index++) {
+    const left = before.files[index], right = after.files[index]
+    if (left.path !== right.path) fail('media_receipt_mismatch')
+    const leftReceipt = receiptOf(left), rightReceipt = receiptOf(right)
+    if (leftReceipt.sourceIdentity !== rightReceipt.sourceIdentity || rightReceipt.policyId !== policyId) fail('media_receipt_mismatch')
+    if (JSON.stringify({ ...left, reuse: { ...leftReceipt, policyId } }) !== JSON.stringify(right)) fail('media_manifest_delta_forbidden')
+  }
+  return true
+}
+function sitemapLocations(value) {
+  return [...value.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1])
+}
+// Restore production sitemap bytes only when every URL matches and the sole
+// text difference is lastmod. Any added, removed or rewritten URL stops.
+export function restoreUnchangedSitemap(productionRaw, generatedRaw) {
+  const production = Buffer.isBuffer(productionRaw) ? productionRaw.toString('utf8') : String(productionRaw)
+  const generated = Buffer.isBuffer(generatedRaw) ? generatedRaw.toString('utf8') : String(generatedRaw)
+  const before = sitemapLocations(production), after = sitemapLocations(generated)
+  if (before.length === 0 || before.length !== after.length || before.some((loc, index) => loc !== after[index])) fail('sitemap_urls_changed')
+  const strip = value => value.replace(/<lastmod>[^<]+<\/lastmod>/g, '<lastmod></lastmod>')
+  if (strip(production) !== strip(generated)) fail('sitemap_body_changed')
+  return Buffer.from(production)
+}
 const fail = code => { throw Object.assign(Error(code), { code }) }
 const pathIdentity = value => process.platform === 'win32' ? value.toLowerCase() : value
 const outsideCheckout = (candidate, boundary) => {
@@ -211,6 +276,39 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     acquire()
   }
   function api(route) { return typeof helpers.api === 'function' ? call('api', route) : parse(call('cli', ['api', route])) }
+  function sourceFileBytes(id, filePath) {
+    check(deploymentId(id) && safePath(filePath), 'needs_review_preserved_file_missing')
+    const tree = api(`/v6/deployments/${id}/files`)
+    const nodes = Array.isArray(tree) ? tree : tree?.files
+    const source = Array.isArray(nodes) ? nodes.find(row => row?.name === 'src') : null
+    check(source?.type === 'directory' && Array.isArray(source.children), 'needs_review_source_tree_missing')
+    let list = source.children
+    const parts = filePath.split('/')
+    let node = null
+    for (const part of parts) {
+      node = (list || []).find(item => item?.name === part)
+      check(node, 'needs_review_preserved_file_missing')
+      list = node.children
+    }
+    check(node.type === 'file' && /^[a-f0-9]{40}$/.test(node.uid || ''), 'needs_review_preserved_file_missing')
+    const body = api(`/v8/deployments/${id}/files/${node.uid}`)
+    const bytes = Buffer.from(body?.data || '', 'base64')
+    check(hash(bytes, 'sha1') === node.uid, 'needs_review_preserved_file_mismatch')
+    return bytes
+  }
+  function restoreProductionSitemap(stage, productionBytes) {
+    const file = join(stage, 'public', 'sitemap.xml')
+    writeFileSync(file, restoreUnchangedSitemap(productionBytes, readFileSync(file)))
+  }
+  function writeVerifiedManifest(stage, productionBytes) {
+    const plan = JSON.parse(readFileSync(join(stage, '.iom-r2-reuse.json'), 'utf8'))
+    check(RECEIPT_SHA256.test(plan?.policyId || '') && Array.isArray(plan.files) && plan.files.length > 0, 'media_receipt_mismatch')
+    const scan = { policyId: plan.policyId, files: plan.files.map(entry => {
+      check(entry?.reuse?.policyId === plan.policyId, 'media_receipt_mismatch')
+      return { path: entry.path, bytes: entry.bytes, sha256: entry.sha256, sourceIdentity: entry.reuse.sourceIdentity }
+    }) }
+    writeFileSync(join(stage, '.iom-r2-release.json'), applyVerifiedReceipt(productionBytes, scan))
+  }
   function readInventory(id, expectedDigest) {
     check(deploymentId(id), 'needs_review_deployment_id_invalid')
     check(expectedDigest === undefined || sha(expectedDigest), 'needs_review_source_digest_pin_invalid')
@@ -256,13 +354,17 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     const liveState = call('productionState', baseline)
     const beforeInventory = readInventory(baseline.id, baseline.meta?.iomNeedsReviewInventory)
     const media = call('readProductionManifest', resolvedRoot, baseline, api)
+    const productionManifestBytes = sourceFileBytes(baseline.id, '.iom-r2-release.json')
+    const productionSitemapBytes = sourceFileBytes(baseline.id, 'public/sitemap.xml')
     const snapshot = call('composeSnapshot', liveState, [SCOPE], head, media, baseline.id)
     try {
       const composition = assertOverlayPreservation({ baseline: sourceMap(liveState), candidate: sourceMap(snapshot), head })
       const built = call('buildSnapshot', snapshot, phase, env)
       check(built?.complete === true && same(built.env, env), 'needs_review_disabled_build_receipt_required')
+      restoreProductionSitemap(snapshot.stage, productionSitemapBytes)
       const r2 = call('prepareR2', snapshot, { verifyOnly: true })
       check(r2?.complete === true && r2.mode === 'verify-only', 'needs_review_r2_verify_only_required')
+      writeVerifiedManifest(snapshot.stage, productionManifestBytes)
       const scan = call('scan', snapshot, null)
       check(sha(scan?.identity), 'needs_review_secret_scan_required')
       const afterInventory = sortedInventory(call('uploadInventory', snapshot.stage))
