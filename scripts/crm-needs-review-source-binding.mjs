@@ -18,6 +18,8 @@ export const PRIVATE_SOURCE_POLICY=Object.freeze({
   scope:NEEDS_REVIEW_SCOPE,
   projectId:NEEDS_REVIEW_TARGET.projectId,teamId:NEEDS_REVIEW_TARGET.teamId,domain:NEEDS_REVIEW_TARGET.domain,
 })
+// Same filename the journal broker reads. The WAL is the state until a snapshot exists.
+export const HOSTED_EVIDENCE_NAME=/^hosted-dpl_[A-Za-z0-9]+\.json$/
 const key=p=>process.platform==='win32'?resolve(p).toLowerCase():resolve(p)
 const hash=b=>createHash('sha256').update(b).digest('hex')
 const fail=code=>{throw Object.assign(Error(code),{code})}
@@ -70,7 +72,7 @@ export function resolvePrivateJournal(source,policy=PRIVATE_SOURCE_POLICY,io=fs)
   check(!names.some(name=>/^state-.*\.tmp$/i.test(name)),'needs_review_journal_incomplete_write_review_required')
   if(!names.includes('state.json'))check(names.every(name=>[
     'source-binding.json','approval.json','consents.json','operation.lock','state-wal.log',
-  ].includes(name)),'needs_review_journal_orphan_evidence_review_required')
+  ].includes(name) || HOSTED_EVIDENCE_NAME.test(name)),'needs_review_journal_orphan_evidence_review_required')
   physicalOrAbsent(binding.directory)
   for(let current=binding.directory;;current=dirname(current)){
     try{io.lstatSync(join(current,'.git'));fail('needs_review_journal_inside_checkout')}

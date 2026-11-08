@@ -8,7 +8,7 @@ import { NEEDS_REVIEW_TARGET as TARGET, NEEDS_REVIEW_SCOPE as SCOPE, disabledNee
 import { NEEDS_REVIEW_RUNTIME_FILES, NEEDS_REVIEW_SCOPE_FILES } from './crm-needs-review-scope.mjs'
 import { assertOverlayPreservation, assertScopedInventory, needsReviewReleaseDigest as digest } from './crm-needs-review-release-guards.mjs'
 import { openNeedsReviewJournal, adoptNeedsReviewJournal } from './crm-needs-review-journal-session.mjs'
-import {isPrivateReleaseSource,resolvePrivateJournal,assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
+import {HOSTED_EVIDENCE_NAME,isPrivateReleaseSource,resolvePrivateJournal,assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
 
 const hash = (value, algorithm = 'sha256') => createHash(algorithm).update(value).digest('hex')
 const RECEIPT_SHA256 = /^[a-f0-9]{64}$/
@@ -140,7 +140,8 @@ function assertJournalTransition(root, dir) {
   const names = journalEntries(dir)
   check(!names.some(name => /^state-.*\.tmp$/i.test(name)), 'needs_review_journal_incomplete_write_review_required')
   if (!names.includes('state.json')) {
-    check(names.every(name => ['approval.json', 'consents.json', 'operation.lock', 'state-wal.log'].includes(name)),
+    check(names.every(name => ['approval.json', 'consents.json', 'operation.lock', 'state-wal.log'].includes(name) ||
+      HOSTED_EVIDENCE_NAME.test(name)),
       'needs_review_journal_orphan_evidence_review_required')
   }
 }
@@ -174,6 +175,23 @@ const check = (ok, code) => { if (!ok) fail(code) }
 const sha = value => /^[a-f0-9]{64}$/.test(value || '')
 const commit = value => /^[a-f0-9]{40}$/.test(value || '')
 const deploymentId = value => /^dpl_[A-Za-z0-9]+$/.test(value || '')
+// Evidence is recorded beside a WAL-only journal. These checks do not create state.json.
+export function assertHostedReadback({ record, result, value, evidenceApproval, inventoryRows, now }) {
+  check(result?.id === record?.deploymentId && result?.projectId === TARGET.projectId && result?.readyState === 'READY' &&
+    result?.meta?.iomNeedsReviewArtifact === record?.artifactDigest && result?.meta?.iomNeedsReviewStarts === 'false',
+  'needs_review_hosted_metadata_mismatch')
+  check(sha(record?.inventoryDigest) && digest(inventoryRows) === record.inventoryDigest, 'needs_review_hosted_inventory_mismatch')
+  check(sha(evidenceApproval?.hostedEvidenceSha256) && digest(value) === evidenceApproval.hostedEvidenceSha256,
+    'needs_review_hosted_review_binding_missing')
+  check(value?.version === 1 && value.source === 'reviewed-hosted-readback' && value.deploymentId === record.deploymentId &&
+    value.artifactDigest === record.artifactDigest && value.inventoryDigest === record.inventoryDigest &&
+    value.head === record.head && value.phase === record.phase && value.startsEnabled === false && value.needsReviewEnabled === false &&
+    Number.isSafeInteger(value.observedAt) && Number.isSafeInteger(value.expiresAt) && value.observedAt <= now &&
+    now - value.observedAt <= 30 * 60_000 && value.expiresAt > now && value.checks?.disabledRuntime === true &&
+    value.checks?.routeBinding === true && value.checks?.noEmailSent === true,
+  'needs_review_hosted_review_missing_or_stale')
+  return true
+}
 const safePath = path => typeof path === 'string' && !/[\\\x00-\x1f:*?"<>|]/.test(path) &&
   path.split('/').every(part => part && part !== '.' && part !== '..' && !/[ .]$/.test(part))
 const parse = value => typeof value === 'string' ? JSON.parse(value) : value
@@ -514,24 +532,10 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     },
     verifyHosted({ record, result, approval: evidenceApproval }) {
       acquire()
-      check(result?.id === record.deploymentId && result.projectId === TARGET.projectId && result.readyState === 'READY' &&
-        result.meta?.iomNeedsReviewArtifact === record.artifactDigest && result.meta?.iomNeedsReviewStarts === 'false',
-      'needs_review_hosted_metadata_mismatch')
       const rows = readInventory(record.deploymentId, record.inventoryDigest)
-      check(sha(record.inventoryDigest) && digest(rows) === record.inventoryDigest, 'needs_review_hosted_inventory_mismatch')
       proveJournal()
       const value = call('readHostedEvidence', record)
-      check(sha(evidenceApproval?.hostedEvidenceSha256) && digest(value) === evidenceApproval.hostedEvidenceSha256,
-        'needs_review_hosted_review_binding_missing')
-      const at = now()
-      check(value?.version === 1 && value.source === 'reviewed-hosted-readback' && value.deploymentId === record.deploymentId &&
-        value.artifactDigest === record.artifactDigest && value.inventoryDigest === record.inventoryDigest &&
-        value.head === record.head && value.phase === record.phase && value.startsEnabled === false && value.needsReviewEnabled === false &&
-        Number.isSafeInteger(value.observedAt) && Number.isSafeInteger(value.expiresAt) && value.observedAt <= at &&
-        at - value.observedAt <= 30 * 60_000 && value.expiresAt > at && value.checks?.disabledRuntime === true &&
-        value.checks?.routeBinding === true && value.checks?.noEmailSent === true,
-      'needs_review_hosted_review_missing_or_stale')
-      return true
+      return assertHostedReadback({ record, result, value, evidenceApproval, inventoryRows: rows, now: now() })
     },
     verifyRollbackTarget(record) {
       check(deploymentId(record?.baseline?.id) && sha(record.baselineInventoryDigest), 'needs_review_rollback_target_record_invalid')
