@@ -307,7 +307,9 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
       check(entry?.reuse?.policyId === plan.policyId, 'media_receipt_mismatch')
       return { path: entry.path, bytes: entry.bytes, sha256: entry.sha256, sourceIdentity: entry.reuse.sourceIdentity }
     }) }
-    writeFileSync(join(stage, '.iom-r2-release.json'), applyVerifiedReceipt(productionBytes, scan))
+    const next = applyVerifiedReceipt(productionBytes, scan)
+    writeFileSync(join(stage, '.iom-r2-release.json'), next)
+    return { path: '.iom-r2-release.json', baselineSha1: hash(productionBytes, 'sha1'), candidateSha1: hash(next, 'sha1') }
   }
   function readInventory(id, expectedDigest) {
     check(deploymentId(id), 'needs_review_deployment_id_invalid')
@@ -364,14 +366,14 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
       restoreProductionSitemap(snapshot.stage, productionSitemapBytes)
       const r2 = call('prepareR2', snapshot, { verifyOnly: true })
       check(r2?.complete === true && r2.mode === 'verify-only', 'needs_review_r2_verify_only_required')
-      writeVerifiedManifest(snapshot.stage, productionManifestBytes)
+      const receipt = writeVerifiedManifest(snapshot.stage, productionManifestBytes)
       const scan = call('scan', snapshot, null)
       check(sha(scan?.identity), 'needs_review_secret_scan_required')
       const afterInventory = sortedInventory(call('uploadInventory', snapshot.stage))
       // Verification discovers exact scope output bytes for subsequent review;
       // mutation preparation instead requires those already approved exact bytes.
       const uploadFiles = allowedFiles ?? afterInventory.filter(row => NEEDS_REVIEW_SCOPE_FILES.includes(row.path))
-      const checked = assertScopedInventory({ baseline: beforeInventory, candidate: afterInventory, allowedFiles: uploadFiles })
+      const checked = assertScopedInventory({ baseline: beforeInventory, candidate: afterInventory, allowedFiles: uploadFiles, receipt })
       const artifact = Object.freeze({ scope: SCOPE, checked: true, base: snapshot.base,
         scopeMap: Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url'),
         inventoryDigest: checked.afterDigest, baselineInventoryDigest: checked.beforeDigest,

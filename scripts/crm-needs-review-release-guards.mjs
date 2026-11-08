@@ -61,15 +61,31 @@ function inventory(rows) {
   return normalized.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
 }
 
+const RECEIPT_PATH = '.iom-r2-release.json'
+function provenReceipt(value) {
+  if (value === undefined) return null
+  check(exactKeys(value, ['path', 'baselineSha1', 'candidateSha1']) && value.path === RECEIPT_PATH &&
+    SHA1.test(value.baselineSha1) && SHA1.test(value.candidateSha1), 'needs_review_release_receipt_proof_invalid')
+  return value
+}
+
 // All three arrays contain {path,sha1}. allowedFiles is the exact reviewed output
 // manifest, not a glob/permission expansion; every listed file must match bytes.
-export function assertScopedInventory({ baseline, candidate, allowedFiles }) {
+// receipt, when present, is the sha1 pair of buffers that already passed the
+// field-by-field media proof. It can excuse only that one path.
+export function assertScopedInventory({ baseline, candidate, allowedFiles, receipt }) {
   const before = inventory(baseline), after = inventory(candidate), allowed = inventory(allowedFiles)
   const old = new Map(before.map(row => [row.path, row.sha1])), next = new Map(after.map(row => [row.path, row.sha1]))
   const permits = new Map(allowed.map(row => [row.path, row.sha1]))
+  const proof = provenReceipt(receipt)
+  if (proof) check(old.get(proof.path) === proof.baselineSha1 && next.get(proof.path) === proof.candidateSha1,
+    'needs_review_release_receipt_proof_invalid')
   for (const [path, sha1] of old) {
     check(next.has(path), 'needs_review_release_removal_forbidden')
-    if (!permits.has(path)) check(next.get(path) === sha1, 'needs_review_release_unrelated_file_changed')
+    if (!permits.has(path)) {
+      const proven = proof && path === proof.path && sha1 === proof.baselineSha1 && next.get(path) === proof.candidateSha1
+      check(next.get(path) === sha1 || proven, 'needs_review_release_unrelated_file_changed')
+    }
   }
   for (const [path] of next) check(old.has(path) || permits.has(path), 'needs_review_release_unlisted_file_added')
   for (const [path, sha1] of permits) check(next.get(path) === sha1, 'needs_review_release_manifest_bytes_mismatch')
