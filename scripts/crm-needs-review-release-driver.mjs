@@ -67,6 +67,24 @@ function sitemapLocations(value) {
 }
 // Restore production sitemap bytes only when every URL matches and the sole
 // text difference is lastmod. Any added, removed or rewritten URL stops.
+// Read the reuse plan while it is still on disk. prepare-r2-release deletes it
+// after verification, so the manifest must be written from this retained copy.
+export function retainReusePlan(raw, expectedIdentity) {
+  const bytes = Buffer.isBuffer(raw) ? raw : Buffer.from(String(raw))
+  if (!RECEIPT_SHA256.test(expectedIdentity || '') || hash(bytes) !== expectedIdentity) fail('media_receipt_mismatch')
+  let plan
+  try { plan = JSON.parse(bytes.toString('utf8')) } catch { fail('media_receipt_mismatch') }
+  if (!RECEIPT_SHA256.test(plan?.policyId || '') || !Array.isArray(plan.files) || plan.files.length === 0) fail('media_receipt_mismatch')
+  return { policyId: plan.policyId, files: plan.files.map(entry => {
+    if (typeof entry?.path !== 'string' || !RECEIPT_SHA256.test(entry.sha256 || '') || !Number.isSafeInteger(entry.bytes) || entry.bytes < 1 ||
+      entry.reuse?.policyId !== plan.policyId || !SOURCE_IDENTITY.test(entry.reuse?.sourceIdentity || '')) fail('media_receipt_mismatch')
+    return { path: entry.path, bytes: entry.bytes, sha256: entry.sha256, sourceIdentity: entry.reuse.sourceIdentity }
+  }) }
+}
+export function manifestBytesAfterVerifiedR2(productionBytes, retainedPlan, r2) {
+  if (r2?.complete !== true || r2?.mode !== 'verify-only') fail('needs_review_r2_verify_only_required')
+  return applyVerifiedReceipt(productionBytes, retainedPlan)
+}
 export function restoreUnchangedSitemap(productionRaw, generatedRaw) {
   const production = Buffer.isBuffer(productionRaw) ? productionRaw.toString('utf8') : String(productionRaw)
   const generated = Buffer.isBuffer(generatedRaw) ? generatedRaw.toString('utf8') : String(generatedRaw)
@@ -300,14 +318,8 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     const file = join(stage, 'public', 'sitemap.xml')
     writeFileSync(file, restoreUnchangedSitemap(productionBytes, readFileSync(file)))
   }
-  function writeVerifiedManifest(stage, productionBytes) {
-    const plan = JSON.parse(readFileSync(join(stage, '.iom-r2-reuse.json'), 'utf8'))
-    check(RECEIPT_SHA256.test(plan?.policyId || '') && Array.isArray(plan.files) && plan.files.length > 0, 'media_receipt_mismatch')
-    const scan = { policyId: plan.policyId, files: plan.files.map(entry => {
-      check(entry?.reuse?.policyId === plan.policyId, 'media_receipt_mismatch')
-      return { path: entry.path, bytes: entry.bytes, sha256: entry.sha256, sourceIdentity: entry.reuse.sourceIdentity }
-    }) }
-    const next = applyVerifiedReceipt(productionBytes, scan)
+  function writeVerifiedManifest(stage, productionBytes, retainedPlan, r2) {
+    const next = manifestBytesAfterVerifiedR2(productionBytes, retainedPlan, r2)
     writeFileSync(join(stage, '.iom-r2-release.json'), next)
     return { path: '.iom-r2-release.json', baselineSha1: hash(productionBytes, 'sha1'), candidateSha1: hash(next, 'sha1') }
   }
@@ -364,9 +376,9 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
       const built = call('buildSnapshot', snapshot, phase, env)
       check(built?.complete === true && same(built.env, env), 'needs_review_disabled_build_receipt_required')
       restoreProductionSitemap(snapshot.stage, productionSitemapBytes)
+      const retainedPlan = retainReusePlan(readFileSync(join(snapshot.stage, '.iom-r2-reuse.json')), snapshot.reuseIdentity)
       const r2 = call('prepareR2', snapshot, { verifyOnly: true })
-      check(r2?.complete === true && r2.mode === 'verify-only', 'needs_review_r2_verify_only_required')
-      const receipt = writeVerifiedManifest(snapshot.stage, productionManifestBytes)
+      const receipt = writeVerifiedManifest(snapshot.stage, productionManifestBytes, retainedPlan, r2)
       const scan = call('scan', snapshot, null)
       check(sha(scan?.identity), 'needs_review_secret_scan_required')
       const afterInventory = sortedInventory(call('uploadInventory', snapshot.stage))
