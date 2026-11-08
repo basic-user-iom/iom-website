@@ -164,10 +164,10 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "6d98070a3248d1a06d7b17e0edf80f68dc1a21e4d4bf48a7fa9bc172a3b1fadc"
+      "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
     }
   ],
-  "runtimeDigest": "3a46bddb137787c9b03bd68ec559ddc8cadd4e50dd602b9aac3a4a393f6f681a",
-  "configDigest": "6d98070a3248d1a06d7b17e0edf80f68dc1a21e4d4bf48a7fa9bc172a3b1fadc",
+  "runtimeDigest": "f696fb29fd5744eb7ec103c0c3d762a8b7007f3989ae25f5c80feae8f479f696",
+  "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }
