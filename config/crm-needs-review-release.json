@@ -36,11 +36,11 @@
     },
     {
       "path": "api/_lib/crm-needs-review-composition.mjs",
-      "sha256": "b41874488836cf98a82e124d8bfe48db5cd6c34f06fa5075d360690f8b383e93"
+      "sha256": "28dc6fbb0c53163764a6e7b3eb0c1cedac1298adcbba4a910765e8c950cb6518"
     },
     {
       "path": "api/_lib/crm-needs-review-host.mjs",
-      "sha256": "a50242f0e350b39b351c8dce7909419343cef610080fbfd67d0bd1f2d2d255e9"
+      "sha256": "a7befd225571c58566562dc98cec8889ffbb54206fbac1aca1a6fd7e3b011bb0"
     },
     {
       "path": "api/_lib/crm-needs-review-http.mjs",
@@ -64,7 +64,7 @@
     },
     {
       "path": "api/_lib/crm-needs-review-tools.mjs",
-      "sha256": "04d6e400067081003eca88fbbf8dafc4b27d3f9f794cce0b0bfe448fb91566ab"
+      "sha256": "63dbe7f6645c8a0590002110fea646b1cd1bacaf0da8c4ee4a0c69d5270816fb"
     },
     {
       "path": "api/crm-needs-review.js",
@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/crm-needs-review-release-driver.mjs",
-      "sha256": "8f72946aac2c317af165171db71dc9573ce0ae91c572b6af1c9b85dbd5c67124"
+      "sha256": "f11226e1478a6f4e2eeb934bc01b31274477d0b930ab41aae34d205e2788375f"
     },
     {
       "path": "scripts/crm-needs-review-release-entry.mjs",
@@ -108,11 +108,11 @@
     },
     {
       "path": "scripts/crm-needs-review-release-guards.mjs",
-      "sha256": "b57f61142bf302a1d9c5999c03ae2bc6b9e37f82d4043a12424378e28a91cd97"
+      "sha256": "8389c37ba53cafea69206165061d599cb755d7fc3c2206d261fb7b049a2aa509"
     },
     {
       "path": "scripts/crm-needs-review-release.mjs",
-      "sha256": "6f5a77995fdecf7edbc710f968ceda2dcbcf8a97fe0ff3ff2104c8efdd216d44"
+      "sha256": "8db3dfd58ac6bcf176b6016636cc70d4b2fc20ad6f110c845f8ec7a8787dad62"
     },
     {
       "path": "scripts/crm-needs-review-scope.mjs",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/deploy-production.mjs",
-      "sha256": "e2db89761917b848a3a0f11412ec10faf185fe8a7f15f56635806535897dc40b"
+      "sha256": "b4371ecefe0603295b50d1b3f6dd01cf96f2cb3f18ad2320fea670164c42a988"
     },
     {
       "path": "scripts/deploy-reviewed-protocol-data.json",
@@ -167,7 +167,7 @@
       "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
     }
   ],
-  "runtimeDigest": "f696fb29fd5744eb7ec103c0c3d762a8b7007f3989ae25f5c80feae8f479f696",
+  "runtimeDigest": "586fd9584016fbbb53badb0cbe8cc2ea8ab01e9f3420e6dc98e6553985917809",
   "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }

@@ -49,6 +49,54 @@ export function verifyNeedsReviewFiles(profile, readFile) {
 export function disabledNeedsReviewEnv() {
   return {IOM_SKIP_BLOG_SYNC:'true', CRM_NEEDS_REVIEW_ENABLED:'false', CRM_NEEDS_REVIEW_STARTS_ENABLED:'false', CRM_NEEDS_REVIEW_WORKER_ENABLED:'false'}
 }
+export function previewNeedsReviewEnv() {
+  return {IOM_SKIP_BLOG_SYNC:'true', CRM_NEEDS_REVIEW_ENABLED:'true', CRM_NEEDS_REVIEW_STARTS_ENABLED:'false', CRM_NEEDS_REVIEW_WORKER_ENABLED:'false'}
+}
+export function assertNeedsReviewRuntimeEnv(env) {
+  const allowed = [disabledNeedsReviewEnv(), previewNeedsReviewEnv()]
+  if (!allowed.some(item => JSON.stringify(item) === JSON.stringify(env))) fail('needs_review_runtime_env_invalid')
+  if (env.CRM_NEEDS_REVIEW_STARTS_ENABLED !== 'false' || env.CRM_NEEDS_REVIEW_WORKER_ENABLED !== 'false') fail('needs_review_starts_must_remain_disabled')
+  return env
+}
+export function needsReviewRuntimeEnv(mode) {
+  if (mode === 'disabled') return disabledNeedsReviewEnv()
+  if (mode === 'preview') return previewNeedsReviewEnv()
+  fail('needs_review_runtime_env_invalid')
+}
+export function needsReviewCreateArgs(env, rest = []) {
+  assertNeedsReviewRuntimeEnv(env)
+  const args = ['deploy', '--prod', '--skip-domain', '--yes', ...rest]
+  if (!args.includes('--skip-domain') || args.includes('promote') || args.includes('rollback')) fail('needs_review_domain_move_requires_explicit_promote')
+  return args
+}
+export function refuseUnreviewedProductionUpload() {
+  fail('needs_review_unreviewed_production_upload_forbidden')
+}
+function previewApprovalFromSource(text) {
+  const match = text.match(/export const NEEDS_REVIEW_PRODUCTION_APPROVAL\s*=\s*JSON\.parse\("((?:\\.|[^"\\])*)"\)/)
+  if (!match) return null
+  try { return JSON.parse(JSON.parse(`"${match[1]}"`)) } catch { fail('needs_review_preview_pin_invalid') }
+}
+function assertPreviewSourceApproval(approval) {
+  const pin = approval?.pin
+  const scopes = ['iom:crm:email:read', 'iom:crm:email:send', 'iom:crm:email:batch:confirm']
+  if (!pin || pin.workerGrantFamily !== undefined || approval.execution == null) fail('needs_review_preview_pin_invalid')
+  if (pin.fromIdentity !== 'projects' || pin.accessRevision !== 'capability-projects-v1') fail('needs_review_preview_pin_invalid')
+  if (!Array.isArray(pin.scopes) || pin.scopes.join('\n') !== scopes.join('\n')) fail('needs_review_preview_pin_invalid')
+  if (typeof pin.grantExpiresAt !== 'string' || typeof approval.execution.until !== 'string' || typeof approval.execution.localDate !== 'string') fail('needs_review_preview_pin_invalid')
+  if (approval.execution.startsEnabled === true) fail('needs_review_starts_must_remain_disabled')
+  return approval
+}
+export function readHostPublication(source) {
+  const text = Buffer.isBuffer(source) ? source.toString('utf8') : String(source ?? '')
+  if (/export const NEEDS_REVIEW_PRODUCTION_APPROVAL\s*=\s*null(?:\s|;)/.test(text)) return {mode:'disabled', approval:null}
+  const approval = previewApprovalFromSource(text)
+  if (!approval) fail('needs_review_runtime_must_be_unpinned_or_preview')
+  return {mode:'preview', approval:assertPreviewSourceApproval(approval)}
+}
+export function hostPublicationMode(source) {
+  return readHostPublication(source).mode
+}
 // The committed profile always has productionApproval:null. A separate, local,
 // nonsecret owner approval binds its hash and the exact HEAD without self-hashing.
 // expected.digests.inventory/provenance are checked again against prepared bytes.
@@ -160,6 +208,24 @@ function retainedUnpromoted(state, baseline) {
     /^dpl_[A-Za-z0-9]+$/.test(record?.deploymentId || '') && record.deploymentId !== baseline?.id &&
     record?.baseline?.id === baseline?.id && state.live?.id === baseline?.id
 }
+export function promotedInstall(state, baseline) {
+  const live = state?.live, record = state?.previousCandidate
+  return state?.pending === false && state?.promoted === true && state?.rolledBack !== true &&
+    !state?.failed && !state?.candidate && state?.phase === 'install-disabled' &&
+    /^dpl_[A-Za-z0-9]+$/.test(live?.id || '') && commit(live?.commit) && commit(live?.base) &&
+    typeof live?.scopeMap === 'string' && live.scopeMap.length > 0 &&
+    record?.verified === true && record?.disposition !== 'RETAINED_NOT_PROMOTED' &&
+    record?.deploymentId === live.id && record?.phase === 'install-disabled' &&
+    record?.phaseState?.phase === 'install-disabled' && record?.phaseState?.startsEnabled === false &&
+    /^dpl_[A-Za-z0-9]+$/.test(record?.baseline?.id || '') && live.id !== record.baseline.id &&
+    /^dpl_[A-Za-z0-9]+$/.test(baseline?.id || '')
+}
+export function publicationPredecessor(state, baseline) {
+  if (!state) return baseline
+  if (retainedUnpromoted(state, baseline)) return baseline
+  if (promotedInstall(state, baseline)) return state.live
+  return null
+}
 // The live commit and the commit being published stay valid remotes.
 // A retained, unpromoted candidate is valid only when history names that same commit and deployment.
 export function remoteBranchAllowed({ remote, head, liveCommit, state, isAncestor }) {
@@ -211,13 +277,12 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
     requireValue(commit(head) && sha(profile.runtimeDigest) && sha(profile.configDigest), 'needs_review_verification_source_invalid')
     requireValue(!state?.pending && !state?.failed && !state?.candidate, 'needs_review_existing_or_uncertain_operation')
     const phase = operation === 'verify-install' ? 'install-disabled' : 'bound-disabled'
-    const expected = phase === 'install-disabled' ? profile.baseline : state?.live
-    const retained = phase === 'install-disabled' && retainedUnpromoted(state, profile.baseline)
-    requireValue(expected && (phase === 'install-disabled' ? (!state || retained) : state.phase === 'install-disabled' && state.promoted) &&
-      !state?.rolledBack, 'needs_review_phase_sequence_invalid')
+    const expected = phase === 'install-disabled' ? publicationPredecessor(state, profile.baseline) : null
+    requireValue(expected && !state?.rolledBack, 'needs_review_phase_sequence_invalid')
+    const env = assertNeedsReviewRuntimeEnv(driver.runtimeEnv({head}))
     const current = driver.live({verificationOnly:true})
     sameLive(current,expected)
-    const artifact = driver.verifyArtifact({head,phase,baseline:current,env:disabledNeedsReviewEnv()})
+    const artifact = driver.verifyArtifact({head,phase,baseline:current,env})
     requireValue(artifact?.scope === NEEDS_REVIEW_SCOPE && artifact.checked === true &&
       ['digest','inventoryDigest','provenanceDigest','baselineInventoryDigest','baselineProvenanceDigest']
         .every(key => sha(artifact[key])), 'needs_review_artifact_unverified')
@@ -240,11 +305,10 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
   if (operation.startsWith('stage-')) {
     requireValue(!state?.pending && !state?.failed && !state?.candidate, 'needs_review_existing_or_uncertain_operation')
     const phase = operation === 'stage-install' ? 'install-disabled' : 'bound-disabled'
-    const expected = phase === 'install-disabled' ? profile.baseline : state?.live
-    const retained = phase === 'install-disabled' && retainedUnpromoted(state, profile.baseline)
-    requireValue(expected && (phase === 'install-disabled' ? (!state || retained) : state.phase === 'install-disabled' && state.promoted),
-      'needs_review_phase_sequence_invalid')
+    const expected = phase === 'install-disabled' ? publicationPredecessor(state, profile.baseline) : null
+    requireValue(expected, 'needs_review_phase_sequence_invalid')
     requireValue(!state?.rolledBack, 'needs_review_phase_sequence_invalid')
+    const env = assertNeedsReviewRuntimeEnv(driver.runtimeEnv({head}))
     const approved = requireApproval(profile,approval,head,phase,expected,now)
     const previousPhase = state?.phaseState || null
     assertPhaseTransition({previous:previousPhase,next:approval.phaseState,consents:approval.consents,now})
@@ -258,7 +322,7 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
     // prepare must run complete build/scanner/R2 checks and exact inventory delta,
     // then call submit with the sealed artifact. It may not deploy on its own.
     let submitted = false
-    return driver.prepare({phase, head, baseline:current, env:disabledNeedsReviewEnv(), submit:artifact => {
+    return driver.prepare({phase, head, baseline:current, env, submit:artifact => {
       requireValue(!submitted, 'needs_review_submission_already_attempted')
       submitted = true // even a failed/uncertain attempt cannot be submitted again
       requireValue(sha(artifact.digest) && artifact.checked === true && artifact.scope === NEEDS_REVIEW_SCOPE,
@@ -278,7 +342,7 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
       driver.pushReviewed({head, artifact})
       requireApproval(profile,approval,head,phase,expected,clock())
       sameLive(driver.live(), expected)
-      driver.create({record,artifact,env:disabledNeedsReviewEnv()})
+      driver.create({record,artifact,env})
       // Creation is reconciled by immutable metadata even on a successful CLI exit.
       record.deploymentId = foundDeployment(driver.findCreated(record))
       state = remember(driver,state,{candidate:record,pending:'VERIFY_REQUIRED'},'CREATED',now)

@@ -1,4 +1,4 @@
-import {parseNeedsReviewOperation,disabledNeedsReviewEnv} from './crm-needs-review-release.mjs'
+import {parseNeedsReviewOperation,assertNeedsReviewRuntimeEnv,refuseUnreviewedProductionUpload} from './crm-needs-review-release.mjs'
 import {runNeedsReviewEntry} from './crm-needs-review-release-entry.mjs'
 import { cutoverFromSnapshot, filterHarpSourceFiles, harpOmissions, freshHarpReusePlan, assertHarpStage, assertNoHarpManifest, assertHarpRootProjectBinding, sealHarpRemoteBuild } from './harp-root-cutover.mjs'
 import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
@@ -406,7 +406,10 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
 }
 
 function buildSnapshot(stage, scopes, reuse, emailPhase, cutover, emailKind = '', needsReviewEnv = null) {
-  if(needsReviewEnv && (scopes.length!==1||scopes[0]!=='crm-needs-review'||JSON.stringify(needsReviewEnv)!==JSON.stringify(disabledNeedsReviewEnv()))) fail('needs_review_disabled_build_required')
+  if(needsReviewEnv){
+    assertNeedsReviewRuntimeEnv(needsReviewEnv)
+    if(scopes.length!==1||scopes[0]!=='crm-needs-review') fail('needs_review_disabled_build_required')
+  }
   assertHarpStage(stage, cutover)
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
@@ -527,31 +530,8 @@ function assertProductionUnchanged(snapshot) {
   if (JSON.stringify(state.overlays) !== JSON.stringify(snapshot.parentOverlays)) fail('production_composition_changed_after_preparation')
 }
 
-function deploySnapshot(snapshot, head, scopes, emailPhase) {
-  assertProductionUnchanged(snapshot)
-  assertHarpStage(snapshot.stage, snapshot.cutover)
-  assertRetainedStore(snapshot)
-  const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
-  const crmOnly = scopes.length === 1 && scopes[0] === 'crm'
-  const metadata = buildReleaseMetadata({descriptor:snapshot.provenance, descriptorDigest:snapshot.provenanceDigest,
-    base:snapshot.base, overlays:snapshot.overlays, parentOverlays:snapshot.parentOverlays,
-    head, scope:scopes.join(','), parentDeploymentId:snapshot.parentDeploymentId},
-    provenanceScopes(Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url')))
-  packageCommand(npx, [
-    '--yes',
-    'vercel',
-    '--prod',
-    '--yes',
-    '--logs',
-    '--cwd',
-    snapshot.stage,
-    ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
-    ...(crmOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    ...(scopes.length === 1 && ['release-provenance', 'storm-publication', 'aqueduct-publication', 'iom-featured-work', 'seasonal-theme', 'project:wda-booth-preview'].includes(scopes[0]) ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    ...(scopes.length === 1 && scopes[0] === 'project:lobo-mobo-study' && process.env.IOM_SKIP_BLOG_SYNC === 'true'
-      ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
-    ...Object.entries(metadata).flatMap(([key, value]) => ['--meta', `${key}=${value}`]),
-  ], { cwd: snapshot.stage })
+function deploySnapshot() {
+  refuseUnreviewedProductionUpload()
 }
 
 function main() {

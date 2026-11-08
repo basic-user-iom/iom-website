@@ -2,7 +2,8 @@ import {fields,fail} from './crm-email-workflow.mjs'
 
 // Registration remains the host's explicit responsibility. No send/worker tool:
 // the authenticated host worker invokes the separately supplied dispatcher.
-export function createNeedsReviewTools({store,binding,enabled=()=>false,startsEnabled=()=>false}={}){
+const FAMILY=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
+export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=()=>false,openStore}={}){
   const common=['iom:crm:email:read'],send=[...common,'iom:crm:email:send','iom:crm:email:batch:confirm']
   const definitions=[
     {name:'crm_needs_review_batch_preview',description:'Prepare a finite list of up to 150 existing Needs review initial drafts for an explicit recipient-local date; minimum 30 seconds, only 07:45–11:00. Sends nothing. No individual message approval required.',
@@ -20,23 +21,28 @@ export function createNeedsReviewTools({store,binding,enabled=()=>false,startsEn
       if(enabled()!==true)fail('needs_review_disabled')
       if(!definitions.some(d=>d.name===name))fail('unknown_tool')
       const scopes=name==='crm_needs_review_batch_confirm'?send:common
-      if(actor?.kind!=='oauth'||['ownerId','fromIdentity','grantFamily','accessRevision'].some(k=>actor[k]!==binding[k])||
-        !Array.isArray(actor.scopes)||!scopes.every(s=>actor.scopes.includes(s)))fail('needs_review_access_denied')
+      if(binding?.grantFamily!==undefined)fail('needs_review_grant_family_must_come_from_connection')
+      if(actor?.kind!=='oauth'||['ownerId','fromIdentity','accessRevision'].some(k=>actor[k]!==binding[k])||
+        !FAMILY.test(actor?.grantFamily||'')||!Array.isArray(actor.scopes)||!scopes.every(s=>actor.scopes.includes(s)))fail('needs_review_access_denied')
+      if(name==='crm_needs_review_batch_confirm'&&startsEnabled()!==true)fail('capability_starts_paused')
+      if(typeof openStore!=='function')fail('needs_review_connection_not_bound')
+      const bound={...binding,grantFamily:actor.grantFamily,authorized:true}
+      const store=openStore(bound)
       if(name==='crm_needs_review_batch_preview'){
         fields(args,['localDate'])
-        const review=await store.review(binding,args)
+        const review=await store.review(bound,args)
         return {reviewId:review.reviewId,digest:review.digest,expiresAt:review.expiresAt,count:review.plan.items.length,
           fromIdentity:review.plan.fromIdentity,localDate:review.plan.needsReview.localDate,
           minimumIntervalSeconds:30,recipientLocalWindow:'07:45–11:00',requiresFiniteConfirmation:true,excludedCount:review.excluded.length}
       }
       if(name==='crm_needs_review_batch_confirm'){
         if(startsEnabled()!==true)fail('capability_starts_paused')
-        fields(args,['reviewId','digest','confirmed']);return store.confirm(binding,args)
+        fields(args,['reviewId','digest','confirmed']);return store.confirm(bound,args)
       }
       if(name==='crm_needs_review_confirmation_status'){
-        fields(args,['reviewId','digest']);return store.confirmationStatus(binding,args)
+        fields(args,['reviewId','digest']);return store.confirmationStatus(bound,args)
       }
-      fields(args,['batchId']);return store.status(binding,args.batchId)
+      fields(args,['batchId']);return store.status(bound,args.batchId)
     },
   })
 }

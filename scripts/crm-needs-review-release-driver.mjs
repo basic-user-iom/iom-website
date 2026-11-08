@@ -4,7 +4,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'
-import { NEEDS_REVIEW_TARGET as TARGET, NEEDS_REVIEW_SCOPE as SCOPE, disabledNeedsReviewEnv } from './crm-needs-review-release.mjs'
+import { NEEDS_REVIEW_TARGET as TARGET, NEEDS_REVIEW_SCOPE as SCOPE, assertNeedsReviewRuntimeEnv, hostPublicationMode, needsReviewCreateArgs, needsReviewRuntimeEnv } from './crm-needs-review-release.mjs'
 import { NEEDS_REVIEW_RUNTIME_FILES, NEEDS_REVIEW_SCOPE_FILES } from './crm-needs-review-scope.mjs'
 import { assertOverlayPreservation, assertScopedInventory, needsReviewReleaseDigest as digest } from './crm-needs-review-release-guards.mjs'
 import { openNeedsReviewJournal, adoptNeedsReviewJournal } from './crm-needs-review-journal-session.mjs'
@@ -371,7 +371,9 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     check(runtime.length === runtimePaths.size, 'needs_review_runtime_closure_incomplete')
     runtime.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
     const host=call('readCommittedFile',head,'api/_lib/crm-needs-review-host.mjs')
-    check(Buffer.isBuffer(host)&&/export const NEEDS_REVIEW_PRODUCTION_APPROVAL\s*=\s*null(?:\s|;)/.test(host.toString('utf8')), 'needs_review_runtime_must_be_unpinned')
+    check(Buffer.isBuffer(host), 'needs_review_runtime_must_be_unpinned_or_preview')
+    const mode=hostPublicationMode(host)
+    check(mode==='disabled' || mode==='preview', 'needs_review_runtime_must_be_unpinned_or_preview')
     const config = call('readCommittedFile', head, 'vercel.json')
     check(Buffer.isBuffer(config), 'needs_review_committed_config_bytes_required')
     const result = { runtimeDigest: digest(runtime), configDigest: hash(config) }
@@ -382,7 +384,7 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     return result
   }
   function buildArtifact({ head, phase, baseline, env, allowedFiles }, consume) {
-    check(same(env, disabledNeedsReviewEnv()), 'needs_review_disabled_runtime_required')
+    assertNeedsReviewRuntimeEnv(env)
     const liveState = call('productionState', baseline)
     const beforeInventory = readInventory(baseline.id, baseline.meta?.iomNeedsReviewInventory)
     const media = call('readProductionManifest', resolvedRoot, baseline, api)
@@ -427,6 +429,11 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
       try { proveJournal(); session.close() }
       catch(error) { session.abandon(); throw error }
       finally { session=null }
+    },
+    runtimeEnv({ head }) {
+      const host = call('readCommittedFile', head, 'api/_lib/crm-needs-review-host.mjs')
+      check(Buffer.isBuffer(host), 'needs_review_runtime_must_be_unpinned_or_preview')
+      return needsReviewRuntimeEnv(hostPublicationMode(host))
     },
     live({ verificationOnly = false } = {}) {
       // Expired approvals may inspect persisted state, never authorize mutations.
@@ -489,7 +496,8 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
     },
     create({ record, artifact, env }) {
       authorized(); assertSnapshotUnchanged(artifact)
-      check(active.pushed && same(env, disabledNeedsReviewEnv()), 'needs_review_scanned_push_required')
+      check(active.pushed, 'needs_review_scanned_push_required')
+      assertNeedsReviewRuntimeEnv(env)
       const state = loadState()
       check(state?.pending === 'CREATE_UNKNOWN' && state.candidate?.run === record.run &&
         state.candidate.artifactDigest === artifact.digest && state.createInvoked !== record.run &&
@@ -502,9 +510,9 @@ export function createNeedsReviewReleaseDriver({ root, profile, approval = null,
         iomNeedsReviewArtifact: artifact.digest, iomNeedsReviewInventory: artifact.inventoryDigest,
         iomNeedsReviewStarts: 'false' }
       saveState({ ...state, createInvoked: record.run }) // a throw below remains uncertain; never repeat
-      return call('cli', ['deploy', '--prod', '--skip-domain', '--yes', '--cwd', active.snapshot.stage,
+      return call('cli', needsReviewCreateArgs(env, ['--cwd', active.snapshot.stage,
         ...Object.entries(env).flatMap(([key, value]) => ['--build-env', `${key}=${value}`, '--env', `${key}=${value}`]),
-        ...Object.entries(bound).flatMap(([key, value]) => ['--meta', `${key}=${value}`])], { cwd: active.snapshot.stage })
+        ...Object.entries(bound).flatMap(([key, value]) => ['--meta', `${key}=${value}`])]), { cwd: active.snapshot.stage })
     },
     findCreated(record) {
       acquire(); check(record?.run && Number.isSafeInteger(record.createdAt), 'needs_review_creation_record_invalid')

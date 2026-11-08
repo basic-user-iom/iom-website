@@ -166,14 +166,18 @@ export function assertReleaseApproval({ approval, expected, now }) {
     evidenceValidatedAsAttestationsOnly: true }
 }
 
-// previous is null or {phase,startsEnabled:false,ownerId,grantExpiresAt}; next
-// carries that shape plus pins for bound-disabled. Genuine consent readbacks are
-// supplied independently by the orchestrator, never inferred from UUID syntax.
+// First install has previous null. A later site update may continue only from the
+// same inactive install shape. Starts, consents, and any other phase stay refused.
+function inactiveInstall(value) {
+  return exactKeys(value, ['phase','startsEnabled','ownerId']) && value.phase==='install-disabled' &&
+    value.startsEnabled===false && UUID.test(value.ownerId||'')
+}
 export function assertPhaseTransition({previous,next,consents,now}) {
   clock(now)
-  check(previous===null && exactKeys(next,['phase','startsEnabled','ownerId']) &&
-    next.phase==='install-disabled' && next.startsEnabled===false && UUID.test(next.ownerId||'') &&
-    consents===undefined,'needs_review_inactive_install_only')
+  const nextOk = inactiveInstall(next) && consents===undefined
+  const first = previous===null
+  const successor = inactiveInstall(previous) && previous.ownerId===next?.ownerId
+  check(nextOk && (first || successor), 'needs_review_inactive_install_only')
   return {phase:next.phase,startsEnabled:false}
 }
 

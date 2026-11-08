@@ -3,13 +3,12 @@ import {createNeedsReviewComposition} from './crm-needs-review-composition.mjs'
 import {createCrmBatchTriggerHandler} from './crm-capability-dispatcher.mjs'
 import {createCapabilityWorkerAuth} from './crm-capability-worker-auth.mjs'
 import {validateCapabilityOAuthPin} from './crm-capability-oauth.mjs'
-import {EMAIL_PRODUCTION_APPROVAL,assertProductionTarget,productionDatabase,createSmtpDependencies} from './crm-email-production.mjs'
+import {EMAIL_PRODUCTION_APPROVAL,assertProductionTarget,productionDatabase} from './crm-email-production.mjs'
 
 // A separate reviewed non-secret pin and explicit flags are required to activate.
 export const NEEDS_REVIEW_PRODUCTION_APPROVAL=null
 const SCOPES=Object.freeze(['iom:crm:email:read','iom:crm:email:send','iom:crm:email:batch:confirm'])
 const RESOURCE='https://iobjectm.com/api/crm-capability-mcp'
-const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const fail=code=>{throw Object.assign(Error(code),{code})}
 // Connection consent has a finite expiry of its own. Execution is a separate,
 // optional pin; absence never authorizes a preview, confirmation, or worker.
@@ -17,7 +16,7 @@ export function validateNeedsReviewApproval(approval,now=Date.now()){
   const pin=validateCapabilityOAuthPin(approval?.pin,'projects')
   if(pin.ownerId!==EMAIL_PRODUCTION_APPROVAL.ownerId||pin.staffEmail!=='projects@iobjectm.com'||
     pin.scopes.length!==SCOPES.length||!SCOPES.every(s=>pin.scopes.includes(s))||
-    (pin.workerGrantFamily!==undefined&&!UUID.test(pin.workerGrantFamily))||
+    pin.workerGrantFamily!==undefined||
     Date.parse(pin.grantExpiresAt)<=now||approval.localDate!==undefined||approval.until!==undefined)
     fail('needs_review_approval_invalid')
   const e=approval.execution
@@ -29,6 +28,12 @@ export function validateNeedsReviewApproval(approval,now=Date.now()){
       Date.parse(e.until)>Date.parse(e.localDate+'T00:00:00Z')+86400000)
       fail('needs_review_execution_invalid')
   }
+  return pin
+}
+export function assertPreviewConnectionApproval(approval,now=Date.now()){
+  if(approval?.pin?.workerGrantFamily!==undefined) fail('needs_review_grant_family_must_come_from_connection')
+  const pin=validateNeedsReviewApproval(approval,now)
+  if(approval.execution==null) fail('needs_review_preview_window_required')
   return pin
 }
 async function oauthDependencies(){
@@ -46,7 +51,9 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
   const workerStarts=()=>starts()&&workerEnabled()===true
   async function auth(){if(!installed()||typeof getWorkerAuth!=='function')fail('needs_review_disabled');return getWorkerAuth()}
   async function assemble(){
-    const c=await configure(),d=await loadOAuth(),pin=c.pin
+    const c=await configure(),pin=c.pin
+    if(pin?.workerGrantFamily!==undefined) fail('needs_review_grant_family_must_come_from_connection')
+    const d=await loadOAuth()
     const issuer=d.config({enabled:installed,pins:{projects:pin},fromIdentity:'projects',signingJwk:c.signingJwk})
     if(issuer.resource!==RESOURCE||issuer.ownerId!==pin.ownerId||issuer.fromIdentity!=='projects')fail('needs_review_issuer_mismatch')
     const oauthStore=d.store(c.acquireOAuth,pin.ownerId,{accessRevision:pin.accessRevision,
@@ -57,11 +64,11 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
         ?oauthStore.grantActive(actor.grantFamily):false})
     const handler=d.http({configure:()=>{if(!installed())fail('needs_review_disabled');return issuer},storeFactory:()=>oauthStore})
     let app=null,trigger=null
-    if(c.execution&&UUID.test(pin.workerGrantFamily||'')){
-      const binding={ownerId:pin.ownerId,fromIdentity:'projects',accessRevision:pin.accessRevision,grantFamily:pin.workerGrantFamily,authorized:true}
+    if(c.execution){
+      const binding={ownerId:pin.ownerId,fromIdentity:'projects',accessRevision:pin.accessRevision,authorized:true}
       const worker=await auth()
       app=compositionFactory({acquire:c.acquire,binding,enabled:installed,startsEnabled:starts,workerEnabled:workerStarts,
-        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>binding,providerDependencies:c.providerDependencies})
+        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>({...binding,authorized:false}),providerDependencies:c.providerDependencies})
       trigger=createCrmBatchTriggerHandler({dispatcher:app.dispatcher,enabled:installed,verifyWorker:worker.verify,
         workerTransport:'vercel-cron',workerEnabled:workerStarts})
     }
@@ -89,7 +96,7 @@ export function createEnvironmentNeedsReviewHost({approval=NEEDS_REVIEW_PRODUCTI
     return {Pool,mailer,identities:identities.listProtonIdentities}},loadOAuth}={}){
   const enabled=()=>approval!==null&&env.CRM_NEEDS_REVIEW_ENABLED==='true'&&now()<Date.parse(approval.pin?.grantExpiresAt)
   const starts=()=>enabled()&&env.CRM_NEEDS_REVIEW_STARTS_ENABLED==='true'&&env.CRM_EMAIL_SEND_ENABLED==='true'&&!!approval.execution&&now()<Date.parse(approval.execution.until)
-  const workerEnabled=()=>env.CRM_NEEDS_REVIEW_WORKER_ENABLED==='true'
+  const workerEnabled=()=>enabled()&&env.CRM_NEEDS_REVIEW_WORKER_ENABLED==='true'
   const calendar=()=>enabled()&&!!approval.execution&&now()<Date.parse(approval.execution.until)
   function pins(){const pin=validateNeedsReviewApproval(approval,now());assertProductionTarget(env);return pin}
   let worker
@@ -110,8 +117,7 @@ export function createEnvironmentNeedsReviewHost({approval=NEEDS_REVIEW_PRODUCTI
       }
       let signingJwk
       try{signingJwk=JSON.parse(env.CRM_EMAIL_OAUTH_SIGNING_JWK)}catch{fail('needs_review_issuer_not_configured')}
-      const existing=approval.execution&&UUID.test(pin.workerGrantFamily||'')?createSmtpDependencies({env,identities:deps.identities,pin:EMAIL_PRODUCTION_APPROVAL,createTransport:options=>deps.mailer.createTransport(options)}):null
-      const providerDependencies=existing?{...existing,createTransport:()=>{if(!starts())fail('needs_review_starts_paused');return existing.createTransport()}}:undefined
+      const providerDependencies=undefined
       return {pin,execution:approval.execution||null,signingJwk,acquire:acquireFor('iom_email_gateway'),acquireOAuth:acquireFor('iom_email_oauth'),providerDependencies}
     }})
 }
