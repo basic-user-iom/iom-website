@@ -104,7 +104,7 @@
     },
     {
       "path": "scripts/crm-needs-review-release-entry.mjs",
-      "sha256": "b058dfd9a30750d34dd2b369ccd73ba96fc5fc90611b439c5385eb806c196667"
+      "sha256": "3373fc79563d2a58bf891964bb230cef8fe83ece5addfea2884cb73a9ae2b4dd"
     },
     {
       "path": "scripts/crm-needs-review-release-guards.mjs",

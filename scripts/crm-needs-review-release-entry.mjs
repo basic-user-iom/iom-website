@@ -1,7 +1,7 @@
 // Called only by the existing npm deploy launcher with its existing checked helpers.
 // No credential creation, access provisioning, OAuth consent, or standalone entry.
-import {readFileSync,existsSync} from 'node:fs'
-import {join} from 'node:path'
+import {readFileSync,existsSync,lstatSync} from 'node:fs'
+import {dirname,join} from 'node:path'
 import {spawnSync,execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 import {runNeedsReviewRelease,verifyNeedsReviewFiles} from './crm-needs-review-release.mjs'
@@ -99,11 +99,32 @@ export function runNeedsReviewEntry(operation,context) {
     const raw=cli(['deploy','--dry','--format=json','--cwd',stage],{cwd:stage})
     const manifest=parseJsonOutput(raw,'NeedsReview upload inventory')
     if(!Array.isArray(manifest.files)||manifest.fileCount!==manifest.files.length)fail('needs_review_upload_inventory_incomplete')
-    return manifest.files.map(row=>{
-      if(typeof row.path!=='string'||/[\\\x00-\x1f:*?"<>|]/.test(row.path)||
-        !row.path.split('/').every(part=>part&&part!=='.'&&part!=='..'))fail('needs_review_upload_path_invalid')
-      return {path:row.path,sha1:createHash('sha1').update(readFileSync(join(stage,row.path))).digest('hex')}
-    })
+    const seen=new Set(),rows=[]
+    for(const row of manifest.files){
+      // Same directory-marker rule as the secret scan: a real directory whose
+      // declared type is 040000 and whose declared size is zero is not a file.
+      if(typeof row?.path!=='string'||row.path.length===0||/[\\\x00-\x1f:*?"<>|]/.test(row.path)||
+        !row.path.split('/').every(part=>part&&part!=='.'&&part!=='..'&&!/[ .]$/.test(part)))fail('needs_review_upload_path_invalid')
+      const key=row.path.toLowerCase()
+      if(seen.has(key))fail('needs_review_upload_path_invalid')
+      seen.add(key)
+      const file=join(stage,row.path)
+      let current=file
+      while(true){
+        if(lstatSync(current).isSymbolicLink())fail('needs_review_upload_path_invalid')
+        if(current===dirname(current))break
+        current=dirname(current)
+      }
+      const stat=lstatSync(file)
+      const declaredType=Number.isSafeInteger(row.mode)?row.mode&0o170000:null
+      if(stat.isDirectory()&&declaredType===0o040000&&row.size===0)continue
+      if(declaredType!==null&&declaredType!==0o100000)fail('needs_review_upload_path_invalid')
+      if(!stat.isFile()||stat.nlink!==1||!Number.isSafeInteger(row.size)||row.size<0||stat.size!==row.size)fail('needs_review_upload_path_invalid')
+      const bytes=readFileSync(file)
+      if(!Buffer.isBuffer(bytes)||bytes.length!==row.size)fail('needs_review_upload_path_invalid')
+      rows.push({path:row.path,sha1:createHash('sha1').update(bytes).digest('hex')})
+    }
+    return rows
   }
   // The driver is lazy: plan/missing approval does not lock, access services,
   // inspect credentials, scan media or create a staging checkout.
