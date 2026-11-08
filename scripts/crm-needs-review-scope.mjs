@@ -36,6 +36,8 @@ export const NEEDS_REVIEW_TOOLING_FILES=Object.freeze([
   "scripts/crm-needs-review-journal-worker.mjs",
   "scripts/crm-needs-review-journal-session.mjs",
   "scripts/deploy-production.mjs",
-  "scripts/deploy-scope.mjs"
+  "scripts/deploy-scope.mjs",
+  "scripts/incremental-r2-release.mjs",
+  "scripts/git-batch-reader.mjs"
 ]);
 export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json"]);

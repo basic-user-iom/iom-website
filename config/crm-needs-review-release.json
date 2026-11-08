@@ -116,7 +116,7 @@
     },
     {
       "path": "scripts/crm-needs-review-scope.mjs",
-      "sha256": "f79fa0b0b879e524037402e1e9b6d6aece2be1c7fc09294af3ad3a5aabaa0bae"
+      "sha256": "661d96d00cb541a3c942d7e03c9d9b6e16e391a23a35542b38f142bbcd2b2912"
     },
     {
       "path": "scripts/crm-needs-review-source-binding.mjs",
@@ -149,6 +149,14 @@
     {
       "path": "scripts/deploy-scope.mjs",
       "sha256": "ccd393885f80da17acd4a4c6f5a6a701f03e5cf48860ccb619f2e981762e0d09"
+    },
+    {
+      "path": "scripts/incremental-r2-release.mjs",
+      "sha256": "8697999af36c253d727392238a8d74d62aeaf0b45f1f9060c32e2ec8442774e5"
+    },
+    {
+      "path": "scripts/git-batch-reader.mjs",
+      "sha256": "1f060436f1268ed009648c6a1a4be24db6bf0850fc2448504abf9c4bb1707d0b"
     },
     {
       "path": "scripts/deploy-secret-scan.mjs",

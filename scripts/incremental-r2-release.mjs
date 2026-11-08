@@ -6,6 +6,7 @@ import { gunzipSync } from 'node:zlib'
 import { matchesDeployScope } from './deploy-scope.mjs'
 import { scanReleaseFile, credentialPath, safeRelative } from './deploy-secret-scan.mjs'
 import { validateManifest, sha256, PUBLIC_ORIGIN } from './r2-release-manifest.mjs'
+import { createGitBatchReader } from './git-batch-reader.mjs'
 
 export const REUSE_FILE = '.iom-r2-reuse.json'
 const MAX_FILE = 128 * 1024 * 1024
@@ -90,9 +91,25 @@ export function createReusePlan({ root, deploymentId, manifest, files, previousF
   const unchangedRavens = sameInputs(['ravens/', 'scripts/sync-raven-assets.mjs', 'scripts/build-mobile-raven.mjs', 'package-lock.json'])
   let freshBytes = 0, freshFiles = 0
   const started = Date.now()
+  const deadline = started + 120000
+  const reader = createGitBatchReader(root)
+  const metadata = new Map()
+  let metadataBytes = 0
+  try {
   const readBlob = file => {
-    if (!file || file.type !== 'blob' || !['100644', '100755'].includes(file.mode) || file.bytes > MAX_FILE) throw Error('Invalid committed media source')
-    return git(root, ['cat-file', 'blob', file.oid])
+    if (!file || file.type !== 'blob' || !['100644', '100755'].includes(file.mode) || file.bytes > MAX_FILE || !/^[a-f0-9]{40}$/.test(file.oid)) throw Error('Invalid committed media source')
+    const cached = metadata.get(file.oid)
+    if (cached) {
+      if (cached.length !== file.bytes) throw Error('Invalid committed media source')
+      return cached
+    }
+    const bytes = reader.read(file, deadline)
+    const cacheable = file.path.endsWith('/media-manifest.json') || file.path === 'building-viewer/assets/runtime-pack/index.json'
+    if (cacheable && metadataBytes + bytes.length <= 2 * 1024 * 1024) {
+      metadata.set(file.oid, bytes)
+      metadataBytes += bytes.length
+    }
+    return bytes
   }
   let runtime = null
   const runtimeIndex = files.get('building-viewer/assets/runtime-pack/index.json')
@@ -152,6 +169,9 @@ export function createReusePlan({ root, deploymentId, manifest, files, previousF
     files: reused, omitted: [...omitted].sort(), runtimeComplete, skipRavens,
     legacyPaths: manifest.files.filter(f => (f.delivery ?? 'legacy') === 'legacy').map(f => f.path),
     reusedBytes: reused.reduce((s, f) => s + f.bytes, 0) }
+  } finally {
+    reader.destroy()
+  }
 }
 export function readReusePlan(stage, expectedIdentity) {
   const raw = readFileSync(join(stage, REUSE_FILE))
