@@ -21,7 +21,7 @@ export function parseNeedsReviewOperation(argv) {
   const operation = argv.find(a => a.startsWith('--crm-needs-review-release='))?.split('=')[1]
   requireValue(argv.length === 2 && argv.includes('--scope=crm-needs-review') &&
     argv.includes('--crm-needs-review-release='+operation) &&
-    ['plan','verify-install','stage-install','inspect','inspect-journal','promote','rollback'].includes(operation), 'needs_review_release_options_invalid')
+    ['plan','verify-install','stage-install','inspect','inspect-journal','promote','rollback','retain-unpromoted'].includes(operation), 'needs_review_release_options_invalid')
   return operation
 }
 export function verifyNeedsReviewFiles(profile, readFile) {
@@ -138,7 +138,7 @@ function rolledBackState(driver,state,record,now) {
 // The driver must reserve/persist state before each external mutation. Unknown
 // results are reconciled through inspect; no deploy/promote/rollback is retried.
 export function runNeedsReviewRelease({operation, profile, head, driver, approval=null, now, clock=Date.now}) {
-  requireValue(['plan','verify-install','stage-install','inspect','promote','rollback'].includes(operation),
+  requireValue(['plan','verify-install','stage-install','inspect','promote','rollback','retain-unpromoted'].includes(operation),
     'needs_review_release_operation_invalid')
   const local = verifyNeedsReviewFiles(profile, driver.readFile)
   if (operation === 'plan') return {...local, executed:false, baseline:profile.baseline,
@@ -147,20 +147,55 @@ export function runNeedsReviewRelease({operation, profile, head, driver, approva
       'fresh_baseline_and_inventory_required','sender_metadata_required','plan_eligibility_required',
       'this_adapter_cannot_enable_oauth_or_sending'], startsEnabled:false}
   // Fail before even reading provider metadata if mutation approval is absent.
-  if (operation !== 'inspect' && !operation.startsWith('verify-')) requireValue(approval !== null, 'needs_review_production_approval_missing')
+  if (operation !== 'inspect' && operation !== 'retain-unpromoted' && !operation.startsWith('verify-')) requireValue(approval !== null, 'needs_review_production_approval_missing')
   requireValue(typeof driver.withLock === 'function', 'needs_review_exclusive_local_lock_required')
   const currentTime = () => now === undefined ? clock() : now
   return driver.withLock(() => runLocked({operation,profile,head,driver,approval,now:currentTime(),clock:currentTime}))
 }
+function retainedUnpromoted(state, baseline) {
+  const record = state?.previousCandidate
+  return state?.pending === false && !state.failed && !state.candidate && state.promoted !== true &&
+    state.rolledBack !== true && state.disposition === 'RETAINED_NOT_PROMOTED' &&
+    record?.verified !== true && record?.phase === 'install-disabled' &&
+    /^dpl_[A-Za-z0-9]+$/.test(record?.deploymentId || '') && record.deploymentId !== baseline?.id &&
+    record?.baseline?.id === baseline?.id && state.live?.id === baseline?.id
+}
 function runLocked({operation,profile,head,driver,approval,now,clock}) {
   const loaded = driver.loadState()
   let state = loaded ? copy(loaded) : null
+  if (operation === 'retain-unpromoted') {
+    // Keep the unpromoted candidate in history. This does not verify it, promote it, or move the live alias.
+    requireValue(state?.pending === 'VERIFY_REQUIRED' && !state.failed && state.promoted !== true &&
+      state.rolledBack !== true && !state.promoteInvoked && !state.rollbackInvoked && state.candidate,
+      'needs_review_retain_state_invalid')
+    const record = copy(state.candidate)
+    requireValue(record.verified !== true && record.phase === 'install-disabled' &&
+      /^dpl_[A-Za-z0-9]+$/.test(record.deploymentId || '') && record.deploymentId !== profile.baseline?.id &&
+      record.baseline?.id === profile.baseline?.id && record.baseline?.commit === profile.baseline?.commit &&
+      record.baseline?.base === profile.baseline?.base && record.baseline?.scopeMap === profile.baseline?.scopeMap &&
+      commit(record.head) && sha(record.manifestDigest) && sha(record.artifactDigest) && sha(record.inventoryDigest),
+      'needs_review_retain_candidate_invalid')
+    const current = driver.live()
+    sameLive(current, record.baseline)
+    requireValue(current.id !== record.deploymentId, 'needs_review_retain_candidate_invalid')
+    evidence(record, driver.deployment(record.deploymentId))
+    const next = remember(driver, state, {
+      pending: false, promoted: false, rolledBack: false, candidate: null, previousCandidate: record,
+      live: {id: record.baseline.id, commit: record.baseline.commit, scopeMap: record.baseline.scopeMap, base: record.baseline.base},
+      disposition: 'RETAINED_NOT_PROMOTED',
+    }, 'RETAINED_NOT_PROMOTED', now)
+    requireValue(next.pending === false && next.promoted === false && next.candidate === null &&
+      next.previousCandidate?.deploymentId === record.deploymentId && next.previousCandidate.verified !== true,
+      'needs_review_retain_state_invalid')
+    return {status:'RETAINED_NOT_PROMOTED', id:record.deploymentId, phase:record.phase, promoted:false, verified:false}
+  }
   if (operation.startsWith('verify-')) {
     requireValue(commit(head) && sha(profile.runtimeDigest) && sha(profile.configDigest), 'needs_review_verification_source_invalid')
     requireValue(!state?.pending && !state?.failed && !state?.candidate, 'needs_review_existing_or_uncertain_operation')
     const phase = operation === 'verify-install' ? 'install-disabled' : 'bound-disabled'
     const expected = phase === 'install-disabled' ? profile.baseline : state?.live
-    requireValue(expected && (phase === 'install-disabled' ? !state : state.phase === 'install-disabled' && state.promoted) &&
+    const retained = phase === 'install-disabled' && retainedUnpromoted(state, profile.baseline)
+    requireValue(expected && (phase === 'install-disabled' ? (!state || retained) : state.phase === 'install-disabled' && state.promoted) &&
       !state?.rolledBack, 'needs_review_phase_sequence_invalid')
     const current = driver.live({verificationOnly:true})
     sameLive(current,expected)
@@ -188,7 +223,8 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
     requireValue(!state?.pending && !state?.failed && !state?.candidate, 'needs_review_existing_or_uncertain_operation')
     const phase = operation === 'stage-install' ? 'install-disabled' : 'bound-disabled'
     const expected = phase === 'install-disabled' ? profile.baseline : state?.live
-    requireValue(expected && (phase === 'install-disabled' ? !state : state.phase === 'install-disabled' && state.promoted),
+    const retained = phase === 'install-disabled' && retainedUnpromoted(state, profile.baseline)
+    requireValue(expected && (phase === 'install-disabled' ? (!state || retained) : state.phase === 'install-disabled' && state.promoted),
       'needs_review_phase_sequence_invalid')
     requireValue(!state?.rolledBack, 'needs_review_phase_sequence_invalid')
     const approved = requireApproval(profile,approval,head,phase,expected,now)
@@ -231,7 +267,9 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
       return {status:'CREATED_NOT_PROMOTED',id:record.deploymentId,phase}
     }})
   }
-  const savedRecord = state?.candidate || ((operation === 'rollback' || operation === 'inspect') && state?.previousCandidate)
+  const archived = state?.previousCandidate && (state.promoted === true || state.rolledBack === true ||
+    state.pending === 'ROLLBACK_UNKNOWN' || state.pending === 'PROMOTE_UNKNOWN')
+  const savedRecord = state?.candidate || ((operation === 'rollback' || operation === 'inspect') && archived && state.previousCandidate)
   const record = savedRecord ? copy(savedRecord) : null
   requireValue(record, 'needs_review_record_missing')
   requireValue(record.head === head, 'needs_review_record_source_changed')
