@@ -160,6 +160,24 @@ function retainedUnpromoted(state, baseline) {
     /^dpl_[A-Za-z0-9]+$/.test(record?.deploymentId || '') && record.deploymentId !== baseline?.id &&
     record?.baseline?.id === baseline?.id && state.live?.id === baseline?.id
 }
+// The live commit and the commit being published stay valid remotes.
+// A retained, unpromoted candidate is valid only when history names that same commit and deployment.
+export function remoteBranchAllowed({ remote, head, liveCommit, state, isAncestor }) {
+  if (!commit(remote) || !commit(head) || !commit(liveCommit)) return false
+  if (remote === liveCommit || remote === head) return true
+  const record = state?.previousCandidate
+  if (state?.pending !== false || state?.promoted === true || state?.rolledBack === true || state?.failed ||
+    state?.candidate || state?.disposition !== 'RETAINED_NOT_PROMOTED' || state?.live?.id === record?.deploymentId) return false
+  if (!record || record.verified === true || record.phase !== 'install-disabled' || record.head !== remote ||
+    !/^dpl_[A-Za-z0-9]+$/.test(record.deploymentId || '')) return false
+  if (!Array.isArray(state.history)) return false
+  const created = state.history.filter(entry => entry?.event === 'CREATED' && entry.record?.deploymentId)
+  const retained = state.history.filter(entry => entry?.event === 'RETAINED_NOT_PROMOTED' && entry.record?.deploymentId)
+  const same = entry => entry.record.deploymentId === record.deploymentId && entry.record.head === remote && entry.record.verified !== true
+  if (created.length !== 1 || retained.length !== 1 || !same(created[0]) || !same(retained[0])) return false
+  if (state.history.some(entry => entry?.record?.deploymentId && entry.record.deploymentId !== record.deploymentId)) return false
+  return typeof isAncestor === 'function' && isAncestor(liveCommit, remote) === true && isAncestor(remote, head) === true
+}
 function runLocked({operation,profile,head,driver,approval,now,clock}) {
   const loaded = driver.loadState()
   let state = loaded ? copy(loaded) : null

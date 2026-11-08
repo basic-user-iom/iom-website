@@ -4,7 +4,7 @@ import {readFileSync,existsSync,lstatSync} from 'node:fs'
 import {dirname,join} from 'node:path'
 import {spawnSync,execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {runNeedsReviewRelease,verifyNeedsReviewFiles} from './crm-needs-review-release.mjs'
+import {runNeedsReviewRelease,verifyNeedsReviewFiles,remoteBranchAllowed} from './crm-needs-review-release.mjs'
 import {createNeedsReviewReleaseDriver,needsReviewReleaseJournalDir,needsReviewSourceInventory} from './crm-needs-review-release-driver.mjs'
 import {openNeedsReviewJournal,inspectNeedsReviewJournal} from './crm-needs-review-journal-session.mjs'
 import {assertPrivateReleaseSource,isPrivateReleaseSource,resolvePrivateJournal,assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
@@ -149,7 +149,8 @@ export function runNeedsReviewEntry(operation,context) {
       if(git(['status','--porcelain']))fail('needs_review_release_checkout_dirty')
       ensureAncestor(baseline.meta.iomCommitSha,head,'NeedsReview publication commit must descend from current Storm production.')
       const remote=git(['ls-remote','origin','refs/heads/master']).split(/\s/)[0]
-      if(remote!==baseline.meta.iomCommitSha&&remote!==head)fail('needs_review_remote_branch_changed')
+      const ancestor=(left,right)=>spawnSync('git',['merge-base','--is-ancestor',left,right],{cwd:root,stdio:'ignore',windowsHide:true}).status===0
+      if(!remoteBranchAllowed({remote,head,liveCommit:baseline.meta.iomCommitSha,state:journalSession.load(),isAncestor:ancestor}))fail('needs_review_remote_branch_changed')
       if(changedFiles(baseline.meta.iomCommitSha,head).some(path=>!matchesDeployScope(path,'crm-needs-review')))
         fail('needs_review_unrelated_commit_paths')
       command(process.execPath,[join(root,'scripts/pre-deploy-check.mjs')])
