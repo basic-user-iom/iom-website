@@ -132,12 +132,14 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       const now=await clock(c),rows=await leads(c,leadIds)
       const {plan:kernel,excluded}=prepareNeedsReviewBatch({ownerId:pin.ownerId,localDate,rows,now})
       if(!kernel)fail('no_eligible_drafts')
-      const auth=(await c.query(`/* nr:expiry */ select least(a.expires_at,g.expires_at,a.needs_review_until) as expires_at,
-        to_char(a.needs_review_date,'YYYY-MM-DD') as local_date
+      const auth=(await c.query(`/* nr:expiry */ select least(a.expires_at,g.expires_at,a.needs_review_until) as expires_at
         from crm_capability_private.access a join crm_email_private.grant_families g on g.owner_id=a.owner_id and g.id=$3
         where a.owner_id=$1 and a.from_identity=$2 and a.revision=$4`,[pin.ownerId,pin.fromIdentity,pin.grantFamily,pin.accessRevision])).rows[0]
-      if(auth?.local_date!==localDate)fail('needs_review_date_not_authorized')
-      const end=Math.min(Date.parse(`${localDate}T00:00:00Z`)+86400000,stamp(auth?.expires_at))
+      const dayStart=Date.parse(`${localDate}T00:00:00Z`)
+      const expiry=stamp(auth?.expires_at)
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(localDate||'')||!Number.isFinite(dayStart)||new Date(dayStart).toISOString().slice(0,10)!==localDate||dayStart>=expiry)
+        fail('needs_review_date_not_authorized')
+      const end=Math.min(dayStart+86400000,expiry)
       const starts=now+60000,expiresAt=new Date(starts).toISOString()
       if(end<=starts)fail('batch_window_expired')
       // Group consent still expires at starts. Technical per-message snapshots

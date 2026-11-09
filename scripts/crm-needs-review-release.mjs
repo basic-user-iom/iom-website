@@ -83,7 +83,7 @@ function assertPreviewSourceApproval(approval) {
   if (!pin || pin.workerGrantFamily !== undefined || approval.execution == null) fail('needs_review_preview_pin_invalid')
   if (pin.fromIdentity !== 'projects' || pin.accessRevision !== 'capability-projects-v1') fail('needs_review_preview_pin_invalid')
   if (!Array.isArray(pin.scopes) || pin.scopes.join('\n') !== scopes.join('\n')) fail('needs_review_preview_pin_invalid')
-  if (typeof pin.grantExpiresAt !== 'string' || typeof approval.execution.until !== 'string' || typeof approval.execution.localDate !== 'string') fail('needs_review_preview_pin_invalid')
+  if (typeof pin.grantExpiresAt !== 'string' || !approval.execution || typeof approval.execution !== 'object' || Array.isArray(approval.execution)) fail('needs_review_preview_pin_invalid')
   if (approval.execution.startsEnabled === true) fail('needs_review_starts_must_remain_disabled')
   return approval
 }

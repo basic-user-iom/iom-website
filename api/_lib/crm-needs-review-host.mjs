@@ -6,7 +6,7 @@ import {validateCapabilityOAuthPin} from './crm-capability-oauth.mjs'
 import {EMAIL_PRODUCTION_APPROVAL,assertProductionTarget,productionDatabase} from './crm-email-production.mjs'
 
 // A separate reviewed non-secret pin and explicit flags are required to activate.
-export const NEEDS_REVIEW_PRODUCTION_APPROVAL=null
+export const NEEDS_REVIEW_PRODUCTION_APPROVAL=JSON.parse("{\"pin\":{\"fromIdentity\":\"projects\",\"accessRevision\":\"capability-projects-v1\",\"ownerId\":\"1add2cb0-a00a-4f92-a20a-7d90cb23afdd\",\"clientId\":\"https://chatgpt.com/oauth/client.json\",\"redirectUri\":\"https://chatgpt.com/connector_platform_oauth_redirect\",\"staffEmail\":\"projects@iobjectm.com\",\"subject\":\"iom-crm-capability:projects:1add2cb0-a00a-4f92-a20a-7d90cb23afdd\",\"scopes\":[\"iom:crm:email:read\",\"iom:crm:email:send\",\"iom:crm:email:batch:confirm\"],\"grantExpiresAt\":\"2027-11-10T00:00:00.000Z\"},\"execution\":{}}")
 const SCOPES=Object.freeze(['iom:crm:email:read','iom:crm:email:send','iom:crm:email:batch:confirm'])
 const RESOURCE='https://iobjectm.com/api/crm-capability-mcp'
 const fail=code=>{throw Object.assign(Error(code),{code})}
@@ -20,15 +20,17 @@ export function validateNeedsReviewApproval(approval,now=Date.now()){
     Date.parse(pin.grantExpiresAt)<=now||approval.localDate!==undefined||approval.until!==undefined)
     fail('needs_review_approval_invalid')
   const e=approval.execution
+  // Presence mounts preview tools for every requested day. It is not a one-day grant.
   if(e!==null&&e!==undefined){
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(e.localDate||'')||
-      !Number.isFinite(Date.parse(e.localDate+'T00:00:00Z'))||new Date(e.localDate+'T00:00:00Z').toISOString().slice(0,10)!==e.localDate||
-      !Number.isFinite(Date.parse(e.until))||Date.parse(e.until)<=Date.parse(e.localDate+'T00:00:00Z')||
-      Date.parse(e.until)>Date.parse(pin.grantExpiresAt)||
-      Date.parse(e.until)>Date.parse(e.localDate+'T00:00:00Z')+86400000)
-      fail('needs_review_execution_invalid')
+    if(!e||typeof e!=='object'||Array.isArray(e)||e.startsEnabled===true) fail('needs_review_execution_invalid')
   }
   return pin
+}
+function previewDay(localDate){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(localDate||'')) return null
+  const start=Date.parse(localDate+'T00:00:00Z')
+  if(!Number.isFinite(start)||new Date(start).toISOString().slice(0,10)!==localDate) return null
+  return start
 }
 export function assertPreviewConnectionApproval(approval,now=Date.now()){
   if(approval?.pin?.workerGrantFamily!==undefined) fail('needs_review_grant_family_must_come_from_connection')
@@ -79,9 +81,12 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
       rateLimit:()=>oauthStore.rateLimit(),
       tools:{listTools:()=>installed()&&app?app.tools.list():[],execute:async(actor,name,args)=>{
         if(!installed()||!app)return {isError:true,content:[{type:'text',text:'needs_review_connection_not_bound'}]}
-        try{
-          if(name==='crm_needs_review_batch_preview'&&args?.localDate!==c.execution.localDate)fail('needs_review_date_not_authorized')
-          return {content:[{type:'text',text:JSON.stringify(await app.tools.call(actor,name,args))}]}}
+        if(name==='crm_needs_review_batch_preview'){
+          const day=previewDay(args?.localDate)
+          if(day===null||day>=Date.parse(c.pin?.grantExpiresAt))
+            return {isError:true,content:[{type:'text',text:'needs_review_date_not_authorized'}]}
+        }
+        try{return {content:[{type:'text',text:JSON.stringify(await app.tools.call(actor,name,args))}]}}
         catch{return {isError:true,content:[{type:'text',text:'needs_review_request_failed_check_confirmation_status'}]}}
       }},
     })
@@ -95,9 +100,9 @@ export function createEnvironmentNeedsReviewHost({approval=NEEDS_REVIEW_PRODUCTI
   loadDependencies=async()=>{const [{Pool},{default:mailer},identities]=await Promise.all([import('pg'),import('nodemailer'),import('./proton-identities.js')]);
     return {Pool,mailer,identities:identities.listProtonIdentities}},loadOAuth}={}){
   const enabled=()=>approval!==null&&env.CRM_NEEDS_REVIEW_ENABLED==='true'&&now()<Date.parse(approval.pin?.grantExpiresAt)
-  const starts=()=>enabled()&&env.CRM_NEEDS_REVIEW_STARTS_ENABLED==='true'&&env.CRM_EMAIL_SEND_ENABLED==='true'&&!!approval.execution&&now()<Date.parse(approval.execution.until)
+  const starts=()=>enabled()&&env.CRM_NEEDS_REVIEW_STARTS_ENABLED==='true'&&env.CRM_EMAIL_SEND_ENABLED==='true'&&!!approval.execution
   const workerEnabled=()=>enabled()&&env.CRM_NEEDS_REVIEW_WORKER_ENABLED==='true'
-  const calendar=()=>enabled()&&!!approval.execution&&now()<Date.parse(approval.execution.until)
+  const calendar=()=>enabled()&&!!approval.execution
   function pins(){const pin=validateNeedsReviewApproval(approval,now());assertProductionTarget(env);return pin}
   let worker
   const getWorkerAuth=async()=>{
