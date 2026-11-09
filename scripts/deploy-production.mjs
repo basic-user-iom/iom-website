@@ -6,7 +6,7 @@ import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
 import {protectedRelease, releaseOperation, releaseRecordName, operationPhase, RELEASE_TARGET} from './crm-email-protected-release.mjs'
 import {parseHarpOperation, runHarpRelease} from './independent-harp-release.mjs'
 import {createHarpCliAdapter} from './independent-harp-cli.mjs'
-import { readComposition, assertComposition, buildReleaseMetadata, collectPreflight, storeBytesWithCapabilityExclusion, STORE_CAPABILITY_EXCLUSION_SHA1, RELEASE_BINDING } from './release-provenance.mjs'
+import { readComposition, assertComposition, buildReleaseMetadata, collectPreflight, RELEASE_BINDING } from './release-provenance.mjs'
 import { createHash } from 'node:crypto'
 /**
  * Scoped production deployment.
@@ -287,10 +287,28 @@ function readOnlyPreflight() {
   return result
 }
 
+const RETAINED_DUE_QUERY = Buffer.from("status='queued' and due_at<=$2 order by due_at,id limit 25")
+const EXCLUDED_DUE_QUERY = Buffer.from("status='queued' and due_at<=$2 and coalesce(data->'authorization'->>'accessRevision','') not in ('capability-projects-v1','capability-visual-v1') order by due_at,id limit 25")
+const STORE_CAPABILITY_EXCLUSION_SHA1 = '3c9edb42dee58c787e4d5a5ab2eb9afa0dfdee04'
+function storeBytesWithCapabilityExclusion(bytes) {
+  if (!Buffer.isBuffer(bytes)) fail('retained_store_bytes_changed')
+  let count = 0
+  let from = 0
+  for (;;) {
+    const at = bytes.indexOf(RETAINED_DUE_QUERY, from)
+    if (at < 0) break
+    count += 1
+    from = at + RETAINED_DUE_QUERY.length
+  }
+  if (count !== 1) fail('retained_store_bytes_changed')
+  const at = bytes.indexOf(RETAINED_DUE_QUERY)
+  return Buffer.concat([bytes.subarray(0, at), EXCLUDED_DUE_QUERY, bytes.subarray(at + RETAINED_DUE_QUERY.length)])
+}
 function assertRetainedStore(snapshot) {
   const bytes = readFileSync(join(snapshot.stage, 'api', '_lib', 'crm-email-store.mjs'))
   const retained = execFileSync('git', ['show', `${snapshot.provenance.store.commit}:api/_lib/crm-email-store.mjs`], {cwd:root})
-  if (createHash('sha1').update(retained).digest('hex') !== RELEASE_BINDING.storeSha1) fail('retained_store_bytes_changed')
+  const retainedSha1 = createHash('sha1').update(retained).digest('hex')
+  if (retainedSha1 !== RELEASE_BINDING.storeSha1) fail('retained_store_bytes_changed')
   const allowed = storeBytesWithCapabilityExclusion(retained)
   if (createHash('sha1').update(allowed).digest('hex') !== STORE_CAPABILITY_EXCLUSION_SHA1) fail('retained_store_bytes_changed')
   // Needs-review is applied after the retained store overlay and may carry only this exclusion.
@@ -298,7 +316,7 @@ function assertRetainedStore(snapshot) {
   if (!bytes.equals(expected)) fail('retained_store_bytes_changed')
   assertComposition({descriptor:snapshot.provenance, descriptorDigest:snapshot.provenanceDigest,
     base:snapshot.base, scopeMap:Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url'),
-    files:[{path:'api/_lib/crm-email-store.mjs',sha1:createHash('sha1').update(bytes).digest('hex')}]},
+    files:[{path:'api/_lib/crm-email-store.mjs',sha1:retainedSha1}]},
     provenanceScopes(Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url')))
 }
 

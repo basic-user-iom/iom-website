@@ -136,7 +136,7 @@
     },
     {
       "path": "scripts/deploy-production.mjs",
-      "sha256": "2e68e0a40125fc02e05e08b30ffdb3df44e32a645df9d28e79709a7b83f74461"
+      "sha256": "5e06700eeaec68a11cad7f26b3fe4cae75a936ff8acbc88a7463ae27e0842265"
     },
     {
       "path": "scripts/deploy-reviewed-protocol-data.json",
