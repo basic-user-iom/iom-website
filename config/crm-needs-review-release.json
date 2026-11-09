@@ -35,6 +35,10 @@
       "sha256": "64f613d82e6a0a9f98a036b2ecf9908267cc1dc512f81831c3f15e479deaba5c"
     },
     {
+      "path": "api/_lib/crm-email-store.mjs",
+      "sha256": "607ce164663ea1ace30167999af5a2186b29fb87191a51e289f533418f1b7583"
+    },
+    {
       "path": "api/_lib/crm-needs-review-composition.mjs",
       "sha256": "4f2a02ca6e0382fe27813b51d7ec15e0ce79976b5580a8a41b5fba5e4d46dbc4"
     },
@@ -60,7 +64,7 @@
     },
     {
       "path": "api/_lib/crm-needs-review-receipts.mjs",
-      "sha256": "103bcc9540fc85663d82c783a923e9bf7ce30a5a2ca2214ec6ee8d13d8f2e5d1"
+      "sha256": "287d93b7876c877693fd657d8cdf2e46fc781310d2c6335347357d1b58726ee4"
     },
     {
       "path": "api/_lib/crm-needs-review-tools.mjs",
@@ -116,7 +120,7 @@
     },
     {
       "path": "scripts/crm-needs-review-scope.mjs",
-      "sha256": "661d96d00cb541a3c942d7e03c9d9b6e16e391a23a35542b38f142bbcd2b2912"
+      "sha256": "25b2d553bff1f54505f5645152f844bf522cd59fa5f9521d4a15770c3b46bb3b"
     },
     {
       "path": "scripts/crm-needs-review-source-binding.mjs",
@@ -132,7 +136,7 @@
     },
     {
       "path": "scripts/deploy-production.mjs",
-      "sha256": "b4371ecefe0603295b50d1b3f6dd01cf96f2cb3f18ad2320fea670164c42a988"
+      "sha256": "2e68e0a40125fc02e05e08b30ffdb3df44e32a645df9d28e79709a7b83f74461"
     },
     {
       "path": "scripts/deploy-reviewed-protocol-data.json",
@@ -167,7 +171,7 @@
       "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
     }
   ],
-  "runtimeDigest": "f03ec4566ac2865d00adad5687913fbe44d55ecf61fecf68638347df8a39e7d3",
+  "runtimeDigest": "9602451c8bd57a29acaade9b343f6e1783d0cf64289dfe8d3bafdb91a9862355",
   "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }

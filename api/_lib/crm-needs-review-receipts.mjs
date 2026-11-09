@@ -21,6 +21,12 @@ export function capabilityMutationRequiresStarts(review,actor,replace) {
 export function capabilityJobRequiresStarts(data) {
   return capabilityMutationRequiresStarts({snapshot:data?.snapshot,schedule:data?.schedule},data?.authorization,false)
 }
+// Immediate single reservations are already due for the reservation guard.
+// Scheduled single work stays at positive infinity and fails that finite-time check.
+export function capabilityReservationDue(review,single,now) {
+  if(review?.schedule==null && single) return null
+  return single ? 'infinity' : (review?.schedule?.at || new Date(now).toISOString())
+}
 export function createEmailStore(acquire,{staffPair=false,staffSender='',requireContactApproval=false,capabilityBinding=null,capabilityStartsEnabled=()=>false,capabilityScheduleEnabled=()=>false}={}) {
   const assertCapabilityStarts=()=>{if(capabilityBinding && capabilityStartsEnabled()!==true)fail('capability_starts_paused')}
   const guardStarts=(review,actor,replace)=>{if(capabilityMutationRequiresStarts(review,actor,replace))assertCapabilityStarts()}
@@ -83,16 +89,16 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
       if (Date.parse(review.expiresAt)<=now) fail('review_expired')
       const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,
         ...(actor?.kind==='staff'?{aal:actor.aal}:{}),...(actor?.accessRevision?{accessRevision:actor.accessRevision}:{})}}
-      const due=single?'infinity':(review.schedule?.at || new Date(now).toISOString())
+      const due=capabilityReservationDue(review,single,now)
       let job
       if (replace) {
-        job=(await c.query(`update crm_email_private.jobs set review_id=$3,data=$4::jsonb,due_at=$5,version=version+1,updated_at=now()
+        job=(await c.query(`update crm_email_private.jobs set review_id=$3,data=$4::jsonb,due_at=coalesce($5::timestamptz,statement_timestamp()),version=version+1,updated_at=now()
           where owner_id=$1 and id=$2 and status='queued' and version=$6 returning *`,
         [owner,review.replaceJobId,review.id,JSON.stringify(data),due,review.expectedVersion])).rows[0]
         if (!job) fail('schedule_changed_or_delivery_started')
       } else {
         job=(await c.query(`insert into crm_email_private.jobs(owner_id,lead_id,review_id,status,due_at,data,delivery_key)
-          values($1,$2,$3,'queued',$4,$5::jsonb,$6) returning *`,[owner,review.snapshot.leadId,review.id,due,JSON.stringify(data),
+          values($1,$2,$3,'queued',coalesce($4::timestamptz,statement_timestamp()),$5::jsonb,$6) returning *`,[owner,review.snapshot.leadId,review.id,due,JSON.stringify(data),
           review.snapshot.kind==='initial' ? `initial:${review.snapshot.leadId}` : review.snapshot.kind==='followup'
             ? `followup:${owner}:${review.snapshot.messageIntentId}` : `reply:${review.snapshot.leadId}:${emailContentDigest(review.snapshot)}`])).rows[0]
       }

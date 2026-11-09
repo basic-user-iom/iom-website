@@ -11,11 +11,9 @@ export function createEmailStore(acquire,{staffPair=false,staffSender=''}={}) {
     const c = await acquire()
     try {
       await c.query('begin')
-      await c.query("select set_config('iom.email_owner',$1,true)",[owner])
       // Transaction-local server mode. Never accept this context from request JSON.
-      await c.query("select set_config('iom.email_staff_pair',$1,true),set_config('iom.email_staff_sender',$2,true),set_config('iom.email_receipt_job','',true)",[staffPair?'v1':'',staffSender])
-      await c.query("set local lock_timeout='5s'")
-      await c.query("set local statement_timeout='10s'")
+      // These independent settings all complete before work; none depends on SELECT evaluation order.
+      await c.query("select set_config('iom.email_owner',$1,true),set_config('iom.email_staff_pair',$2,true),set_config('iom.email_staff_sender',$3,true),set_config('iom.email_receipt_job',$4,true),set_config('lock_timeout',$5,true),set_config('statement_timeout',$6,true)",[owner,staffPair?'v1':'',staffSender,'','5s','10s'])
       const result=await work(c)
       await c.query('commit')
       return result
@@ -224,7 +222,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender=''}={}) {
       fail('cannot_cancel_delivery_started_or_finished')
     },
     async list(owner) { return (await query(owner,'select * from crm_email_private.jobs where owner_id=$1 order by created_at desc,id desc limit 100',[owner])).rows.map(mapJob) },
-    async due(owner,now) { return (await query(owner,"select * from crm_email_private.jobs where owner_id=$1 and status='queued' and due_at<=$2 order by due_at,id limit 25",[owner,new Date(now).toISOString()])).rows.map(mapJob) },
+    async due(owner,now) { return (await query(owner,"select * from crm_email_private.jobs where owner_id=$1 and status='queued' and due_at<=$2 and coalesce(data->'authorization'->>'accessRevision','') not in ('capability-projects-v1','capability-visual-v1') order by due_at,id limit 25",[owner,new Date(now).toISOString()])).rows.map(mapJob) },
     async legacySchedules(owner) { return (await query(owner,"select id,scheduled_send from public.crm_leads where owner_id=$1 and scheduled_send is not null order by id limit 100",[owner])).rows },
     async staffActive(owner) { return (await query(owner,'select active from public.crm_staff_profiles where id=$1',[owner])).rows[0]?.active===true },
     async grant(owner,id) { return (await query(owner,'select * from crm_email_private.grant_families where owner_id=$1 and id=$2',[owner,id])).rows[0] },

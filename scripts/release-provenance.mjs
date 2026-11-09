@@ -20,6 +20,24 @@ export const RELEASE_BINDING = Object.freeze({
 })
 const B = RELEASE_BINDING
 const sha = (value, algorithm = 'sha256') => createHash(algorithm).update(value).digest('hex')
+const RETAINED_DUE_QUERY = Buffer.from("status='queued' and due_at<=$2 order by due_at,id limit 25")
+const EXCLUDED_DUE_QUERY = Buffer.from("status='queued' and due_at<=$2 and coalesce(data->'authorization'->>'accessRevision','') not in ('capability-projects-v1','capability-visual-v1') order by due_at,id limit 25")
+// The retained daily pickup stays byte-for-byte except this one predicate.
+export function storeBytesWithCapabilityExclusion(bytes) {
+  check(Buffer.isBuffer(bytes), 'retained_store_bytes_changed')
+  let count = 0
+  let from = 0
+  for (;;) {
+    const at = bytes.indexOf(RETAINED_DUE_QUERY, from)
+    if (at < 0) break
+    count += 1
+    from = at + RETAINED_DUE_QUERY.length
+  }
+  check(count === 1, 'retained_store_bytes_changed')
+  const at = bytes.indexOf(RETAINED_DUE_QUERY)
+  return Buffer.concat([bytes.subarray(0, at), EXCLUDED_DUE_QUERY, bytes.subarray(at + RETAINED_DUE_QUERY.length)])
+}
+export const STORE_CAPABILITY_EXCLUSION_SHA1 = '3c9edb42dee58c787e4d5a5ab2eb9afa0dfdee04'
 const commitPattern = /^[a-f0-9]{40}$/
 const digestPattern = /^[a-f0-9]{64}$/
 const deploymentPattern = /^dpl_[A-Za-z0-9]+$/
@@ -177,7 +195,8 @@ export function assertComposition({ descriptor, descriptorDigest, base, scopeMap
   assertDescriptor(descriptor, descriptorDigest, allowedScopes)
   assertPreservedMap(base, scopeMap, descriptor, allowedScopes)
   const rows = inventory(files)
-  check(rows.find(row => row.path === B.storePath)?.sha1 === B.storeSha1, 'store_artifact_not_preserved')
+  const storeSha = rows.find(row => row.path === B.storePath)?.sha1
+  check(storeSha === B.storeSha1 || storeSha === STORE_CAPABILITY_EXCLUSION_SHA1, 'store_artifact_not_preserved')
   return true
 }
 export function buildReleaseMetadata({ descriptor, descriptorDigest, base, overlays, parentOverlays, head, scope, parentDeploymentId }, allowedScopes) {

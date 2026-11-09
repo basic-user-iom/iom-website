@@ -40,4 +40,4 @@ export const NEEDS_REVIEW_TOOLING_FILES=Object.freeze([
   "scripts/incremental-r2-release.mjs",
   "scripts/git-batch-reader.mjs"
 ]);
-export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json"]);
+export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json","api/_lib/crm-email-store.mjs"]);

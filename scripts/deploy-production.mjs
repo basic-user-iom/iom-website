@@ -6,7 +6,7 @@ import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
 import {protectedRelease, releaseOperation, releaseRecordName, operationPhase, RELEASE_TARGET} from './crm-email-protected-release.mjs'
 import {parseHarpOperation, runHarpRelease} from './independent-harp-release.mjs'
 import {createHarpCliAdapter} from './independent-harp-cli.mjs'
-import { readComposition, assertComposition, buildReleaseMetadata, collectPreflight } from './release-provenance.mjs'
+import { readComposition, assertComposition, buildReleaseMetadata, collectPreflight, storeBytesWithCapabilityExclusion, STORE_CAPABILITY_EXCLUSION_SHA1, RELEASE_BINDING } from './release-provenance.mjs'
 import { createHash } from 'node:crypto'
 /**
  * Scoped production deployment.
@@ -289,8 +289,12 @@ function readOnlyPreflight() {
 
 function assertRetainedStore(snapshot) {
   const bytes = readFileSync(join(snapshot.stage, 'api', '_lib', 'crm-email-store.mjs'))
-  const expected = execFileSync('git', ['show', `${snapshot.provenance.store.commit}:api/_lib/crm-email-store.mjs`], {cwd:root})
-  // Exact bytes prevent a later overlapping scope or build from undoing it.
+  const retained = execFileSync('git', ['show', `${snapshot.provenance.store.commit}:api/_lib/crm-email-store.mjs`], {cwd:root})
+  if (createHash('sha1').update(retained).digest('hex') !== RELEASE_BINDING.storeSha1) fail('retained_store_bytes_changed')
+  const allowed = storeBytesWithCapabilityExclusion(retained)
+  if (createHash('sha1').update(allowed).digest('hex') !== STORE_CAPABILITY_EXCLUSION_SHA1) fail('retained_store_bytes_changed')
+  // Needs-review is applied after the retained store overlay and may carry only this exclusion.
+  const expected = Object.hasOwn(snapshot.overlays, 'crm-needs-review') ? allowed : retained
   if (!bytes.equals(expected)) fail('retained_store_bytes_changed')
   assertComposition({descriptor:snapshot.provenance, descriptorDigest:snapshot.provenanceDigest,
     base:snapshot.base, scopeMap:Buffer.from(JSON.stringify(snapshot.overlays)).toString('base64url'),
