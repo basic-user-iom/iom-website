@@ -7,17 +7,24 @@ const mapJob = row => row && ({id:row.id,ownerId:row.owner_id,reviewId:row.revie
   ...row.data,status:row.status,...(row.result || {}),
   ...(row.status==='sending' ? {warning:'delivery_in_progress_or_unknown_do_not_retry'} : {}),
 })
+function singleMessage(snapshot){
+  const plain=!snapshot?.inReplyTo && !snapshot?.attachments?.length
+  return plain && (snapshot?.kind==='initial' && snapshot?.messageIntentId===undefined ||
+    snapshot?.kind==='followup' && snapshot?.messageIntentId!==undefined)
+}
 export function capabilityMutationRequiresStarts(review,actor,replace) {
-  const snapshot=review?.snapshot
-  return replace===true || actor?.kind!=='oauth' || review?.schedule!=null || snapshot?.kind!=='initial' ||
-    snapshot?.messageIntentId!==undefined || !!snapshot?.inReplyTo || !!snapshot?.attachments?.length
+  // A scheduled single message is gated by the schedule switch, not by group STARTS.
+  if(replace===true || actor?.kind!=='oauth') return true
+  if(review?.schedule!=null) return false
+  return !singleMessage(review?.snapshot)
 }
 export function capabilityJobRequiresStarts(data) {
   return capabilityMutationRequiresStarts({snapshot:data?.snapshot,schedule:data?.schedule},data?.authorization,false)
 }
-export function createEmailStore(acquire,{staffPair=false,staffSender='',requireContactApproval=false,capabilityBinding=null,capabilityStartsEnabled=()=>false}={}) {
+export function createEmailStore(acquire,{staffPair=false,staffSender='',requireContactApproval=false,capabilityBinding=null,capabilityStartsEnabled=()=>false,capabilityScheduleEnabled=()=>false}={}) {
   const assertCapabilityStarts=()=>{if(capabilityBinding && capabilityStartsEnabled()!==true)fail('capability_starts_paused')}
   const guardStarts=(review,actor,replace)=>{if(capabilityMutationRequiresStarts(review,actor,replace))assertCapabilityStarts()}
+  const guardSchedule=review=>{if(review?.schedule!=null && capabilityScheduleEnabled()!==true)fail('needs_review_schedule_paused')}
   async function transaction(owner,work) {
     if(capabilityBinding && (requireContactApproval!==true || capabilityBinding.ownerId!==owner ||
       !['projects','visual'].includes(capabilityBinding.fromIdentity) || !/^[a-f0-9-]{36}$/i.test(capabilityBinding.grantFamily||'') ||
@@ -61,6 +68,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     return row && {...mapJob(row),commandReviewId:row.command_review_id}
   }
   async function mutate(owner,review,key,now,actor,replace) {
+    guardSchedule(review)
     guardStarts(review,actor,replace)
     const single=!capabilityMutationRequiresStarts(review,actor,replace)
     try { return await transaction(owner,async c=>{
@@ -105,7 +113,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   }
   return {
     contactApprovalRequired:requireContactApproval===true,
-    forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||'',requireContactApproval,capabilityBinding,capabilityStartsEnabled}),
+    forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||'',requireContactApproval,capabilityBinding,capabilityStartsEnabled,capabilityScheduleEnabled}),
     async replyParent(owner,leadId,messageId) {
       return (await query(owner,`select 1 from public.crm_lead_messages m
         join public.crm_leads l on l.id=m.lead_id

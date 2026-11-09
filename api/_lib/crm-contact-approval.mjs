@@ -98,3 +98,35 @@ export function assertApprovedContact(args, lead) {
       (args.expectedDigest !== undefined && (!digestPattern.test(args.expectedDigest) || args.expectedDigest !== digest))) fail('contact_review_stale')
   return { ...snapshot, digest }
 }
+
+function zone(value){
+  if(typeof value!=='string'||value.length>80||(!value.includes('/')&&value!=='UTC'))fail('invalid_contact_source')
+  try{new Intl.DateTimeFormat('en',{timeZone:value}).format(0);return value}catch{fail('invalid_contact_source')}
+}
+function tagList(value){
+  if(value===undefined)return []
+  if(!Array.isArray(value)||value.length>20||value.some(tag=>typeof tag!=='string'||tag.length>40||tag.includes('\0')))fail('invalid_contact_source')
+  return value.map(tag=>tag.trim()).filter(Boolean)
+}
+/** Review a new contact. This is not a send and not a needs-review approval. */
+export function prepareContactCreate(args){
+  if(!object(args))fail('invalid_contact_arguments')
+  const allowed=['companyName','contactName','email','subject','body','timezone','tags']
+  if(Object.keys(args).some(key=>!allowed.includes(key))||args.email===undefined)fail('invalid_contact_arguments')
+  const companyName=text(args.companyName??'',2000).trim()
+  const contactName=text(args.contactName??'',2000).trim()
+  if(!companyName&&!contactName)fail('invalid_contact_source')
+  const email=address(args.email)
+  const subject=text(args.subject??'',300).trim()
+  const body=text(args.body??'',50000).trim()
+  if(!!subject!==!!body||/[\r\n]/.test(subject))fail('invalid_contact_source')
+  const draft={schemaVersion:1,operation:'create_contact',companyName,contactName,email,subject,body,timezone:zone(args.timezone??'UTC'),tags:tagList(args.tags)}
+  return {...draft,digest:emailDigest(draft)}
+}
+/** Explicit confirmation only. The caller inserts the row and must not send mail. */
+export function confirmContactCreate(args,draft){
+  if(!object(args)||args.confirmed!==true)fail('contact_confirmation_required')
+  if(!digestPattern.test(args.digest||'')||!draft||args.digest!==draft.digest||emailDigest({...draft,digest:undefined})!==draft.digest)fail('contact_review_digest_mismatch')
+  if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(args.idempotencyKey||''))fail('invalid_confirmation')
+  return {operation:'create_contact',emailAction:'none',commandKey:`contact-create:${draft.digest}`,idempotencyKey:args.idempotencyKey,contact:{...draft}}
+}

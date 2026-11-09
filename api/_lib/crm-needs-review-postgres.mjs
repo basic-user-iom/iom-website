@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto'
 import {emailDigest, fail} from './crm-email-workflow.mjs'
-import {prepareNeedsReviewBatch, recipientWindow} from './crm-email-batch-policy.mjs'
+import {BATCH_POLICY, prepareNeedsReviewBatch, recipientWindow} from './crm-email-batch-policy.mjs'
 import {createEmailStore} from './crm-needs-review-receipts.mjs'
 
 // Local, inactive adapter for the EXISTING capability tables and shared jobs.
@@ -11,6 +11,7 @@ const id=x=>{if(!uuid.test(x||''))fail('invalid_id');return x}
 const iso=x=>x instanceof Date?x.toISOString():x
 const stamp=x=>{const t=Date.parse(iso(x));if(!Number.isFinite(t))fail('invalid_database_time');return t}
 const marker='needs-review-batch-v1'
+export const GROUP_CONFIRMATION_MS=30*60*1000
 // Keep the existing transport snapshot shape exactly. Extra metadata here would
 // change the shared exact-content dedup index and weaken cross-mode duplicates.
 const snapshotOf=({deliveryKey,contentDigest,ownerId,timezone,draftedAt,...snapshot})=>snapshot
@@ -68,9 +69,9 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
   }
   function validateReview(r){
     const p=r?.plan,n=p?.needsReview
-    if(!p||p.kind!=='crm-finite-batch-v1'||n?.revision!==marker||n.maxAttempts!==150||
+    if(!p||p.kind!=='crm-finite-batch-v1'||n?.revision!==marker||n.maxAttempts!==BATCH_POLICY.maxAttempts||
       p.ownerId!==pin.ownerId||p.fromIdentity!==pin.fromIdentity||p.grantFamily!==pin.grantFamily||p.accessRevision!==pin.accessRevision||
-      p.intervalSeconds!==30||!Array.isArray(p.items)||!p.items.length||p.items.length>150||
+      p.intervalSeconds!==30||!Array.isArray(p.items)||!p.items.length||p.items.length>BATCH_POLICY.maxAttempts||
       emailDigest({plan:p,expiresAt:r.expiresAt})!==r.digest)fail('needs_review_manifest_invalid')
     if(new Set(p.items.map(x=>x.snapshot.to)).size!==p.items.length||new Set(p.items.map(x=>x.deliveryKey)).size!==p.items.length)fail('batch_duplicate_message')
     p.items.forEach((x,i)=>{if(x.index!==i||x.snapshot.kind!=='initial'||x.deliveryKey!==`initial:${x.snapshot.leadId}`||
@@ -91,8 +92,10 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       from crm_capability_private.batch_items i join crm_email_private.jobs j on j.id=i.job_id and j.owner_id=i.owner_id
       where i.owner_id=$1 and i.batch_id=$2 order by i.position`,[pin.ownerId,batchId])).rows
     if(jobs.length!==p.items.length)fail('batch_durable_state_mismatch')
-    jobs.forEach((j,i)=>{const item=p.items[i];if(j.position!==i||j.review_id!==item.reviewId||j.message_digest!==item.messageDigest||
-      j.delivery_key!==item.deliveryKey||j.data?.batchId!==batchId||j.data.authorization?.kind!=='batch'||
+    jobs.forEach((j,i)=>{const item=p.items[i]
+      const remainder=j.delivery_key===`remainder:${j.job_id}`&&j.data?.remainder===true&&j.status==='queued'&&j.delivery_started!==true
+      if(j.position!==i||j.review_id!==item.reviewId||j.message_digest!==item.messageDigest||
+      (!remainder&&j.delivery_key!==item.deliveryKey)||j.data?.batchId!==batchId||j.data.authorization?.kind!=='batch'||
       j.data.authorization.grantFamily!==pin.grantFamily||j.data.authorization.accessRevision!==pin.accessRevision||
       !same(j.data.snapshot,item.snapshot))fail('batch_durable_state_mismatch')})
     return {row,p,jobs}
@@ -140,12 +143,11 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       if(!/^\d{4}-\d{2}-\d{2}$/.test(localDate||'')||!Number.isFinite(dayStart)||new Date(dayStart).toISOString().slice(0,10)!==localDate||dayStart>=expiry)
         fail('needs_review_date_not_authorized')
       const end=Math.min(dayStart+86400000,expiry)
-      const starts=now+60000,expiresAt=new Date(starts).toISOString()
+      const starts=now+60000,expiresAt=new Date(now+GROUP_CONFIRMATION_MS).toISOString()
       if(end<=starts)fail('batch_window_expired')
-      // Group consent still expires at starts. Technical per-message snapshots
-      // must survive the guarded 150-row reservation transaction; this TTL never
-      // extends the group's execution window, access action or OAuth grant.
-      const messageExpiresAt=new Date(Math.min(end,now+10*60000)).toISOString()
+      // Confirmation stays open long enough to read the list. It does not start delivery.
+      // Message snapshots use the same read window and do not extend access or the OAuth grant.
+      const messageExpiresAt=new Date(Math.min(end,now+GROUP_CONFIRMATION_MS)).toISOString()
       const items=[]
       for(const s of kernel.items){
         const snapshot=snapshotOf(s),reviewId=randomUUID(),messageDigest=emailDigest({snapshot,schedule:null})
@@ -155,7 +157,7 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       }
       const plan={kind:'crm-finite-batch-v1',ownerId:pin.ownerId,grantFamily:pin.grantFamily,accessRevision:pin.accessRevision,
         fromIdentity:pin.fromIdentity,batchIntentId:randomUUID(),startsAt:new Date(starts).toISOString(),endsAt:new Date(end).toISOString(),
-        authorizationExpiresAt:iso(auth.expires_at),intervalSeconds:30,needsReview:{revision:marker,localDate,maxAttempts:150},items}
+        authorizationExpiresAt:iso(auth.expires_at),intervalSeconds:30,needsReview:{revision:marker,localDate,maxAttempts:BATCH_POLICY.maxAttempts},items}
       const review={plan,expiresAt,digest:emailDigest({plan,expiresAt})},reviewId=randomUUID()
       await c.query(`/* nr:save-review */ insert into crm_capability_private.reviews
         (id,owner_id,from_identity,grant_family,access_revision,kind,data) values($1,$2,$3,$4,$5,'batch',$6::jsonb)`,
@@ -173,7 +175,7 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       const prior=(await c.query('/* nr:replay */ select id,digest from crm_capability_private.batches where owner_id=$1 and intent_id=$2',[pin.ownerId,p.batchIntentId])).rows[0]
       if(prior){if(prior.digest!==digest)fail('idempotency_conflict');return {batchId:prior.id,replayed:true}}
       const now=await clock(c)
-      if(now>=stamp(saved.data.expiresAt)||now>=stamp(p.startsAt))fail('review_expired')
+      if(now>=stamp(saved.data.expiresAt))fail('review_expired')
       const rows=await leads(c,p.items.map(x=>x.snapshot.leadId),{lock:true})
       if(p.items.some(x=>!currentItem(p,x,rows.filter(r=>r.id===x.snapshot.leadId),now)))fail('review_stale')
       const batchId=randomUUID()
@@ -223,9 +225,10 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       const l=await lane(c),{row,p,jobs}=await batch(c,batchId,true),now=await clock(c)
       if(await unacknowledged(c,batchId))return null
       if(row.status==='active'&&!jobs.some(j=>['sending','unknown'].includes(j.status))&&now>=stamp(p.endsAt)){
-        await c.query(`/* nr:expire */ update crm_email_private.jobs set status='cancelled',version=version+1,updated_at=transaction_timestamp()
-          where owner_id=$1 and data->>'batchId'=$2 and status='queued' and not delivery_started`,[pin.ownerId,batchId])
-        await closeIfTerminal(c,batchId,jobs.map(j=>j.status==='queued'&&!j.delivery_started?{...j,status:'cancelled'}:j))
+        await c.query(`/* nr:remainder */ update crm_email_private.jobs
+          set delivery_key='remainder:'||id::text,data=jsonb_set(data,'{remainder}','true'::jsonb,true),updated_at=transaction_timestamp()
+          where owner_id=$1 and data->>'batchId'=$2 and status='queued' and not delivery_started and delivery_key not like 'remainder:%'`,
+          [pin.ownerId,batchId])
         return null
       }
       await closeIfTerminal(c,batchId,jobs)
@@ -293,9 +296,36 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       const {row,p,jobs}=await batch(c,batchId),now=await clock(c)
       const sent=jobs.filter(j=>j.status==='sent').length,uncertain=jobs.some(j=>['sending','unknown'].includes(j.status))
       const missingAck=await unacknowledged(c,batchId)
+      const remainder=jobs.some(j=>j.status==='queued'&&j.delivery_started!==true&&j.data?.remainder===true)
       return {batchId,localDate:p.needsReview.localDate,total:jobs.length,sent,
-        status:uncertain?'paused_unknown':missingAck?'paused_receipt_unconfirmed':sent===jobs.length?'complete':now>=stamp(p.endsAt)?'expired':row.status,
-        limitReached:sent===150,additionalMessagesRequireNewDecision:true}
+        status:uncertain?'paused_unknown':missingAck?'paused_receipt_unconfirmed':sent===jobs.length?'complete':remainder?'remainder_ready_for_new_preview':now>=stamp(p.endsAt)?'expired':row.status,
+        limitReached:sent===BATCH_POLICY.maxAttempts,additionalMessagesRequireNewDecision:true}
     }),
+    async createContact(b,contact,idempotencyKey){
+      if(!contact||contact.operation!=='create_contact'||(contact.emailAction!==undefined&&contact.emailAction!=='none'))fail('invalid_contact_arguments')
+      if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(idempotencyKey||''))fail('invalid_confirmation')
+      return transaction(b,null,async c=>{
+        const prior=(await c.query(`/* nr:contact-replay */ select result from crm_capability_private.commands
+          where owner_id=$1 and idempotency_key=$2 and from_identity=$3 and grant_family=$4 and access_revision=$5 and kind='contact'`,
+          [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision])).rows[0]
+        if(prior?.result?.leadId)return {leadId:prior.result.leadId,replayed:true,emailAction:'none'}
+        const created=(await c.query(`/* nr:contact */ insert into public.crm_leads(
+          owner_id,company_name,contact_name,email,status,temperature,tags,links,emails,
+          initial_email_subject,initial_email_body,initial_email_drafted_at,initial_email_sent_at,scheduled_send,
+          contact_priority,client_timezone,website,phone,offer,company_focus,notes,contact_role,value_emoji)
+          values($1,$2,$3,$4,'new','warm',$5::jsonb,'[]'::jsonb,'[]'::jsonb,$6,$7,
+            case when length(btrim($6))>0 and length(btrim($7))>0 then clock_timestamp() else null end,
+            null,null,false,$8,'','','','','','','')
+          returning id`,[pin.ownerId,contact.companyName,contact.contactName,contact.email,JSON.stringify(contact.tags||[]),
+            contact.subject||'',contact.body||'',contact.timezone])).rows[0]
+        if(!created?.id)fail('invalid_contact_source')
+        const result={leadId:created.id,emailAction:'none'}
+        await c.query(`/* nr:contact-command */ insert into crm_capability_private.commands
+          (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
+          values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,
+          [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision,contact.digest,JSON.stringify(result)])
+        return {...result,replayed:false}
+      })
+    },
   })
 }

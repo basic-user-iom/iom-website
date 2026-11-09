@@ -4,8 +4,8 @@ import {renderOutreachEmailHtml,renderOutreachPlainText} from './outreach-email-
 // Inactive policy kernel, NOT an authorization endpoint or an email transport.
 // No production module imports this file. A future durable adapter must serialize
 // every transition, reserve the existing delivery key, and verify authorization.
-export const BATCH_POLICY=Object.freeze({revision:'needs-review-batch-v1',maxAttempts:150,
-  minimumGapMs:30000,startMinute:7*60+45,endMinute:11*60,fromIdentity:'projects'})
+export const BATCH_POLICY=Object.freeze({revision:'needs-review-batch-v1',maxAttempts:200,
+  minimumGapMs:30000,startMinute:7*60+45,endMinute:11*60+5,fromIdentity:'projects'})
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const address=/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/
 const fail=code=>{throw Object.assign(new Error(code),{code})}
@@ -16,6 +16,8 @@ const frozen=x=>{if(x&&typeof x==='object'){Object.values(x).forEach(frozen);Obj
 const normEmail=x=>typeof x==='string'&&address.test(x.trim())?x.trim().toLowerCase():null
 const validDate=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&
   Number.isFinite(Date.parse(x))&&new Date(x).toISOString().slice(0,10)===x
+const clockLabel=minute=>`${String(Math.floor(minute/60)).padStart(2,'0')}:${String(minute%60).padStart(2,'0')}`
+export function groupWindowLabel(){return `${clockLabel(BATCH_POLICY.startMinute)}–${clockLabel(BATCH_POLICY.endMinute)}`}
 const validZone=x=>{
   if(typeof x!=='string'||(!x.includes('/')&&x!=='UTC'))return false
   try{new Intl.DateTimeFormat('en',{timeZone:x}).format(0);return true}catch{return false}
@@ -95,7 +97,7 @@ function validAuthorization(plan,state,auth,now){
 }
 function validateState(plan,state){
   assertPlan(plan)
-  if(state?.manifestDigest!==plan.digest||!Number.isInteger(state.attempts)||state.attempts<0||state.attempts>150||
+  if(state?.manifestDigest!==plan.digest||!Number.isInteger(state.attempts)||state.attempts<0||state.attempts>BATCH_POLICY.maxAttempts||
     !Number.isInteger(state.sent)||state.sent<0||state.sent>state.attempts||!Number.isInteger(state.version)||
     !Number.isFinite(state.nextAllowedAt)||!state.items||!Array.isArray(state.events))fail('invalid_batch_state')
 }
