@@ -3,7 +3,8 @@ import {createNeedsReviewComposition} from './crm-needs-review-composition.mjs'
 import {createCrmBatchTriggerHandler} from './crm-capability-dispatcher.mjs'
 import {createCapabilityWorkerAuth} from './crm-capability-worker-auth.mjs'
 import {validateCapabilityOAuthPin} from './crm-capability-oauth.mjs'
-import {EMAIL_PRODUCTION_APPROVAL,assertProductionTarget,productionDatabase} from './crm-email-production.mjs'
+import {EMAIL_PRODUCTION_APPROVAL,assertProductionTarget,createSmtpDependencies,productionDatabase} from './crm-email-production.mjs'
+import {needsReviewSingleSendEnabled,needsReviewSingleSendView,needsReviewToolFailure} from './crm-needs-review-tools.mjs'
 
 // A separate reviewed non-secret pin and explicit flags are required to activate.
 export const NEEDS_REVIEW_PRODUCTION_APPROVAL=JSON.parse("{\"pin\":{\"fromIdentity\":\"projects\",\"accessRevision\":\"capability-projects-v1\",\"ownerId\":\"1add2cb0-a00a-4f92-a20a-7d90cb23afdd\",\"clientId\":\"https://chatgpt.com/oauth/client.json\",\"redirectUri\":\"https://chatgpt.com/connector_platform_oauth_redirect\",\"staffEmail\":\"projects@iobjectm.com\",\"subject\":\"iom-crm-capability:projects:1add2cb0-a00a-4f92-a20a-7d90cb23afdd\",\"scopes\":[\"iom:crm:email:read\",\"iom:crm:email:send\",\"iom:crm:email:batch:confirm\"],\"grantExpiresAt\":\"2027-11-10T00:00:00.000Z\"},\"execution\":{}}")
@@ -70,7 +71,8 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
       const binding={ownerId:pin.ownerId,fromIdentity:'projects',accessRevision:pin.accessRevision,authorized:true}
       const worker=await auth()
       app=compositionFactory({acquire:c.acquire,binding,enabled:installed,startsEnabled:starts,workerEnabled:workerStarts,
-        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>({...binding,authorized:false}),providerDependencies:c.providerDependencies})
+        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>({...binding,authorized:false}),providerDependencies:c.providerDependencies,
+        singleMail:c.singleMail,singleSendEnabled:c.singleSendEnabled})
       trigger=createCrmBatchTriggerHandler({dispatcher:app.dispatcher,enabled:installed,verifyWorker:worker.verify,
         workerTransport:'vercel-cron',workerEnabled:workerStarts})
     }
@@ -87,7 +89,7 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
             return {isError:true,content:[{type:'text',text:'needs_review_date_not_authorized'}]}
         }
         try{return {content:[{type:'text',text:JSON.stringify(await app.tools.call(actor,name,args))}]}}
-        catch{return {isError:true,content:[{type:'text',text:'needs_review_request_failed_check_confirmation_status'}]}}
+        catch(error){return {isError:true,content:[{type:'text',text:needsReviewToolFailure(name,error)}]}}
       }},
     })
   }
@@ -102,6 +104,7 @@ export function createEnvironmentNeedsReviewHost({approval=NEEDS_REVIEW_PRODUCTI
   const enabled=()=>approval!==null&&env.CRM_NEEDS_REVIEW_ENABLED==='true'&&now()<Date.parse(approval.pin?.grantExpiresAt)
   const starts=()=>enabled()&&env.CRM_NEEDS_REVIEW_STARTS_ENABLED==='true'&&env.CRM_EMAIL_SEND_ENABLED==='true'&&!!approval.execution
   const workerEnabled=()=>enabled()&&env.CRM_NEEDS_REVIEW_WORKER_ENABLED==='true'
+  const singleSendEnabled=()=>enabled()&&needsReviewSingleSendEnabled(env)
   const calendar=()=>enabled()&&!!approval.execution
   function pins(){const pin=validateNeedsReviewApproval(approval,now());assertProductionTarget(env);return pin}
   let worker
@@ -123,7 +126,9 @@ export function createEnvironmentNeedsReviewHost({approval=NEEDS_REVIEW_PRODUCTI
       let signingJwk
       try{signingJwk=JSON.parse(env.CRM_EMAIL_OAUTH_SIGNING_JWK)}catch{fail('needs_review_issuer_not_configured')}
       const providerDependencies=undefined
-      return {pin,execution:approval.execution||null,signingJwk,acquire:acquireFor('iom_email_gateway'),acquireOAuth:acquireFor('iom_email_oauth'),providerDependencies}
+      const singleMail=createSmtpDependencies({env:needsReviewSingleSendView(env,singleSendEnabled),identities:deps.identities,
+        createTransport:deps.mailer.createTransport,pin:EMAIL_PRODUCTION_APPROVAL})
+      return {pin,execution:approval.execution||null,signingJwk,acquire:acquireFor('iom_email_gateway'),acquireOAuth:acquireFor('iom_email_oauth'),providerDependencies,singleMail,singleSendEnabled}
     }})
 }
 export const needsReviewHost=createEnvironmentNeedsReviewHost()

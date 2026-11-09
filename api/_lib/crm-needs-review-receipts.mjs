@@ -7,8 +7,17 @@ const mapJob = row => row && ({id:row.id,ownerId:row.owner_id,reviewId:row.revie
   ...row.data,status:row.status,...(row.result || {}),
   ...(row.status==='sending' ? {warning:'delivery_in_progress_or_unknown_do_not_retry'} : {}),
 })
+export function capabilityMutationRequiresStarts(review,actor,replace) {
+  const snapshot=review?.snapshot
+  return replace===true || actor?.kind!=='oauth' || review?.schedule!=null || snapshot?.kind!=='initial' ||
+    snapshot?.messageIntentId!==undefined || !!snapshot?.inReplyTo || !!snapshot?.attachments?.length
+}
+export function capabilityJobRequiresStarts(data) {
+  return capabilityMutationRequiresStarts({snapshot:data?.snapshot,schedule:data?.schedule},data?.authorization,false)
+}
 export function createEmailStore(acquire,{staffPair=false,staffSender='',requireContactApproval=false,capabilityBinding=null,capabilityStartsEnabled=()=>false}={}) {
   const assertCapabilityStarts=()=>{if(capabilityBinding && capabilityStartsEnabled()!==true)fail('capability_starts_paused')}
+  const guardStarts=(review,actor,replace)=>{if(capabilityMutationRequiresStarts(review,actor,replace))assertCapabilityStarts()}
   async function transaction(owner,work) {
     if(capabilityBinding && (requireContactApproval!==true || capabilityBinding.ownerId!==owner ||
       !['projects','visual'].includes(capabilityBinding.fromIdentity) || !/^[a-f0-9-]{36}$/i.test(capabilityBinding.grantFamily||'') ||
@@ -52,7 +61,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     return row && {...mapJob(row),commandReviewId:row.command_review_id}
   }
   async function mutate(owner,review,key,now,actor,replace) {
-    assertCapabilityStarts()
+    guardStarts(review,actor,replace)
+    const single=!capabilityMutationRequiresStarts(review,actor,replace)
     try { return await transaction(owner,async c=>{
       const row=await lead(c,owner,review.snapshot.leadId,true)
       const prior=(await c.query('select review_id,job_id from crm_email_private.commands where owner_id=$1 and idempotency_key=$2',[owner,key])).rows[0]
@@ -65,7 +75,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
       if (Date.parse(review.expiresAt)<=now) fail('review_expired')
       const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,
         ...(actor?.kind==='staff'?{aal:actor.aal}:{}),...(actor?.accessRevision?{accessRevision:actor.accessRevision}:{})}}
-      const due=review.schedule?.at || new Date(now).toISOString()
+      const due=single?'infinity':(review.schedule?.at || new Date(now).toISOString())
       let job
       if (replace) {
         job=(await c.query(`update crm_email_private.jobs set review_id=$3,data=$4::jsonb,due_at=$5,version=version+1,updated_at=now()
@@ -166,34 +176,34 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     enqueue:(owner,r,key,now,actor)=>mutate(owner,r,key,now,actor,false),
     reschedule:(owner,r,key,now,actor)=>mutate(owner,r,key,now,actor,true),
     async claim(owner,id,now,version) {
-      assertCapabilityStarts()
       return transaction(owner,async c=>{
         const before=(await c.query('select * from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0]
         if (!before) return undefined
+        if(capabilityJobRequiresStarts(before.data))assertCapabilityStarts()
         const row=await lead(c,owner,before.lead_id,true)
         const current=(await c.query('select * from crm_email_private.jobs where owner_id=$1 and id=$2 for update',[owner,id])).rows[0]
-        if(current.status!=='queued' || current.version!==(version ?? before.version) || +new Date(current.due_at)>now) return undefined
+        const dueMs=+new Date(current.due_at)
+        const waiting=Number.isFinite(dueMs)&&dueMs>now
+        if(current.status!=='queued' || current.version!==(version ?? before.version) || waiting) return undefined
         validateLead(row,current.data.snapshot)
         await validateIntent(c,owner,current.data.snapshot)
         return mapJob((await c.query("update crm_email_private.jobs set status='sending',version=version+1,updated_at=now() where id=$1 returning *",[id])).rows[0])
       })
     },
     async beginDelivery(owner,id,snapshot) {
-      assertCapabilityStarts()
       return transaction(owner,async c=>{
         // Capability mode closes the post-claim approval race. Use lead -> job
         // lock order like claim/finish; never require approval to save a receipt.
+        const loaded=(await c.query('select lead_id,data from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0]
+        if(!loaded) fail('delivery_claim_invalid_or_consumed')
+        if(capabilityJobRequiresStarts(loaded.data))assertCapabilityStarts()
         let approvedLead
-        if(requireContactApproval) {
-          const before=(await c.query('select lead_id from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0]
-          if(!before) fail('delivery_claim_invalid_or_consumed')
-          approvedLead=await lead(c,owner,before.lead_id,true)
-        }
+        if(requireContactApproval) approvedLead=await lead(c,owner,loaded.lead_id,true)
         const job=(await c.query("select * from crm_email_private.jobs where owner_id=$1 and id=$2 and status='sending' for update",[owner,id])).rows[0]
         if(!job || job.delivery_started || emailContentDigest(job.data.snapshot)!==emailContentDigest(snapshot)) fail('delivery_claim_invalid_or_consumed')
         if(requireContactApproval) validateLead(approvedLead,job.data.snapshot)
         await validateIntent(c,owner,snapshot)
-        assertCapabilityStarts()
+        if(capabilityJobRequiresStarts(job.data))assertCapabilityStarts()
         await c.query('update crm_email_private.jobs set delivery_started=true where id=$1',[id])
         return true
       })

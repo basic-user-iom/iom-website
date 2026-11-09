@@ -1,14 +1,16 @@
 import {createNeedsReviewPostgresStore} from './crm-needs-review-postgres.mjs'
+import {createEmailStore} from './crm-needs-review-receipts.mjs'
 import {createCrmBatchDispatcher} from './crm-capability-dispatcher.mjs'
 import {recipientWindow} from './crm-email-batch-policy.mjs'
-import {createNeedsReviewTools} from './crm-needs-review-tools.mjs'
+import {createNeedsReviewTools,needsReviewSingleSendEnabled} from './crm-needs-review-tools.mjs'
+import {createEmailRuntime} from './crm-email-runtime.mjs'
 import {fail} from './crm-email-workflow.mjs'
 
 // Host integration point ONLY. No route/cron/credentials/configuration changes.
 // The grant family arrives with the authenticated connection, never in the pin.
 export function createNeedsReviewComposition({acquire,binding,enabled=()=>false,startsEnabled=()=>false,
   authorizeWorker,resolveBinding,providerDependencies,workerEnabled=()=>false,
-  workerScheduleAllowed=()=>false,now=Date.now}={}){
+  workerScheduleAllowed=()=>false,now=Date.now,singleMail,singleSendEnabled=needsReviewSingleSendEnabled}={}){
   if(binding?.grantFamily!==undefined) fail('needs_review_grant_family_must_come_from_connection')
   const openStore=bound=>createNeedsReviewPostgresStore({acquire,binding:bound,enabled})
   const store={
@@ -20,6 +22,15 @@ export function createNeedsReviewComposition({acquire,binding,enabled=()=>false,
     providerDependenciesFor:()=>providerDependencies,
     validateHandoff:(claim,at)=>at<Date.parse(claim.authorizationExpiresAt)&&
       recipientWindow(claim.localDate,claim.recipientTimeZone,at)==='open'})
-  const tools=createNeedsReviewTools({binding,enabled,startsEnabled,openStore})
+  const openIndividual=bound=>createEmailRuntime({
+    store:createEmailStore(acquire,{requireContactApproval:true,capabilityBinding:bound,capabilityStartsEnabled:()=>false}),
+    ownerId:binding.ownerId,identities:()=>singleMail.identities(),enabled,now,providerDependencies:singleMail,
+    authorizeAction:async(actor,action)=>{
+      if(actor?.kind!=='oauth'||actor.ownerId!==binding.ownerId||actor.fromIdentity!==binding.fromIdentity||actor.accessRevision!==binding.accessRevision)return false
+      if(action==='review')return true
+      return action==='send'&&singleSendEnabled()===true
+    },
+  }).workflow
+  const tools=createNeedsReviewTools({binding,enabled,startsEnabled,openStore,openIndividual:singleMail?openIndividual:undefined,singleSendEnabled})
   return Object.freeze({store,dispatcher,tools})
 }
