@@ -8,9 +8,10 @@ const mapJob = row => row && ({id:row.id,ownerId:row.owner_id,reviewId:row.revie
   ...(row.status==='sending' ? {warning:'delivery_in_progress_or_unknown_do_not_retry'} : {}),
 })
 function singleMessage(snapshot){
-  const plain=!snapshot?.inReplyTo && !snapshot?.attachments?.length
-  return plain && (snapshot?.kind==='initial' && snapshot?.messageIntentId===undefined ||
-    snapshot?.kind==='followup' && snapshot?.messageIntentId!==undefined)
+  if(snapshot?.attachments?.length) return false
+  if(snapshot?.kind==='initial') return snapshot?.messageIntentId===undefined && !snapshot?.inReplyTo
+  // One confirmed thread reply stays a single message. Group STARTS remains separate.
+  return snapshot?.kind==='followup' && snapshot?.messageIntentId!==undefined
 }
 export function capabilityMutationRequiresStarts(review,actor,replace) {
   // A scheduled single message is gated by the schedule switch, not by group STARTS.
@@ -120,6 +121,21 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   return {
     contactApprovalRequired:requireContactApproval===true,
     forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||'',requireContactApproval,capabilityBinding,capabilityStartsEnabled,capabilityScheduleEnabled}),
+    async threadMessages(owner) {
+      const result=await query(owner,`select m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
+        l.company_name,l.contact_name,(m.raw_headers->>'autoReply')='true' as auto_reply
+        from public.crm_lead_messages m
+        join public.crm_leads l on l.id=m.lead_id
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
+        order by m.occurred_at asc,m.id asc limit 400`,[owner])
+      return {truncated:result.rows.length===400,messages:result.rows.map(row=>({
+        leadId:row.lead_id,
+        direction:row.direction==='inbound'||row.direction==='outbound'?row.direction:'unknown',
+        from:row.from_email,subject:row.subject,content:row.body_text,messageId:row.message_id,
+        occurredAt:row.occurred_at instanceof Date?row.occurred_at.toISOString():row.occurred_at,
+        person:row.contact_name,company:row.company_name,autoReply:row.auto_reply===true,
+      }))}
+    },
     async replyParent(owner,leadId,messageId) {
       return (await query(owner,`select 1 from public.crm_lead_messages m
         join public.crm_leads l on l.id=m.lead_id

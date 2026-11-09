@@ -13,6 +13,49 @@ const canonical = value => Array.isArray(value) ? value.map(canonical)
 export const emailDigest = value => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')
 const hash = emailDigest
 export const emailContentDigest = ({legacySchedule, ...content}) => hash(content)
+const knownDirection = value => value === 'inbound' || value === 'outbound'
+export function classifyInboundReplies(messages, {truncated = false} = {}) {
+  if (!Array.isArray(messages)) fail('reply_thread_unavailable')
+  const byLead = new Map()
+  for (const row of messages) {
+    if (!row || typeof row !== 'object') fail('reply_thread_unavailable')
+    const list = byLead.get(row.leadId) || []
+    list.push(row)
+    byLead.set(row.leadId, list)
+  }
+  const replies = []
+  for (const row of messages) {
+    if (row.direction !== 'inbound' || row.autoReply === true) continue
+    const thread = byLead.get(row.leadId) || []
+    const inboundAt = Date.parse(row.occurredAt)
+    const outboundTimes = thread.filter(item => item.direction === 'outbound').map(item => Date.parse(item.occurredAt))
+    const unclearDirection = thread.some(item => !knownDirection(item.direction))
+    const unreliable = truncated || unclearDirection || !Number.isFinite(inboundAt) || outboundTimes.some(time => !Number.isFinite(time))
+    const answered = !unreliable && outboundTimes.some(time => time > inboundAt)
+    const parent = typeof row.messageId === 'string' ? row.messageId : ''
+    const threadReady = /^<[^<>\s@]+@[^<>\s@]+>$/.test(parent)
+    replies.push({
+      leadId: row.leadId, messageId: parent || null, occurredAt: row.occurredAt || null,
+      person: typeof row.person === 'string' && row.person.trim() ? row.person.trim() : null,
+      company: typeof row.company === 'string' && row.company.trim() ? row.company.trim() : null,
+      subject: typeof row.subject === 'string' && row.subject.trim() ? row.subject.trim() : null,
+      recipient: typeof row.from === 'string' && row.from.trim() ? row.from.trim() : null,
+      content: typeof row.content === 'string' && row.content.trim() ? row.content : null,
+      contentState: typeof row.content === 'string' && row.content.trim() ? 'present' : 'unavailable',
+      answerState: unreliable ? 'unreliable' : answered ? 'answered' : 'waiting',
+      threadState: threadReady ? 'ready' : 'unreliable',
+      linked: thread.map(item => ({
+        direction: knownDirection(item.direction) ? item.direction : 'unknown',
+        occurredAt: item.occurredAt || null,
+        subject: typeof item.subject === 'string' && item.subject.trim() ? item.subject.trim() : null,
+        content: typeof item.content === 'string' && item.content.trim() ? item.content : null,
+        messageId: typeof item.messageId === 'string' && item.messageId ? item.messageId : null,
+      })),
+    })
+  }
+  replies.sort((left, right) => String(right.occurredAt || '').localeCompare(String(left.occurredAt || '')))
+  return {replies, truncated: truncated === true}
+}
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const email = value => {
   if (typeof value !== 'string' || !/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/.test(value.trim())) fail('invalid_recipient')
@@ -67,10 +110,11 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     const body = String(kind !== 'initial' ? (legacyInput || args).body : lead.initial_email_body || '').trim()
     if (!subject || subject.length > 300 || /[\r\n]/.test(subject) || !body || body.length > 50000) fail('invalid_draft')
     const staffHeaders = staffReviewMode && actor.kind === 'staff' && !legacyInput
-    if (staffHeaders && [args.inReplyTo,args.references].some(v=>v !== undefined && (typeof v !== 'string' || /[\r\n]/.test(v)))) fail('invalid_reply')
-    const parent = staffHeaders && args.inReplyTo ? normalizeMessageId(args.inReplyTo) : ''
-    if (staffHeaders && args.inReplyTo && !parent) fail('invalid_reply')
-    if (staffHeaders && args.references && !parent) fail('invalid_reply')
+    const threadHeaders = !legacyInput && (staffHeaders || actor.kind === 'oauth')
+    if (threadHeaders && [args.inReplyTo,args.references].some(v=>v !== undefined && (typeof v !== 'string' || /[\r\n]/.test(v)))) fail('invalid_reply')
+    const parent = threadHeaders && args.inReplyTo ? normalizeMessageId(args.inReplyTo) : ''
+    if (threadHeaders && args.inReplyTo && !parent) fail('invalid_reply')
+    if (threadHeaders && args.references && !parent) fail('invalid_reply')
     const messageIdPattern=/^<[^<>\s@]+@[^<>\s@]+>$/
     if(parent && (!messageIdPattern.test(parent) || String(args.references||'').split(/\s+/).filter(Boolean).some(v=>!messageIdPattern.test(v))))fail('invalid_reply')
     if(parent && !await store.replyParent(actor.ownerId,lead.id,parent))fail('reply_parent_not_on_lead')
@@ -131,8 +175,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
   return {
     async preview(actor, args) {
       await gate(actor, 'review')
-      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body',
-        ...(staffReviewMode && actor.kind==='staff'?['inReplyTo','references','attachments']:[])], ['leadId','to','fromIdentity'])
+      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body','inReplyTo','references',
+        ...(staffReviewMode && actor.kind==='staff'?['attachments']:[])], ['leadId','to','fromIdentity'])
       if (args.kind !== undefined && !['initial','followup'].includes(args.kind)) fail('invalid_message_kind')
       if (args.kind === 'followup') {
         if (typeof args.subject !== 'string' || typeof args.body !== 'string') fail('invalid_draft')
@@ -183,6 +227,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       fields(args, [], [])
       await gate(actor, 'review')
       return store.list(actor.ownerId)
+    },
+    async replies(actor, args = {}) {
+      fields(args, [], [])
+      await gate(actor, 'review')
+      if (typeof store.threadMessages !== 'function') fail('reply_thread_unavailable')
+      const loaded = await store.threadMessages(actor.ownerId)
+      const messages = Array.isArray(loaded) ? loaded : loaded?.messages
+      return classifyInboundReplies(messages, {truncated: loaded?.truncated === true})
     },
     async status(actor,args) {
       fields(args,['idempotencyKey'])

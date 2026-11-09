@@ -6,7 +6,8 @@ import {confirmContactCreate,prepareContactCreate} from './crm-contact-approval.
 // the authenticated host worker invokes the separately supplied dispatcher.
 const FAMILY=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const EXPLICIT=Object.freeze(['crm_needs_review_email_preview','crm_needs_review_email_confirm','crm_needs_review_email_status',
-  'crm_needs_review_followup_preview','crm_needs_review_followup_confirm','crm_needs_review_contact_preview','crm_needs_review_contact_confirm'])
+  'crm_needs_review_followup_preview','crm_needs_review_followup_confirm','crm_needs_review_contact_preview','crm_needs_review_contact_confirm',
+  'crm_needs_review_reply_list','crm_needs_review_reply_preview','crm_needs_review_reply_confirm','crm_needs_review_reply_status'])
 export const NEEDS_REVIEW_SINGLE_TOOLS=Object.freeze(['crm_needs_review_email_preview','crm_needs_review_email_confirm','crm_needs_review_email_status'])
 export function needsReviewSingleSendEnabled(env=process.env){return env?.CRM_NEEDS_REVIEW_SINGLE_SEND_ENABLED==='true'}
 export function needsReviewScheduleEnabled(env=process.env){return env?.CRM_NEEDS_REVIEW_SCHEDULE_ENABLED==='true'}
@@ -48,13 +49,21 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
       inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}}},required:['email'],additionalProperties:false}},
     {name:'crm_needs_review_contact_confirm',description:'Insert one reviewed contact only after explicit confirmation of its digest. Does not send mail. Creating a contact and sending mail remain separate confirmations.',
       inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['email','digest','idempotencyKey','confirmed'],additionalProperties:false}},
+    {name:'crm_needs_review_reply_list',description:'List stored incoming replies with date, person, company, content, and the linked correspondence. Answered means a stored outbound message is later than that reply. A CRM replied flag is not used. Sends nothing.',
+      inputSchema:{type:'object',properties:{},additionalProperties:false}},
+    {name:'crm_needs_review_reply_preview',description:'Prepare one reply in an existing stored thread. Shows the recipient, subject, and final content. Sends nothing and does not schedule.',
+      inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},to:{type:'string',maxLength:320},fromIdentity:{type:'string',enum:['projects']},messageIntentId:{type:'string',format:'uuid'},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},inReplyTo:{type:'string',maxLength:998},references:{type:'string',maxLength:8000}},required:['leadId','to','fromIdentity','messageIntentId','subject','body','inReplyTo'],additionalProperties:false}},
+    {name:'crm_needs_review_reply_confirm',description:'Send the exact reviewed thread reply only after explicit confirmation of its review id and digest. Reuse the same idempotency key. An unknown outcome is reported and not retried. Does not open group sending.',
+      inputSchema:{type:'object',properties:{reviewId:{type:'string',format:'uuid'},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['reviewId','digest','idempotencyKey','confirmed'],additionalProperties:false}},
+    {name:'crm_needs_review_reply_status',description:'Read the real status of one confirmed thread reply by its idempotency key. Unknown or in-progress delivery is reported and not retried.',
+      inputSchema:{type:'object',properties:{idempotencyKey:{type:'string',minLength:8,maxLength:120}},required:['idempotencyKey'],additionalProperties:false}},
   ]
   return Object.freeze({
     list:()=>enabled()===true?structuredClone(definitions):[],
     async call(actor,name,args){
       if(enabled()!==true)fail('needs_review_disabled')
       if(!definitions.some(d=>d.name===name))fail('unknown_tool')
-      const scopes=name==='crm_needs_review_batch_confirm'?send:name==='crm_needs_review_email_confirm'||name==='crm_needs_review_followup_confirm'?one:common
+      const scopes=name==='crm_needs_review_batch_confirm'?send:name==='crm_needs_review_email_confirm'||name==='crm_needs_review_followup_confirm'||name==='crm_needs_review_reply_confirm'?one:common
       if(binding?.grantFamily!==undefined)fail('needs_review_grant_family_must_come_from_connection')
       if(actor?.kind!=='oauth'||['ownerId','fromIdentity','accessRevision'].some(k=>actor[k]!==binding[k])||
         !FAMILY.test(actor?.grantFamily||'')||!Array.isArray(actor.scopes)||!scopes.every(s=>actor.scopes.includes(s)))fail('needs_review_access_denied')
@@ -90,6 +99,34 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
         if(args.confirmed!==true||!/^[a-f0-9]{64}$/.test(args.digest||''))fail('invalid_confirmation')
         if(singleSendEnabled()!==true)fail('needs_review_single_send_paused')
         return workflow.confirm(actor,args)
+      }
+      if(name==='crm_needs_review_reply_list'||name==='crm_needs_review_reply_preview'||name==='crm_needs_review_reply_confirm'||name==='crm_needs_review_reply_status'){
+        if(typeof openIndividual!=='function')fail('needs_review_connection_not_bound')
+        const workflow=openIndividual(bound)
+        if(name==='crm_needs_review_reply_list'){
+          const empty=args&&typeof args==='object'&&!Array.isArray(args)?args:{}
+          fields(empty,[],[])
+          return workflow.replies(actor,empty)
+        }
+        if(name==='crm_needs_review_reply_preview'){
+          fields(args,['leadId','to','fromIdentity','messageIntentId','subject','body','inReplyTo','references'],['leadId','to','fromIdentity','messageIntentId','subject','body','inReplyTo'])
+          if(args.fromIdentity!==binding.fromIdentity)fail('needs_review_single_message_only')
+          const review=await workflow.preview(actor,{...args,kind:'followup'})
+          return {reviewId:review.id,digest:review.digest,expiresAt:review.expiresAt,recipient:review.snapshot.to,subject:review.snapshot.subject,
+            content:review.snapshot.text,body:review.snapshot.body,inReplyTo:review.snapshot.inReplyTo,references:review.snapshot.references||'',
+            requiresExplicitConfirmation:true,status:'review',sent:false}
+        }
+        if(name==='crm_needs_review_reply_confirm'){
+          fields(args,['reviewId','digest','idempotencyKey','confirmed'])
+          if(args.confirmed!==true||!/^[a-f0-9]{64}$/.test(args.digest||''))fail('invalid_confirmation')
+          if(singleSendEnabled()!==true)fail('needs_review_single_send_paused')
+          return workflow.confirm(actor,args)
+        }
+        fields(args,['idempotencyKey'])
+        const job=await workflow.status(actor,args)
+        const known=['queued','sending','sent','unknown','blocked','cancelled','not_found']
+        if(!known.includes(job?.status))return {status:'unreliable',retry:false}
+        return {status:job.status,error:job.error||null,warning:job.status==='sending'?'delivery_in_progress_or_unknown_do_not_retry':job.warning||null,retry:false}
       }
       if(name==='crm_needs_review_contact_preview'||name==='crm_needs_review_contact_confirm'){
         const contactArgs=['companyName','contactName','email','subject','body','timezone','tags']
