@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/crm-needs-review-release-driver.mjs",
-      "sha256": "f11226e1478a6f4e2eeb934bc01b31274477d0b930ab41aae34d205e2788375f"
+      "sha256": "94a530d6d380155946268efd5c147d5e26d7ae9ccd69255e8f35241e80c6392b"
     },
     {
       "path": "scripts/crm-needs-review-release-entry.mjs",
@@ -112,7 +112,7 @@
     },
     {
       "path": "scripts/crm-needs-review-release.mjs",
-      "sha256": "ed41312d2ac78b37e3d9ed24cd0170fdfaee895920fae794b38a9c43b568a751"
+      "sha256": "13940fe8e51c160495a48828d23ca8ec45fd59c620290c62557c0378ac377225"
     },
     {
       "path": "scripts/crm-needs-review-scope.mjs",

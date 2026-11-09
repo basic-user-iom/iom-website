@@ -220,10 +220,25 @@ export function promotedInstall(state, baseline) {
     /^dpl_[A-Za-z0-9]+$/.test(record?.baseline?.id || '') && live.id !== record.baseline.id &&
     /^dpl_[A-Za-z0-9]+$/.test(baseline?.id || '')
 }
+const OLDER_RETAINED_CANDIDATE = 'dpl_6ba5qhVnBmXcvXt7TemxZy1pvfnJ'
+function retainedAfterLivePromotion(state) {
+  const record = state?.previousCandidate
+  const liveId = state?.live?.id
+  if (state?.pending !== false || state?.promoted !== true || state?.failed || state?.rolledBack === true || state?.candidate) return false
+  if (state?.disposition !== 'RETAINED_NOT_PROMOTED' || !Array.isArray(state?.history)) return false
+  if (!record || record.verified === true || record.phase !== 'install-disabled' || !commit(record.head)) return false
+  if (!/^dpl_[A-Za-z0-9]+$/.test(record.deploymentId || '') || !/^dpl_[A-Za-z0-9]+$/.test(liveId || '')) return false
+  if (record.deploymentId === liveId || record.deploymentId === OLDER_RETAINED_CANDIDATE || record.baseline?.id !== liveId) return false
+  const same = entry => entry?.record?.deploymentId === record.deploymentId && entry.record.head === record.head && entry.record.verified !== true
+  return state.history.some(entry => entry?.event === 'CREATED' && same(entry)) &&
+    state.history.some(entry => entry?.event === 'RETAINED_NOT_PROMOTED' && same(entry)) &&
+    state.history.some(entry => entry?.event === 'RETAINED_NOT_PROMOTED' && entry?.record?.deploymentId === OLDER_RETAINED_CANDIDATE)
+}
 export function publicationPredecessor(state, baseline) {
   if (!state) return baseline
   if (retainedUnpromoted(state, baseline)) return baseline
   if (promotedInstall(state, baseline)) return state.live
+  if (retainedAfterLivePromotion(state)) return state.live
   return null
 }
 // The live commit and the commit being published stay valid remotes.
@@ -231,6 +246,8 @@ export function publicationPredecessor(state, baseline) {
 export function remoteBranchAllowed({ remote, head, liveCommit, state, isAncestor }) {
   if (!commit(remote) || !commit(head) || !commit(liveCommit)) return false
   if (remote === liveCommit || remote === head) return true
+  if (retainedAfterLivePromotion(state) && state.previousCandidate.head === remote && typeof isAncestor === 'function' &&
+    isAncestor(liveCommit, remote) === true && isAncestor(remote, head) === true) return true
   const record = state?.previousCandidate
   if (state?.pending !== false || state?.promoted === true || state?.rolledBack === true || state?.failed ||
     state?.candidate || state?.disposition !== 'RETAINED_NOT_PROMOTED' || state?.live?.id === record?.deploymentId) return false
@@ -249,27 +266,41 @@ function runLocked({operation,profile,head,driver,approval,now,clock}) {
   let state = loaded ? copy(loaded) : null
   if (operation === 'retain-unpromoted') {
     // Keep the unpromoted candidate in history. This does not verify it, promote it, or move the live alias.
-    requireValue(state?.pending === 'VERIFY_REQUIRED' && !state.failed && state.promoted !== true &&
-      state.rolledBack !== true && !state.promoteInvoked && !state.rollbackInvoked && state.candidate,
+    const record = state?.candidate ? copy(state.candidate) : null
+    const history = Array.isArray(state?.history) ? state.history : []
+    const last = history[history.length - 1]
+    const live = state?.live
+    const deployment = value => /^dpl_[A-Za-z0-9]+$/.test(value || '')
+    const sameBinding = (left, right) => left?.id === right?.id && left?.commit === right?.commit &&
+      left?.base === right?.base && left?.scopeMap === right?.scopeMap
+    const profilePredecessor = !!record && state?.promoted !== true && !state?.promoteInvoked &&
+      sameBinding(record.baseline, profile.baseline)
+    // A later candidate can name the deployment that is already live. Its own promotion
+    // marker must not be reused, and the live promoted flag stays set.
+    const livePredecessor = !!record && state?.promoted === true && deployment(live?.id) &&
+      record.deploymentId !== live.id && sameBinding(record.baseline, live) &&
+      (state.promoteInvoked === undefined || state.promoteInvoked === live.id) && state.promoteInvoked !== record.deploymentId &&
+      last?.event === 'CREATED' && last.record?.deploymentId === record.deploymentId && last.record?.verified !== true
+    requireValue(state?.pending === 'VERIFY_REQUIRED' && !state?.failed && state?.rolledBack !== true &&
+      !state?.rollbackInvoked && record && (profilePredecessor || livePredecessor),
       'needs_review_retain_state_invalid')
-    const record = copy(state.candidate)
     requireValue(record.verified !== true && record.phase === 'install-disabled' &&
-      /^dpl_[A-Za-z0-9]+$/.test(record.deploymentId || '') && record.deploymentId !== profile.baseline?.id &&
-      record.baseline?.id === profile.baseline?.id && record.baseline?.commit === profile.baseline?.commit &&
-      record.baseline?.base === profile.baseline?.base && record.baseline?.scopeMap === profile.baseline?.scopeMap &&
+      deployment(record.deploymentId) && record.deploymentId !== profile.baseline?.id &&
       commit(record.head) && sha(record.manifestDigest) && sha(record.artifactDigest) && sha(record.inventoryDigest),
       'needs_review_retain_candidate_invalid')
     const current = driver.live()
     sameLive(current, record.baseline)
     requireValue(current.id !== record.deploymentId, 'needs_review_retain_candidate_invalid')
     evidence(record, driver.deployment(record.deploymentId))
+    const keptLive = livePredecessor ? copy(live) : {id:record.baseline.id,commit:record.baseline.commit,scopeMap:record.baseline.scopeMap,base:record.baseline.base}
     const next = remember(driver, state, {
-      pending: false, promoted: false, rolledBack: false, candidate: null, previousCandidate: record,
-      live: {id: record.baseline.id, commit: record.baseline.commit, scopeMap: record.baseline.scopeMap, base: record.baseline.base},
-      disposition: 'RETAINED_NOT_PROMOTED',
+      pending: false, promoted: livePredecessor === true, rolledBack: false, candidate: null, previousCandidate: record,
+      live: keptLive, disposition: 'RETAINED_NOT_PROMOTED',
     }, 'RETAINED_NOT_PROMOTED', now)
-    requireValue(next.pending === false && next.promoted === false && next.candidate === null &&
-      next.previousCandidate?.deploymentId === record.deploymentId && next.previousCandidate.verified !== true,
+    requireValue(next.pending === false && next.promoted === (livePredecessor === true) && next.candidate === null &&
+      next.live?.id === keptLive.id && next.previousCandidate?.deploymentId === record.deploymentId &&
+      next.previousCandidate.verified !== true && next.history.length === history.length + 1 &&
+      history.every((entry, index) => needsReviewReleaseDigest(next.history[index]) === needsReviewReleaseDigest(entry)),
       'needs_review_retain_state_invalid')
     return {status:'RETAINED_NOT_PROMOTED', id:record.deploymentId, phase:record.phase, promoted:false, verified:false}
   }

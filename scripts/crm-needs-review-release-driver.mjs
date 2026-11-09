@@ -183,12 +183,14 @@ export function assertHostedReadback({ record, result, value, evidenceApproval, 
   check(sha(record?.inventoryDigest) && digest(inventoryRows) === record.inventoryDigest, 'needs_review_hosted_inventory_mismatch')
   check(sha(evidenceApproval?.hostedEvidenceSha256) && digest(value) === evidenceApproval.hostedEvidenceSha256,
     'needs_review_hosted_review_binding_missing')
+  const preview = value?.needsReviewEnabled === true && value?.workerEnabled === false && value?.checks?.disabledRuntime === false && value?.checks?.oauthMetadata === true
+  const disabled = value?.needsReviewEnabled === false && value?.workerEnabled !== true && value?.checks?.disabledRuntime === true && value?.checks?.oauthMetadata !== true
   check(value?.version === 1 && value.source === 'reviewed-hosted-readback' && value.deploymentId === record.deploymentId &&
     value.artifactDigest === record.artifactDigest && value.inventoryDigest === record.inventoryDigest &&
-    value.head === record.head && value.phase === record.phase && value.startsEnabled === false && value.needsReviewEnabled === false &&
+    value.head === record.head && value.phase === record.phase && value.startsEnabled === false && (preview || disabled) &&
     Number.isSafeInteger(value.observedAt) && Number.isSafeInteger(value.expiresAt) && value.observedAt <= now &&
-    now - value.observedAt <= 30 * 60_000 && value.expiresAt > now && value.checks?.disabledRuntime === true &&
-    value.checks?.routeBinding === true && value.checks?.noEmailSent === true,
+    now - value.observedAt <= 30 * 60_000 && value.expiresAt > now && value.checks?.routeBinding === true &&
+    value.checks?.noEmailSent === true && !(value.needsReviewEnabled === true && value.checks?.disabledRuntime === true),
   'needs_review_hosted_review_missing_or_stale')
   return true
 }
