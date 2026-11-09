@@ -50,7 +50,7 @@ export function disabledNeedsReviewEnv() {
   return {IOM_SKIP_BLOG_SYNC:'true', CRM_NEEDS_REVIEW_ENABLED:'false', CRM_NEEDS_REVIEW_STARTS_ENABLED:'false', CRM_NEEDS_REVIEW_WORKER_ENABLED:'false'}
 }
 export function previewNeedsReviewEnv() {
-  return {IOM_SKIP_BLOG_SYNC:'true', CRM_NEEDS_REVIEW_ENABLED:'true', CRM_NEEDS_REVIEW_STARTS_ENABLED:'false', CRM_NEEDS_REVIEW_WORKER_ENABLED:'false'}
+  return {IOM_SKIP_BLOG_SYNC:'true', CRM_NEEDS_REVIEW_ENABLED:'true', CRM_NEEDS_REVIEW_STARTS_ENABLED:'false', CRM_NEEDS_REVIEW_WORKER_ENABLED:'false', CRM_NEEDS_REVIEW_SINGLE_SEND_ENABLED:'true'}
 }
 export function assertNeedsReviewRuntimeEnv(env) {
   const allowed = [disabledNeedsReviewEnv(), previewNeedsReviewEnv()]

@@ -112,7 +112,7 @@
     },
     {
       "path": "scripts/crm-needs-review-release.mjs",
-      "sha256": "13940fe8e51c160495a48828d23ca8ec45fd59c620290c62557c0378ac377225"
+      "sha256": "3ce9ddaa2b848be94198a83eb036da97b2f8837483073833a9b2388abe555346"
     },
     {
       "path": "scripts/crm-needs-review-scope.mjs",
