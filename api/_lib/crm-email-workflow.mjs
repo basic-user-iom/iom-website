@@ -29,9 +29,12 @@ export function classifyInboundReplies(messages, {truncated = false} = {}) {
     const thread = byLead.get(row.leadId) || []
     const inboundAt = Date.parse(row.occurredAt)
     const outboundTimes = thread.filter(item => item.direction === 'outbound').map(item => Date.parse(item.occurredAt))
+    const laterKnown = row.laterOutbound === true || row.laterOutbound === false
     const unclearDirection = thread.some(item => !knownDirection(item.direction))
-    const unreliable = truncated || unclearDirection || !Number.isFinite(inboundAt) || outboundTimes.some(time => !Number.isFinite(time))
-    const answered = !unreliable && outboundTimes.some(time => time > inboundAt)
+    // A newest-page or date window can omit older mail. laterOutbound is the database
+    // fact for any later stored outbound, so truncation alone does not hide a new reply.
+    const unreliable = (!laterKnown && truncated) || unclearDirection || !Number.isFinite(inboundAt) || outboundTimes.some(time => !Number.isFinite(time))
+    const answered = !unreliable && (laterKnown ? row.laterOutbound === true : outboundTimes.some(time => time > inboundAt))
     const parent = typeof row.messageId === 'string' ? row.messageId : ''
     const threadReady = /^<[^<>\s@]+@[^<>\s@]+>$/.test(parent)
     replies.push({
@@ -80,6 +83,52 @@ export function belgradeSchedule(local, offset, now) {
   if (+selected.date <= now) fail('schedule_must_be_future')
   if (+selected.date > now + 366 * 86400000) fail('schedule_too_far')
   return { at: selected.date.toISOString(), local, offset: selected.o, timezone: 'Europe/Belgrade' }
+}
+const belgradeStamp = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Belgrade', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+})
+function belgradeMidnight(day) {
+  const matches = ['+01:00', '+02:00'].map(offset => new Date(`${day}T00:00:00${offset}`))
+    .filter(date => {
+      if (!Number.isFinite(+date)) return false
+      const parts = Object.fromEntries(belgradeStamp.formatToParts(date).map(part => [part.type, part.value]))
+      return `${parts.year}-${parts.month}-${parts.day}` === day && parts.hour === '00' && parts.minute === '00'
+    })
+  if (matches.length !== 1) fail('invalid_reply_window')
+  return matches[0]
+}
+function shiftDay(day, amount) {
+  const [year, month, date] = day.split('-').map(Number)
+  const shifted = new Date(Date.UTC(year, month - 1, date + amount))
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`
+}
+function replyInstant(value) {
+  if (typeof value !== 'string' || value.length > 40 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) fail('invalid_reply_window')
+  const date = new Date(value)
+  if (!Number.isFinite(+date)) fail('invalid_reply_window')
+  return date.toISOString()
+}
+function replyBound(value, edge) {
+  if (value === undefined) return null
+  if (typeof value !== 'string' || value.length > 40) fail('invalid_reply_window')
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const start = belgradeMidnight(value)
+    return edge === 'to' ? belgradeMidnight(shiftDay(value, 1)).toISOString() : start.toISOString()
+  }
+  return replyInstant(value)
+}
+// from is inclusive and to is exclusive. A calendar date uses Europe/Belgrade midnight.
+// The cursor is the older-page key returned by the previous newest-first page.
+export function normalizeReplyListWindow(args = {}) {
+  fields(args, ['from', 'to', 'beforeOccurredAt', 'beforeId'], [])
+  const from = replyBound(args.from, 'from')
+  const to = replyBound(args.to, 'to')
+  if (from && to && Date.parse(from) >= Date.parse(to)) fail('invalid_reply_window')
+  const cursor = args.beforeOccurredAt !== undefined || args.beforeId !== undefined
+  if (!cursor) return { from, to, beforeOccurredAt: null, beforeId: null }
+  if (args.beforeOccurredAt === undefined || args.beforeId === undefined || !UUID.test(args.beforeId || '')) fail('invalid_reply_window')
+  return { from, to, beforeOccurredAt: replyInstant(args.beforeOccurredAt), beforeId: args.beforeId.toLowerCase() }
 }
 
 // No credentials, network, environment loading, or production fallback in this module.
@@ -229,12 +278,15 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       return store.list(actor.ownerId)
     },
     async replies(actor, args = {}) {
-      fields(args, [], [])
       await gate(actor, 'review')
+      const window = normalizeReplyListWindow(args)
       if (typeof store.threadMessages !== 'function') fail('reply_thread_unavailable')
-      const loaded = await store.threadMessages(actor.ownerId)
+      const loaded = await store.threadMessages(actor.ownerId, window)
       const messages = Array.isArray(loaded) ? loaded : loaded?.messages
-      return classifyInboundReplies(messages, {truncated: loaded?.truncated === true})
+      const classified = classifyInboundReplies(messages, {truncated: loaded?.truncated === true})
+      const next = loaded?.next
+      if (!next || typeof next.beforeOccurredAt !== 'string' || !UUID.test(next.beforeId || '')) return classified
+      return {...classified, next:{beforeOccurredAt:next.beforeOccurredAt, beforeId:next.beforeId}}
     },
     async status(actor,args) {
       fields(args,['idempotencyKey'])

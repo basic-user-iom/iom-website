@@ -121,20 +121,39 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   return {
     contactApprovalRequired:requireContactApproval===true,
     forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||'',requireContactApproval,capabilityBinding,capabilityStartsEnabled,capabilityScheduleEnabled}),
-    async threadMessages(owner) {
-      const result=await query(owner,`select m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
-        l.company_name,l.contact_name,(m.raw_headers->>'autoReply')='true' as auto_reply
+    async threadMessages(owner, window = {}) {
+      // Fixed page. Dates and the older-page cursor are parameters, so the limit cannot grow.
+      // Row visibility stays with the existing gateway policies; this statement does not change them.
+      const from = window?.from ?? null
+      const to = window?.to ?? null
+      const beforeAt = window?.beforeOccurredAt ?? null
+      const beforeId = window?.beforeId ?? null
+      const result=await query(owner,`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
+        l.company_name,l.contact_name,(m.raw_headers->>'autoReply')='true' as auto_reply,
+        exists(select 1 from public.crm_lead_messages later
+          where later.lead_id=m.lead_id and later.direction='outbound' and later.occurred_at>m.occurred_at) as later_outbound
         from public.crm_lead_messages m
         join public.crm_leads l on l.id=m.lead_id
         where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
-        order by m.occurred_at asc,m.id asc limit 400`,[owner])
-      return {truncated:result.rows.length===400,messages:result.rows.map(row=>({
+          and ($2::timestamptz is null or m.occurred_at>=$2::timestamptz)
+          and ($3::timestamptz is null or m.occurred_at<$3::timestamptz)
+          and ($4::timestamptz is null or m.occurred_at<$4::timestamptz or (m.occurred_at=$4::timestamptz and m.id<$5::uuid))
+        order by m.occurred_at desc,m.id desc
+        limit 401`,[owner,from,to,beforeAt,beforeId])
+      const page=result.rows.slice(0,400)
+      const stamp=value=>value instanceof Date?value.toISOString():value
+      const last=page[page.length-1]
+      const messages=page.map(row=>({
         leadId:row.lead_id,
         direction:row.direction==='inbound'||row.direction==='outbound'?row.direction:'unknown',
         from:row.from_email,subject:row.subject,content:row.body_text,messageId:row.message_id,
-        occurredAt:row.occurred_at instanceof Date?row.occurred_at.toISOString():row.occurred_at,
+        occurredAt:stamp(row.occurred_at),
         person:row.contact_name,company:row.company_name,autoReply:row.auto_reply===true,
-      }))}
+        laterOutbound:row.later_outbound===true,
+      }))
+      const next=result.rows.length>400 && last?.id && stamp(last.occurred_at)
+        ?{beforeOccurredAt:stamp(last.occurred_at),beforeId:String(last.id)}:undefined
+      return {truncated:result.rows.length>400,messages,...(next?{next}:{})}
     },
     async replyParent(owner,leadId,messageId) {
       return (await query(owner,`select 1 from public.crm_lead_messages m

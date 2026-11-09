@@ -49,8 +49,8 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
       inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}}},required:['email'],additionalProperties:false}},
     {name:'crm_needs_review_contact_confirm',description:'Insert one reviewed contact only after explicit confirmation of its digest. Does not send mail. Creating a contact and sending mail remain separate confirmations.',
       inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['email','digest','idempotencyKey','confirmed'],additionalProperties:false}},
-    {name:'crm_needs_review_reply_list',description:'List stored incoming replies with date, person, company, content, and the linked correspondence. Answered means a stored outbound message is later than that reply. A CRM replied flag is not used. Sends nothing.',
-      inputSchema:{type:'object',properties:{},additionalProperties:false}},
+    {name:'crm_needs_review_reply_list',description:'List stored incoming replies, newest page first (at most 400). Optional from/to dates are filtered in the database; a calendar date is a Europe/Belgrade day, and to is exclusive for a timestamp. Pass next.beforeOccurredAt and next.beforeId for the next older page. Shows date, person, company, content, and correspondence loaded in that page. Answered means any stored outbound message is later than that reply, including one outside the page. A CRM replied flag is not used. Sends nothing.',
+      inputSchema:{type:'object',properties:{from:{type:'string',maxLength:40},to:{type:'string',maxLength:40},beforeOccurredAt:{type:'string',maxLength:40},beforeId:{type:'string',format:'uuid'}},additionalProperties:false}},
     {name:'crm_needs_review_reply_preview',description:'Prepare one reply in an existing stored thread. Shows the recipient, subject, and final content. Sends nothing and does not schedule.',
       inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},to:{type:'string',maxLength:320},fromIdentity:{type:'string',enum:['projects']},messageIntentId:{type:'string',format:'uuid'},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},inReplyTo:{type:'string',maxLength:998},references:{type:'string',maxLength:8000}},required:['leadId','to','fromIdentity','messageIntentId','subject','body','inReplyTo'],additionalProperties:false}},
     {name:'crm_needs_review_reply_confirm',description:'Send the exact reviewed thread reply only after explicit confirmation of its review id and digest. Reuse the same idempotency key. An unknown outcome is reported and not retried. Does not open group sending.',
@@ -105,7 +105,7 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
         const workflow=openIndividual(bound)
         if(name==='crm_needs_review_reply_list'){
           const empty=args&&typeof args==='object'&&!Array.isArray(args)?args:{}
-          fields(empty,[],[])
+          fields(empty,['from','to','beforeOccurredAt','beforeId'],[])
           return workflow.replies(actor,empty)
         }
         if(name==='crm_needs_review_reply_preview'){
