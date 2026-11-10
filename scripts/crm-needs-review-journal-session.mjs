@@ -6,7 +6,7 @@ import {resolve} from 'node:path'
 import {assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
 
 // Updated only with the reviewed local source closure; no caller/ENV override.
-const PINS=Object.freeze({"./crm-needs-review-native.cs":"f27df5ceba435e04d1da8fe88cb4171a688a03f3e28675db4044e8738ae257a1","./crm-needs-review-broker.cs":"7f649cbd286a0a0063f678e2f5f5dcf7ceb5ab7e0c7b9afe6fb0133b5f6ed75e","./crm-needs-review-broker.ps1":"af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47","./crm-needs-review-journal-worker.mjs":"4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"}) // populated before running the isolated tests
+const PINS=Object.freeze({"./crm-needs-review-native.cs":"033880d9af6657850ad9a1a506d527556a20a3919f07b6ad6fefee16794922fd","./crm-needs-review-broker.cs":"c00ec2e686cd8dd0d54bee9cee86f3bc8c903f15096b15bca57480197462cb75","./crm-needs-review-broker.ps1":"af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47","./crm-needs-review-journal-worker.mjs":"4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"}) // populated before running the isolated tests
 const fail=code=>{throw Object.assign(Error(code),{code})}
 const owned=new WeakMap()
 function start(directory,inspect){
@@ -39,7 +39,7 @@ function start(directory,inspect){
   const session=Object.freeze({
     read(name){const value=request({method:'read',name});return value===null?null:Buffer.from(value,'base64')},
     load(){const bytes=this.read('state.json');return bytes===null?null:JSON.parse(bytes.toString('utf8'))},
-    save(state){const bytes=Buffer.from(JSON.stringify(state));if(bytes.length>556700)fail('journal_state_too_large');request({method:'save',data:bytes.toString('base64')})},
+    save(state){const bytes=Buffer.from(JSON.stringify(state));if(bytes.length>593754)fail('journal_state_too_large');request({method:'save',data:bytes.toString('base64')})},
     verify(){request({method:'verify'})},
     inspection(){return request({method:'inspect'})},
     abandon(){if(closed)return;try{if(!poisoned)request({method:'abandon'})}finally{closed=true;void worker.terminate()}},

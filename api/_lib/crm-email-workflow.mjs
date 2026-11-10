@@ -50,6 +50,8 @@ export function classifyInboundReplies(messages, {truncated = false} = {}) {
       contentState: typeof row.content === 'string' && row.content.trim() ? 'present' : 'unavailable',
       answerState: unreliable ? 'unreliable' : answered ? 'answered' : 'waiting',
       threadState: threadReady ? 'ready' : 'unreliable',
+      identity: row.identity === 'projects' || row.identity === 'visual' ? row.identity : null,
+      ownerId: typeof row.ownerId === 'string' ? row.ownerId : null,
       linked: thread.map(item => ({
         direction: knownDirection(item.direction) ? item.direction : 'unknown',
         occurredAt: item.occurredAt || null,
@@ -371,7 +373,7 @@ export function planApprovedSend(args, contacts = [], now = Date.now()) {
     }
     const chosen = item.identity ? accountByIdentity(item.identity) : leadAccount
     if (!chosen) { blocked = 'sender_not_chosen'; break }
-    if (leadAccount && chosen.identity !== leadAccount.identity) {
+    if (kind === 'reply' && leadAccount && chosen.identity !== leadAccount.identity) {
       recipients.push({
         leadId, to, kind, subject, body, retry: false, identity: chosen.identity, ownerId: chosen.ownerId,
         fromIdentity: chosen.identity, sender: chosen.email, requestedIdentity: chosen.identity,
@@ -498,7 +500,11 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     if (threadHeaders && args.references && !parent) fail('invalid_reply')
     const messageIdPattern=/^<[^<>\s@]+@[^<>\s@]+>$/
     if(parent && (!messageIdPattern.test(parent) || String(args.references||'').split(/\s+/).filter(Boolean).some(v=>!messageIdPattern.test(v))))fail('invalid_reply')
-    if(parent && !await store.replyParent(actor.ownerId,lead.id,parent))fail('reply_parent_not_on_lead')
+    if(parent && !await store.replyParent(actor.ownerId,lead.id,parent)){
+      const leadOwner = lead.owner_id || lead.ownerId
+      if (leadOwner && choice.ownerId !== leadOwner) fail(`cross_account_reply_needs_new_email:chosen=${choice.identity}:required_owner=${choice.ownerId}:contact_owner=${leadOwner}`)
+      fail('reply_parent_not_on_lead')
+    }
     // Replies use a stable followup intent, preserving the DB delivery-key contract.
     if (parent && kind !== 'followup') fail('invalid_message_kind')
     const attachments = actor.kind === 'oauth' && args.attachments !== undefined
@@ -587,9 +593,6 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       const chosenName = review.snapshot?.fromIdentity || 'none'
       if (!chosenOwner) fail(`sender_not_authorized:chosen=${chosenName}:required_owner=none`)
       const staffJob = staffReviewMode && actor.kind === 'staff'
-      if (!staffJob && review.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== chosenOwner) {
-        fail(`cross_account_reply_needs_new_email:chosen=${chosenName}:required_owner=${chosenOwner}:contact_owner=${review.snapshot.leadOwnerId}`)
-      }
       const jobOwner = staffJob ? actor.ownerId : chosenOwner
       if ((staffReviewMode && actor.kind==='staff' && (!review.principal || review.principal.kind!=='staff' ||
         review.principal.ownerId!==actor.ownerId || review.principal.accessRevision!==actor.accessRevision)) ||

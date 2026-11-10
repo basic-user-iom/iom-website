@@ -14,7 +14,7 @@ using System.Web.Script.Serialization;
 namespace IomJournal {
   public sealed class Session : IDisposable {
     const string WalName="state-wal.log";
-    const int MaxState=556700, MaxWal=32*1024*1024;
+    const int MaxState=593754, MaxWal=37933243;
     readonly string directory;
     readonly PinnedChain chain;
     readonly Dictionary<string,PinnedEvidence> files=new Dictionary<string,PinnedEvidence>(StringComparer.OrdinalIgnoreCase);

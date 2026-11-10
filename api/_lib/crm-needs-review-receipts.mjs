@@ -70,7 +70,9 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   const visualOwner = CRM_ACCOUNTS.visual.ownerId
   async function seeVisual(c, actorOwner, targetOwner) {
     if (targetOwner === actorOwner) return
-    if (actorOwner !== CRM_ACCOUNTS.projects.ownerId || targetOwner !== visualOwner) fail('identity_required')
+    const projectsOwner = CRM_ACCOUNTS.projects.ownerId
+    const paired = (actorOwner === projectsOwner && targetOwner === visualOwner) || (actorOwner === visualOwner && targetOwner === projectsOwner)
+    if (!paired) fail('identity_required')
     await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
   }
   async function hideVisual(c, actorOwner, targetOwner) {
@@ -109,14 +111,12 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     const expectedOwner = jobOwnerForIdentity(review?.snapshot?.fromIdentity)
     const chosenName = review?.snapshot?.fromIdentity || 'none'
     if (!expectedOwner || owner !== expectedOwner) fail(`sender_not_authorized:chosen=${chosenName}:required_owner=${expectedOwner || 'none'}`)
-    if (review?.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== expectedOwner) {
-      fail(`cross_account_reply_needs_new_email:chosen=${chosenName}:required_owner=${expectedOwner}:contact_owner=${review.snapshot.leadOwnerId}`)
-    }
     guardSchedule(review)
     guardStarts(review,actor,replace)
     const single=!capabilityMutationRequiresStarts(review,actor,replace)
     try { return await transaction(owner,async c=>{
-      const row=await lead(c,owner,review.snapshot.leadId,true)
+      const leadOwner = review.snapshot.leadOwnerId || owner
+      const row=await lead(c,owner,review.snapshot.leadId,true,leadOwner)
       const prior=(await c.query('select review_id,job_id from crm_email_private.commands where owner_id=$1 and idempotency_key=$2',[owner,key])).rows[0]
       if (prior) {
         if (prior.review_id!==review.id) fail('idempotency_conflict')
@@ -141,7 +141,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
             ? `followup:${owner}:${review.snapshot.messageIntentId}` : `reply:${review.snapshot.leadId}:${emailContentDigest(review.snapshot)}`])).rows[0]
       }
       await c.query('insert into crm_email_private.commands(owner_id,idempotency_key,review_id,job_id) values($1,$2,$3,$4)',[owner,key,review.id,job.id])
-      if (row.scheduled_send) await c.query('update public.crm_leads set scheduled_send=null where owner_id=$1 and id=$2',[owner,row.id])
+      if (row.scheduled_send) await c.query('update public.crm_leads set scheduled_send=null where owner_id=$1 and id=$2',[row.owner_id,row.id])
       return mapJob(job)
     }) } catch(e) {
       if (e.code!=='23505') throw e
@@ -172,11 +172,14 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
       const subject = window?.subject ?? null
       const identity = window?.identity ?? null
       if (identity !== null && identity !== 'projects' && identity !== 'visual') fail('identity_required')
-      const target = identity === 'visual' ? visualOwner : owner
-      const result=await transaction(owner, async c => {
-        await seeVisual(c, owner, target)
-        try { return await c.query(`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
-        l.company_name,l.contact_name,(m.raw_headers->>'autoReply')='true' as auto_reply,
+      const targets = identity === 'visual' ? [visualOwner] : identity === 'projects' || owner !== CRM_ACCOUNTS.projects.ownerId ? [owner] : [owner, visualOwner]
+      const rows=[]
+      await transaction(owner, async c => {
+        for (const target of targets) {
+          await seeVisual(c, owner, target)
+          try {
+            const found=await c.query(`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
+        l.company_name,l.contact_name,l.owner_id,(m.raw_headers->>'autoReply')='true' as auto_reply,
         exists(select 1 from public.crm_lead_messages later
           where later.lead_id=m.lead_id and later.direction='outbound' and later.occurred_at>m.occurred_at) as later_outbound
         from public.crm_lead_messages m
@@ -192,9 +195,14 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
             where coalesce(extra->>'email','') ilike $8 escape '\\'))
           and ($9::text is null or m.subject ilike $9 escape '\\')
         order by m.occurred_at desc,m.id desc
-        limit 401`,[target,from,to,beforeAt,beforeId,company,contact,email,subject]) }
-        finally { await hideVisual(c, owner, target) }
+        limit 401`,[target,from,to,beforeAt,beforeId,company,contact,email,subject])
+            for (const row of found.rows) rows.push({...row, account_identity: target === visualOwner ? 'visual' : 'projects'})
+          } finally { await hideVisual(c, owner, target) }
+        }
       })
+      const at=value=>value instanceof Date?value.getTime():Date.parse(value)
+      rows.sort((left,right)=>at(right.occurred_at)-at(left.occurred_at)||String(right.id).localeCompare(String(left.id)))
+      const result={rows}
       const page=result.rows.slice(0,400)
       const stamp=value=>value instanceof Date?value.toISOString():value
       const last=page[page.length-1]
@@ -203,7 +211,7 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         direction:row.direction==='inbound'||row.direction==='outbound'?row.direction:'unknown',
         from:row.from_email,subject:row.subject,content:row.body_text,messageId:row.message_id,
         occurredAt:stamp(row.occurred_at),
-        person:row.contact_name,company:row.company_name,autoReply:row.auto_reply===true,
+        person:row.contact_name,company:row.company_name,identity:row.account_identity,ownerId:row.owner_id,autoReply:row.auto_reply===true,
         laterOutbound:row.later_outbound===true,
       }))
       const next=result.rows.length>400 && last?.id && stamp(last.occurred_at)
@@ -322,7 +330,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         finally { await hideVisual(c, owner, target) }
       })
       if (await ask(owner)) return true
-      return owner === CRM_ACCOUNTS.projects.ownerId ? ask(visualOwner) : false
+      const other = owner === CRM_ACCOUNTS.projects.ownerId ? visualOwner : owner === visualOwner ? CRM_ACCOUNTS.projects.ownerId : null
+      return other ? ask(other) : false
     },
     async staffBinding(pin,revision) {
       return (await query(pin.ownerId,`select 1 from crm_email_private.staff_access
@@ -396,7 +405,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         const before=(await c.query('select * from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0]
         if (!before) return undefined
         if(capabilityJobRequiresStarts(before.data))assertCapabilityStarts()
-        const row=await lead(c,owner,before.lead_id,true)
+        const leadOwner = before.data?.snapshot?.leadOwnerId || owner
+        const row=await lead(c,owner,before.lead_id,true,leadOwner)
         const current=(await c.query('select * from crm_email_private.jobs where owner_id=$1 and id=$2 for update',[owner,id])).rows[0]
         const dueMs=+new Date(current.due_at)
         const waiting=Number.isFinite(dueMs)&&dueMs>now
@@ -414,7 +424,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         if(!loaded) fail('delivery_claim_invalid_or_consumed')
         if(capabilityJobRequiresStarts(loaded.data))assertCapabilityStarts()
         let approvedLead
-        if(requireContactApproval) approvedLead=await lead(c,owner,loaded.lead_id,true)
+        const leadOwner = loaded.data?.snapshot?.leadOwnerId || owner
+        if(requireContactApproval) approvedLead=await lead(c,owner,loaded.lead_id,true,leadOwner)
         const job=(await c.query("select * from crm_email_private.jobs where owner_id=$1 and id=$2 and status='sending' for update",[owner,id])).rows[0]
         if(!job || job.delivery_started || emailContentDigest(job.data.snapshot)!==emailContentDigest(snapshot)) fail('delivery_claim_invalid_or_consumed')
         if(requireContactApproval) validateLead(approvedLead,job.data.snapshot)

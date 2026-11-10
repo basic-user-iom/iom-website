@@ -307,7 +307,7 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
     async createContact(b,contact,idempotencyKey){
       if(!contact||contact.operation!=='create_contact'||(contact.emailAction!==undefined&&contact.emailAction!=='none'))fail('invalid_contact_arguments')
       if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(idempotencyKey||''))fail('invalid_confirmation')
-      return transaction(b,null,async c=>{
+      try { return await transaction(b,null,async c=>{
         const prior=(await c.query(`/* nr:contact-replay */ select result from crm_capability_private.commands
           where owner_id=$1 and idempotency_key=$2 and from_identity=$3 and grant_family=$4 and access_revision=$5 and kind='contact'`,
           [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision])).rows[0]
@@ -353,7 +353,10 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
           values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,
           [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision,contact.digest,JSON.stringify(result)])
         return {...result,replayed:false}
-      })
+      }) } catch (error) {
+        if (error?.code !== '42501') throw error
+        return {leadId:null,alreadyExists:false,inserted:false,emailAction:'none',error:'42501',cause:'row_level_security'}
+      }
     },
   })
 }
