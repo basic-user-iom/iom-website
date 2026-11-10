@@ -36,5 +36,5 @@ export function createNeedsReviewComposition({acquire,binding,enabled=()=>false,
   }).workflow
   const openContacts=bound=>({create:(contact,key)=>openStore(bound).createContact(bound,contact,key)})
   const tools=createNeedsReviewTools({binding,enabled,startsEnabled,openStore,openIndividual:singleMail?openIndividual:undefined,openContacts,singleSendEnabled,scheduleEnabled})
-  return Object.freeze({store,dispatcher,tools})
+  return Object.freeze({store:workerStore,dispatcher,tools})
 }
