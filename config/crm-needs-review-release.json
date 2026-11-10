@@ -84,7 +84,7 @@
     },
     {
       "path": "scripts/crm-needs-review-broker.cs",
-      "sha256": "7f729fbd80407cf3b195c07fb17b22a0579a89f00eb9415bc6da48fe47a5d858"
+      "sha256": "7f649cbd286a0a0063f678e2f5f5dcf7ceb5ab7e0c7b9afe6fb0133b5f6ed75e"
     },
     {
       "path": "scripts/crm-needs-review-broker.ps1",
@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/crm-needs-review-journal-session.mjs",
-      "sha256": "d46ec45d7b31919f9613114aa6d6c2115dcb2a70a4a070037cf71a9d0e46ce5b"
+      "sha256": "2294b4a1094727f89436b412f591cf404d2133976d2c919bbb016077348d5412"
     },
     {
       "path": "scripts/crm-needs-review-journal-worker.mjs",
@@ -108,7 +108,7 @@
     },
     {
       "path": "scripts/crm-needs-review-native.cs",
-      "sha256": "28a3f74814bf6626ddbc12e6c051508489e057c58fa6699cba7bded2aa6ec033"
+      "sha256": "f27df5ceba435e04d1da8fe88cb4171a688a03f3e28675db4044e8738ae257a1"
     },
     {
       "path": "scripts/crm-needs-review-release-driver.mjs",
