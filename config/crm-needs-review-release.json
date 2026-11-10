@@ -192,11 +192,11 @@
     },
     {
       "path": "src/crm/EmailThreadPanel.tsx",
-      "sha256": "3e570012fe7d3fb972f1c1f93ffe483c66c051eee36b7a3d6ddfac217e752316"
+      "sha256": "add65212ae52b0fc55b027fcdc3ec372bd5c966f6a6bd2a67df25993208c9803"
     },
     {
       "path": "src/crm/i18n.tsx",
-      "sha256": "ccd317a36ede4263bce36ddef5cc7e652a9050da370367b68a1221ee579c8c6b"
+      "sha256": "ade442b529448e8975d326cd090360136dd69f72a5b4dedc50964f8da973e584"
     }
   ],
   "runtimeDigest": "543dc345ee81439492b172f795b29bcecaec5b2631d43ee71573aefb2bc6c0c1",

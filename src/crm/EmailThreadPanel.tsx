@@ -155,7 +155,7 @@ function ThreadHtmlPreview({
 export function EmailThreadPanel({
   lead,
   onChanged,
-  refreshToken = 0,
+  refreshToken,
   active = true,
 }: EmailThreadPanelProps) {
   const { t, locale } = useCrmI18n()
