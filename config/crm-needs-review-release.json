@@ -144,7 +144,7 @@
     },
     {
       "path": "scripts/crm-needs-review-broker.cs",
-      "sha256": "f47a734c0d7723bde5d7e42a2461ebbd21a1b2eba5b4b75f32b8f64b6b14a109"
+      "sha256": "f6401c67481c2447bb73402372302aaee34a0d0ade89011236dbc9800bacca18"
     },
     {
       "path": "scripts/crm-needs-review-broker.ps1",
@@ -156,7 +156,7 @@
     },
     {
       "path": "scripts/crm-needs-review-journal-session.mjs",
-      "sha256": "5e12de66c73446cdc0d0843099324165989da7fc0f2f2409ec9d99c9070783d9"
+      "sha256": "0b44ee22dd3f24dc8367c76835b3eeacd3dcdff2fafc5dc1cca35753c146dff9"
     },
     {
       "path": "scripts/deploy-production.mjs",

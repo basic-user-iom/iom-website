@@ -154,7 +154,7 @@ namespace IomJournal {
           try {
             while(true) {
               var pending=Task.Factory.StartNew(()=>Receive(reader));
-              if(!pending.Wait(TimeSpan.FromMinutes(10))) return;
+              if(!pending.Wait(TimeSpan.FromSeconds(1632))) return;
               var line=pending.Result; if(line==null) return;
               bool end=false;
               object result=null;
