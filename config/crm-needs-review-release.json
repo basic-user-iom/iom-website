@@ -28,15 +28,15 @@
     },
     {
       "path": "api/_lib/crm-contact-approval.mjs",
-      "sha256": "65dcb96cbad53188f3bc321805e79dc491247b11d8d0bbe239781f626ad3b537"
+      "sha256": "71415c428044a3d2ff5b79a8e6d23d7deb504a61dea6d4159fd147a930ee31fc"
     },
     {
       "path": "api/_lib/crm-email-batch-policy.mjs",
       "sha256": "6cdf1879dbf3af2b01cd6e596570e687ee0ad54802391209961b2ffef782f938"
     },
     {
-      "path": "api/_lib/crm-email-store.mjs",
-      "sha256": "607ce164663ea1ace30167999af5a2186b29fb87191a51e289f533418f1b7583"
+      "path": "api/_lib/crm-email-workflow.mjs",
+      "sha256": "2e6d523102123c367b8b624e7309c4cd4b55abbcb994de47b8601dd76d77a85b"
     },
     {
       "path": "api/_lib/crm-needs-review-attachments.mjs",
@@ -67,72 +67,24 @@
       "sha256": "2136982f1c31e9cfc55843e1588e6efe0085bb6e19888c445892d572cc7dd06a"
     },
     {
-      "path": "api/_lib/crm-email-workflow.mjs",
-      "sha256": "c533719e801c619b42055173d11277435c4840d4c0bb3594054b4875628df677"
-    },
-    {
       "path": "api/_lib/crm-needs-review-receipts.mjs",
-      "sha256": "5d685b5e9d76f35fff5713e112c6f311ceaabe97ec30f5274a3afc7d6c7855ec"
+      "sha256": "b6ca9521078815907bf5e5190e5149b18b92178b991ec4c4f11023ed5e549929"
     },
     {
       "path": "api/_lib/crm-needs-review-tools.mjs",
-      "sha256": "8ccde0115a9277691ca19e6cdfc4b83c7579dc483967894e5f9f41923e7b623f"
+      "sha256": "c1a5588db0e9bd810c8ca7a0ae00abb654f085d0a2d5331d756b39bd624c6ca9"
     },
     {
       "path": "api/crm-needs-review.js",
       "sha256": "2d654d8d426f544fb089c9ed7f4a7c3c06b09796e9ebfb2aa774a368a8719790"
     },
     {
-      "path": "scripts/crm-needs-review-broker.cs",
-      "sha256": "c00ec2e686cd8dd0d54bee9cee86f3bc8c903f15096b15bca57480197462cb75"
+      "path": "vercel.json",
+      "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
     },
     {
-      "path": "scripts/crm-needs-review-broker.ps1",
-      "sha256": "af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47"
-    },
-    {
-      "path": "scripts/crm-needs-review-journal-inspector.ps1",
-      "sha256": "714b2f376737168ffd79de64233119b3000dcfc34224c6be2a140c80bebb8e11"
-    },
-    {
-      "path": "scripts/crm-needs-review-journal-privacy.mjs",
-      "sha256": "e3649af37419e86de18fef22e96fd6069226aff372fcd5f3e512161f12c78d6d"
-    },
-    {
-      "path": "scripts/crm-needs-review-journal-session.mjs",
-      "sha256": "dcea993911a0cfbd565fc4c49e487451395fe8cc6683688c2d095ea0810638fd"
-    },
-    {
-      "path": "scripts/crm-needs-review-journal-worker.mjs",
-      "sha256": "4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"
-    },
-    {
-      "path": "scripts/crm-needs-review-native.cs",
-      "sha256": "033880d9af6657850ad9a1a506d527556a20a3919f07b6ad6fefee16794922fd"
-    },
-    {
-      "path": "scripts/crm-needs-review-release-driver.mjs",
-      "sha256": "94a530d6d380155946268efd5c147d5e26d7ae9ccd69255e8f35241e80c6392b"
-    },
-    {
-      "path": "scripts/crm-needs-review-release-entry.mjs",
-      "sha256": "91df0eb2c36f85bb9cd0af082cb8e7bcd84a8226ccdfe0573ebe4476ad0966c6"
-    },
-    {
-      "path": "scripts/crm-needs-review-release-guards.mjs",
-      "sha256": "8389c37ba53cafea69206165061d599cb755d7fc3c2206d261fb7b049a2aa509"
-    },
-    {
-      "path": "scripts/crm-needs-review-release.mjs",
-      "sha256": "3ce9ddaa2b848be94198a83eb036da97b2f8837483073833a9b2388abe555346"
-    },
-    {
-      "path": "scripts/crm-needs-review-scope.mjs",
-      "sha256": "a2c8bb1f43e412f7009005a507fd48563509ca71b9a9170980771d71ce03b322"
-    },
-    {
-      "path": "scripts/crm-needs-review-source-binding.mjs",
-      "sha256": "06ed2d3fef9047ce039626a20141dce3f229d7fe57709fbf834175c648c88681"
+      "path": "scripts/deploy-secret-scan.mjs",
+      "sha256": "44384d12d679e7209a6fa61f6a4ad7b4284897ba28d337281f8edd0823e8cdbc"
     },
     {
       "path": "scripts/deploy-native-source-facts.mjs",
@@ -143,8 +95,8 @@
       "sha256": "8cf476f30e7b5c94d69f77549710f6b6b10b79c85f13f0d832f9531d572dd3aa"
     },
     {
-      "path": "scripts/deploy-production.mjs",
-      "sha256": "5e06700eeaec68a11cad7f26b3fe4cae75a936ff8acbc88a7463ae27e0842265"
+      "path": "scripts/deploy-reviewed-public-data.json",
+      "sha256": "f67cf904a479e96fd23fde99b6d5becdba11c5e0ca76a8470d57168a4d9c47c6"
     },
     {
       "path": "scripts/deploy-reviewed-protocol-data.json",
@@ -155,8 +107,60 @@
       "sha256": "e3c885e02e6339956245fe3b4205753b425069e6cdceb3b92347b35fe82a530d"
     },
     {
-      "path": "scripts/deploy-reviewed-public-data.json",
-      "sha256": "f67cf904a479e96fd23fde99b6d5becdba11c5e0ca76a8470d57168a4d9c47c6"
+      "path": "scripts/crm-needs-review-source-binding.mjs",
+      "sha256": "06ed2d3fef9047ce039626a20141dce3f229d7fe57709fbf834175c648c88681"
+    },
+    {
+      "path": "scripts/crm-needs-review-release.mjs",
+      "sha256": "3ce9ddaa2b848be94198a83eb036da97b2f8837483073833a9b2388abe555346"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-guards.mjs",
+      "sha256": "8389c37ba53cafea69206165061d599cb755d7fc3c2206d261fb7b049a2aa509"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-driver.mjs",
+      "sha256": "94a530d6d380155946268efd5c147d5e26d7ae9ccd69255e8f35241e80c6392b"
+    },
+    {
+      "path": "scripts/crm-needs-review-scope.mjs",
+      "sha256": "7f3efeba189f23f4224d56665ee84a9459939d001bfc1511da8bc6d58130f8ee"
+    },
+    {
+      "path": "scripts/crm-needs-review-release-entry.mjs",
+      "sha256": "91df0eb2c36f85bb9cd0af082cb8e7bcd84a8226ccdfe0573ebe4476ad0966c6"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-privacy.mjs",
+      "sha256": "e3649af37419e86de18fef22e96fd6069226aff372fcd5f3e512161f12c78d6d"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-inspector.ps1",
+      "sha256": "714b2f376737168ffd79de64233119b3000dcfc34224c6be2a140c80bebb8e11"
+    },
+    {
+      "path": "scripts/crm-needs-review-native.cs",
+      "sha256": "74b44f6d76261c6e759fc575a10e57c3e129087def305339d59a8c7946ec423d"
+    },
+    {
+      "path": "scripts/crm-needs-review-broker.cs",
+      "sha256": "5863ff7c9d6a3280494862e42f5a43278af9bd40cdcde82b300c181ebc3693c1"
+    },
+    {
+      "path": "scripts/crm-needs-review-broker.ps1",
+      "sha256": "af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-worker.mjs",
+      "sha256": "4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"
+    },
+    {
+      "path": "scripts/crm-needs-review-journal-session.mjs",
+      "sha256": "70ae0edc36a669e47e3356a1c26a3bd3e748b6fdcce0f29c71f62f205d0e4e5d"
+    },
+    {
+      "path": "scripts/deploy-production.mjs",
+      "sha256": "5e06700eeaec68a11cad7f26b3fe4cae75a936ff8acbc88a7463ae27e0842265"
     },
     {
       "path": "scripts/deploy-scope.mjs",
@@ -171,15 +175,31 @@
       "sha256": "1f060436f1268ed009648c6a1a4be24db6bf0850fc2448504abf9c4bb1707d0b"
     },
     {
-      "path": "scripts/deploy-secret-scan.mjs",
-      "sha256": "44384d12d679e7209a6fa61f6a4ad7b4284897ba28d337281f8edd0823e8cdbc"
+      "path": "api/_lib/crm-email-store.mjs",
+      "sha256": "607ce164663ea1ace30167999af5a2186b29fb87191a51e289f533418f1b7583"
     },
     {
-      "path": "vercel.json",
-      "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
+      "path": "src/crm/leadAddressChange.ts",
+      "sha256": "b900692d08d9207f3c97d0c042bdddc4db51e5fde458531df62075658d111eb2"
+    },
+    {
+      "path": "src/crm/api.ts",
+      "sha256": "b4e769f62fd2c001bb704bee15bfd30bec5ad8bd22e3bef45e606417f0dd0a73"
+    },
+    {
+      "path": "src/crm/LeadDetail.tsx",
+      "sha256": "415d96b853c6ccd3d49d6df309ed634013bdf8351719ed0157f8604594a5955f"
+    },
+    {
+      "path": "src/crm/EmailThreadPanel.tsx",
+      "sha256": "3e570012fe7d3fb972f1c1f93ffe483c66c051eee36b7a3d6ddfac217e752316"
+    },
+    {
+      "path": "src/crm/i18n.tsx",
+      "sha256": "ccd317a36ede4263bce36ddef5cc7e652a9050da370367b68a1221ee579c8c6b"
     }
   ],
-  "runtimeDigest": "931c7c6e608cd4ed44e7e675490fc6f332b309819a02fa8f14604eda3ec39031",
+  "runtimeDigest": "543dc345ee81439492b172f795b29bcecaec5b2631d43ee71573aefb2bc6c0c1",
   "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }

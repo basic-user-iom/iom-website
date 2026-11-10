@@ -10,6 +10,7 @@ const EXPLICIT=Object.freeze(['crm_needs_review_email_preview','crm_needs_review
   'crm_needs_review_followup_preview','crm_needs_review_followup_confirm','crm_needs_review_contact_preview','crm_needs_review_contact_confirm',
   'crm_needs_review_contact_find','crm_needs_review_approved_send',
   'crm_needs_review_reply_list','crm_needs_review_reply_preview','crm_needs_review_reply_confirm','crm_needs_review_reply_status',
+  'crm_needs_review_address_preview','crm_needs_review_address_confirm',
   'crm_needs_review_correspondence_open'])
 export const NEEDS_REVIEW_SINGLE_TOOLS=Object.freeze(['crm_needs_review_email_preview','crm_needs_review_email_confirm','crm_needs_review_email_status'])
 export function needsReviewSingleSendEnabled(env=process.env){return env?.CRM_NEEDS_REVIEW_SINGLE_SEND_ENABLED==='true'}
@@ -71,7 +72,11 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
         email:{type:'string',maxLength:320,description:'Email address contains this text'},
         cursor:{type:'object',description:'Newer page. Stable key is occurred_at then id, oldest first.',properties:{afterOccurredAt:{type:'string',maxLength:40},afterId:{type:'string',format:'uuid'}},additionalProperties:false},
       },additionalProperties:false}},
-    {name:'crm_needs_review_reply_preview',description:'Prepare one reply in an existing stored thread. Shows the recipient, subject, and final content. Sends nothing and does not schedule.',
+    {name:'crm_needs_review_address_preview',description:'Prepare an edit of the additional addresses already stored on one contact. Shows the resulting list and checks duplicates on both accounts. Sends nothing and does not change the contact.',
+      inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},identity:{type:'string',enum:['projects','visual']},emails:{type:'array',maxItems:50,items:{type:'object',properties:{label:{type:'string',maxLength:80},email:{type:'string',maxLength:320}},required:['email'],additionalProperties:false}}},required:['leadId','emails'],additionalProperties:false}},
+    {name:'crm_needs_review_address_confirm',description:'Confirm one additional-address edit. Requires the preview digest and its own key. Does not send mail. A repeated key does not write a second change.',
+      inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},identity:{type:'string',enum:['projects','visual']},emails:{type:'array',maxItems:50,items:{type:'object',properties:{label:{type:'string',maxLength:80},email:{type:'string',maxLength:320}},required:['email'],additionalProperties:false}},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['leadId','emails','digest','idempotencyKey','confirmed'],additionalProperties:false}},
+    {name:'crm_needs_review_reply_preview',description:'Prepare one reply in an existing stored thread. Shows the card addresses, the stored message From address, the recipient, subject, and final content. Sends nothing and does not schedule.',
       inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},to:{type:'string',maxLength:320},fromIdentity:{type:'string',enum:['projects','visual']},messageIntentId:{type:'string',format:'uuid'},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},inReplyTo:{type:'string',maxLength:998},references:{type:'string',maxLength:8000}},required:['leadId','to','fromIdentity','messageIntentId','subject','body','inReplyTo'],additionalProperties:false}},
     {name:'crm_needs_review_reply_confirm',description:'Send the exact reviewed thread reply only after explicit confirmation of its review id and digest. Reuse the same idempotency key. An unknown outcome is reported and not retried. Does not open group sending.',
       inputSchema:{type:'object',properties:{reviewId:{type:'string',format:'uuid'},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['reviewId','digest','idempotencyKey','confirmed'],additionalProperties:false}},
@@ -161,7 +166,8 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
           const review=await workflow.preview(actor,{...args,kind:'followup'})
           return {reviewId:review.id,digest:review.digest,expiresAt:review.expiresAt,recipient:review.snapshot.to,subject:review.snapshot.subject,
             content:review.snapshot.text,body:review.snapshot.body,inReplyTo:review.snapshot.inReplyTo,references:review.snapshot.references||'',
-            requiresExplicitConfirmation:true,status:'review',sent:false}
+            fromIdentity:review.snapshot.fromIdentity,leadOwnerId:review.snapshot.leadOwnerId||null,
+            addresses:review.addresses||null,requiresExplicitConfirmation:true,status:'review',sent:false}
         }
         if(name==='crm_needs_review_reply_confirm'){
           fields(args,['reviewId','digest','idempotencyKey','confirmed'])
@@ -174,6 +180,17 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
         const known=['queued','sending','sent','unknown','blocked','cancelled','not_found']
         if(!known.includes(job?.status))return {status:'unreliable',retry:false}
         return {status:job.status,error:job.error||null,warning:job.status==='sending'?'delivery_in_progress_or_unknown_do_not_retry':job.warning||null,retry:false}
+      }
+      if(name==='crm_needs_review_address_preview'||name==='crm_needs_review_address_confirm'){
+        if(typeof openIndividual!=='function')fail('needs_review_connection_not_bound')
+        const workflow=openIndividual(bound)
+        if(name==='crm_needs_review_address_preview'){
+          fields(args,['leadId','identity','emails'],['leadId','emails'])
+          return workflow.addressPreview(actor,args)
+        }
+        fields(args,['leadId','identity','emails','digest','idempotencyKey','confirmed'],['leadId','emails','digest','idempotencyKey','confirmed'])
+        if(args.confirmed!==true)fail('invalid_confirmation')
+        return workflow.addressConfirm(actor,args)
       }
       if(name==='crm_needs_review_contact_preview'||name==='crm_needs_review_contact_confirm'){
         const contactArgs=['companyName','contactName','email','subject','body','timezone','tags','identity']

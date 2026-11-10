@@ -2461,6 +2461,29 @@ export async function createLead(input: LeadInput): Promise<Lead> {
   return normalizeLead(lead)
 }
 
+/** Existing staff lookup across both owners. It does not grant the email gateway a new right. */
+export async function findOtherLeadIdsByEmail(address: string, exceptLeadId: string): Promise<string[]> {
+  const needle = address.trim().toLowerCase()
+  if (!needle) return []
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase.rpc('crm_find_leads_by_email', { p_email: needle })
+    if (error) throw new Error(error.message)
+    const ids = Array.isArray(data)
+      ? data.map((row) => String((row as { id?: string }).id || '')).filter(Boolean)
+      : []
+    return [...new Set(ids.filter((id) => id !== exceptLeadId))]
+  }
+  return readLocal<Lead[]>(LEADS_KEY, [])
+    .filter((row) => {
+      if (row.id === exceptLeadId) return false
+      const primary = row.email.trim().toLowerCase() === needle
+      const extra = normalizeLeadEmails(row.emails).some((item) => item.email.trim().toLowerCase() === needle)
+      return primary || extra
+    })
+    .map((row) => row.id)
+}
+
 export async function updateLead(id: string, input: Partial<LeadInput>): Promise<Lead> {
   const patch: Partial<LeadInput> = { ...input }
   if (input.links !== undefined) {

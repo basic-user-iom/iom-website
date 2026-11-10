@@ -69,6 +69,22 @@ const email = value => {
   if (typeof value !== 'string' || !/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/.test(value.trim())) fail('invalid_recipient')
   return value.trim().toLowerCase()
 }
+export function cardRecipientAddresses(lead) {
+  const raw = [lead?.email, ...(Array.isArray(lead?.emails) ? lead.emails.map(item => item?.email ?? item) : [])]
+  return [...new Set(raw.filter(value => typeof value === 'string').map(value => value.trim().toLowerCase()).filter(Boolean))]
+}
+// A reply address is the card, or the From column of the inbound message named by this thread.
+// Subject and body are intentionally not arguments: text inside the message is not a recipient.
+export function replyRecipientDecision({ to, lead, inbound = null, threadReply = false } = {}) {
+  const card = cardRecipientAddresses(lead)
+  const target = String(to || '').trim().toLowerCase()
+  const sameLead = inbound && String(inbound.leadId || inbound.lead_id || '') === String(lead?.id || lead?.leadId || '')
+  const messageFrom = sameLead && inbound.direction === 'inbound' ? String(inbound.from || inbound.from_email || '').trim().toLowerCase() : ''
+  if (card.includes(target)) return { ok: true, source: 'card', card, messageFrom: messageFrom || null }
+  if (!threadReply || !messageFrom) return { ok: false, code: threadReply ? 'reply_sender_not_linked' : 'recipient_not_on_lead', card, messageFrom: messageFrom || null }
+  if (messageFrom === target) return { ok: true, source: 'inbound', card, messageFrom }
+  return { ok: false, code: 'recipient_not_on_lead', card, messageFrom }
+}
 export function fields(args, allowed, required = allowed) {
   if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).some(k => !allowed.includes(k))) fail('invalid_arguments')
   if (required.some(k => args[k] === undefined)) fail('missing_arguments')
@@ -482,9 +498,6 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     if (!choice.ok) fail(choice.code)
     const senderId = choice.identity
     const to = email(args.to)
-    const recipients = [lead.email, ...(Array.isArray(lead.emails) ? lead.emails.map(e => e.email) : [])]
-      .filter(v => typeof v === 'string').map(v => v.trim().toLowerCase())
-    if (!recipients.includes(to)) fail('recipient_not_on_lead')
     const identity = (await identities()).find(i => i.id === senderId && i.configured)
     if (!identity) fail(`sender_not_authorized:chosen=${senderId}:required_owner=${choice.ownerId}`)
     const from = email(identity.email)
@@ -505,6 +518,10 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       if (leadOwner && choice.ownerId !== leadOwner) fail(`cross_account_reply_needs_new_email:chosen=${choice.identity}:required_owner=${choice.ownerId}:contact_owner=${leadOwner}`)
       fail('reply_parent_not_on_lead')
     }
+    const canUseInbound = typeof store.replyInbound === 'function'
+    const inbound = parent && canUseInbound ? await store.replyInbound(actor.ownerId, lead.id, parent) : null
+    const recipient = replyRecipientDecision({ to, lead, inbound, threadReply: Boolean(parent && canUseInbound) })
+    if (!recipient.ok) fail(recipient.code)
     // Replies use a stable followup intent, preserving the DB delivery-key contract.
     if (parent && kind !== 'followup') fail('invalid_message_kind')
     const attachments = actor.kind === 'oauth' && args.attachments !== undefined
@@ -564,6 +581,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       return { ...job, status: 'unknown', error: 'delivery_accepted_receipt_unconfirmed_do_not_retry' }
     }
   }
+  async function replyAddressView(actor, content) {
+    const lead = await store.lead(actor.ownerId, content.leadId)
+    const parent = content?.inReplyTo || ''
+    const inbound = parent && lead && typeof store.replyInbound === 'function' ? await store.replyInbound(actor.ownerId, lead.id, parent) : null
+    const decision = replyRecipientDecision({ to: content.to, lead, inbound, threadReply: Boolean(parent) })
+    const primary = String(lead?.email || '').trim().toLowerCase() || null
+    return { primary, additional: decision.card.filter(value => value !== primary), messageFrom: decision.messageFrom, source: decision.source }
+  }
   const api = {
     async preview(actor, args) {
       await gate(actor, 'review')
@@ -575,13 +600,30 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       if (args.replaceLegacySchedule !== undefined && typeof args.replaceLegacySchedule !== 'boolean') fail('invalid_arguments')
       if (args.utcOffset !== undefined && args.scheduledLocal === undefined) fail('offset_requires_schedule')
       const content = await snapshot(actor, args)
+      const addresses = await replyAddressView(actor, content)
       const schedule = args.scheduledLocal === undefined ? null : belgradeSchedule(args.scheduledLocal, args.utcOffset, now())
       await validateSchedule(actor,schedule)
       const reviewed = { snapshot: content, schedule,
         ...(staffReviewMode && actor.kind==='staff'?{principal:{kind:'staff',ownerId:actor.ownerId,accessRevision:actor.accessRevision}}:{}) }
       const digest = hash(reviewed)
       const review = await store.review(actor.ownerId, { ...reviewed, digest, expiresAt: new Date(now() + 15 * 60000).toISOString() })
-      return { ...review, requiresExplicitConfirmation: true, status: 'review', note: 'Confirm the exact recipient, sender, subject, rendered content and schedule.' }
+      return { ...review, addresses, requiresExplicitConfirmation: true, status: 'review', sent: false, note: 'Confirm the exact recipient, sender, subject, rendered content and schedule.' }
+    },
+    async addressPreview(actor, args) {
+      await gate(actor, 'review')
+      fields(args, ['leadId','identity','emails'], ['leadId','emails'])
+      if (!UUID.test(args.leadId || '')) fail('invalid_lead_id')
+      if (args.identity !== undefined && args.identity !== 'projects' && args.identity !== 'visual') fail('identity_required')
+      if (typeof store.addressPlan !== 'function') fail('address_change_unavailable')
+      const plan = await store.addressPlan(actor.ownerId, args.leadId, args.emails, args.identity)
+      return { ...plan, digest: emailDigest({ leadId: plan.leadId, ownerId: plan.ownerId, emails: plan.emails }), emailAction: 'none', requiresExplicitConfirmation: true, sent: false }
+    },
+    async addressConfirm(actor, args) {
+      await gate(actor, 'review')
+      fields(args, ['leadId','identity','emails','digest','idempotencyKey','confirmed'], ['leadId','digest','idempotencyKey','confirmed'])
+      if (args.confirmed !== true || !/^[a-f0-9]{64}$/.test(args.digest || '') || !/^[A-Za-z0-9_.:-]{8,120}$/.test(args.idempotencyKey || '')) fail('invalid_confirmation')
+      if (typeof store.addressCommit !== 'function') fail('address_change_unavailable')
+      return store.addressCommit(actor.ownerId, args)
     },
     async confirm(actor, args) {
       fields(args, ['reviewId','digest','idempotencyKey','confirmed'])

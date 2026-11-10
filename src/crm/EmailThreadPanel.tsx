@@ -27,6 +27,7 @@ import {
 } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
 import { needsReviewClearPatch } from './needsReview'
+import { senderOnCard } from './leadAddressChange'
 import { applyPingLeadUpdates, enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
@@ -985,6 +986,9 @@ export function EmailThreadPanel({
                     {' · '}
                     {formatWhen(msg.occurred_at)}
                   </span>
+                  {msg.direction === 'inbound' && !senderOnCard(lead, msg.from_email) ? (
+                    <span className="crm-email-msg-meta">{t('thread.fromNotOnCard')}</span>
+                  ) : null}
                 </button>
                 {!open && !previewOn && (
                   <pre className="crm-email-msg-snippet">

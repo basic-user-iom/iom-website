@@ -1,8 +1,8 @@
-import { fail, emailDigest, emailContentDigest } from './crm-email-workflow.mjs'
+import { fail, emailDigest, emailContentDigest, replyRecipientDecision } from './crm-email-workflow.mjs'
 import { attachmentMeta, parseOutreachAttachments } from './email-attachments.js'
 import { storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
-import { assertApprovedContact, CRM_ACCOUNTS, jobOwnerForIdentity } from './crm-contact-approval.mjs'
+import { assertApprovedContact, CRM_ACCOUNTS, extraAddressChange, jobOwnerForIdentity } from './crm-contact-approval.mjs'
 
 export function sendFromCrmAllowed(row, snapshot) {
   const tags = Array.isArray(row?.tags) ? row.tags.map(tag => String(tag).trim().toLowerCase()) : []
@@ -90,15 +90,29 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     from public.crm_leads l where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 ${lock?'for update of l':''}`,[staffPair?owner:targetOwner,id])).rows[0]
     } finally { await hideVisual(c, owner, targetOwner) }
   }
-  function validateLead(row,snapshot) {
+  async function readInbound(c, actorOwner, leadId, messageId, leadOwner) {
+    if (!messageId) return null
+    await seeVisual(c, actorOwner, leadOwner)
+    try {
+      const row = (await c.query(`/* nr:reply-inbound */ select m.lead_id, m.direction, m.from_email, m.message_id
+        from public.crm_lead_messages m
+        join public.crm_leads l on l.id=m.lead_id
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
+          and l.id=$2 and lower(m.message_id)=lower($3) and m.direction='inbound'
+        limit 1`, [staffPair ? actorOwner : leadOwner, leadId, messageId])).rows[0]
+      if (!row) return null
+      return { leadId: row.lead_id, direction: row.direction, from: String(row.from_email || '').trim().toLowerCase(), messageId: row.message_id }
+    } finally { await hideVisual(c, actorOwner, leadOwner) }
+  }
+  function validateLead(row,snapshot,inbound=null) {
     if (!row) fail('lead_not_found')
     if(requireContactApproval && !sendFromCrmAllowed(row,snapshot)) assertApprovedContact({ownerId:row.owner_id,leadId:snapshot.leadId,to:snapshot.to},row)
     if (snapshot.kind==='initial') {
       if (row.initial_email_sent_at || row.has_outbound) fail('initial_email_already_sent')
       if (String(row.initial_email_subject || '').trim()!==snapshot.subject || String(row.initial_email_body || '').trim()!==snapshot.body) fail('review_stale')
     }
-    const recipients=[row.email,...(Array.isArray(row.emails)?row.emails.map(x=>x.email):[])].map(x=>String(x||'').trim().toLowerCase())
-    if (!recipients.includes(snapshot.to)) fail('recipient_not_on_lead')
+    const decision = replyRecipientDecision({ to: snapshot.to, lead: row, inbound, threadReply: Boolean(snapshot.inReplyTo) })
+    if (!decision.ok) fail(decision.code)
     if (row.scheduled_send && emailDigest(row.scheduled_send)!==emailDigest(snapshot.legacySchedule)) fail('legacy_schedule_requires_review')
   }
   const get = async(owner,id)=>mapJob((await query(owner,'select * from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0])
@@ -117,12 +131,13 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     try { return await transaction(owner,async c=>{
       const leadOwner = review.snapshot.leadOwnerId || owner
       const row=await lead(c,owner,review.snapshot.leadId,true,leadOwner)
+      const inbound=review.snapshot.inReplyTo ? await readInbound(c, owner, review.snapshot.leadId, review.snapshot.inReplyTo, leadOwner) : null
       const prior=(await c.query('select review_id,job_id from crm_email_private.commands where owner_id=$1 and idempotency_key=$2',[owner,key])).rows[0]
       if (prior) {
         if (prior.review_id!==review.id) fail('idempotency_conflict')
         return mapJob((await c.query('select * from crm_email_private.jobs where id=$1',[prior.job_id])).rows[0])
       }
-      validateLead(row,review.snapshot)
+      validateLead(row,review.snapshot,inbound)
       await validateIntent(c,owner,review.snapshot)
       if (Date.parse(review.expiresAt)<=now) fail('review_expired')
       const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,
@@ -154,6 +169,35 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     if(snapshot.kind!=='followup')return
     const r=(await c.query('select snapshot from crm_email_private.message_intents where owner_id=$1 and id=$2',[owner,snapshot.messageIntentId])).rows[0]
     if(!r || emailContentDigest(r.snapshot)!==emailContentDigest(snapshot))fail('message_intent_content_mismatch')
+  }
+  async function planStoredAddresses(c, owner, leadId, emails, identity) {
+    const projectsOwner = CRM_ACCOUNTS.projects.ownerId
+    const wanted = identity === 'visual' ? visualOwner : identity === 'projects' ? projectsOwner : null
+    let row = await lead(c, owner, leadId, false, wanted || owner)
+    if (!row && !wanted && owner === projectsOwner) row = await lead(c, owner, leadId, false, visualOwner)
+    if (!row) fail('lead_not_found')
+    if (wanted && row.owner_id !== wanted) fail('address_account_mismatch')
+    const matches = []
+    const prepared = extraAddressChange({ lead: row, emails, matches: [] })
+    if (!prepared.ok) fail(prepared.code)
+    const list = prepared.emails.map(item => item.email)
+    for (const target of [projectsOwner, visualOwner]) {
+      await seeVisual(c, owner, target)
+      try {
+        const found = list.length ? await c.query(`/* nr:address-duplicates */ select id, owner_id from public.crm_leads l
+          where l.owner_id=$1 and l.id<>$2 and (
+            lower(btrim(l.email)) = any($3::text[])
+            or exists (
+              select 1 from jsonb_array_elements(case when jsonb_typeof(l.emails)='array' then l.emails else '[]'::jsonb end) extra
+              where lower(btrim(coalesce(extra->>'email',''))) = any($3::text[])
+            )
+          )`, [target, row.id, list]) : { rows: [] }
+        matches.push(...found.rows)
+      } finally { await hideVisual(c, owner, target) }
+    }
+    const plan = extraAddressChange({ lead: row, emails, matches })
+    if (!plan.ok) fail(plan.code)
+    return { ...plan, leadId: row.id, ownerId: row.owner_id, identity: row.owner_id === visualOwner ? 'visual' : 'projects' }
   }
   return {
     contactApprovalRequired:requireContactApproval===true,
@@ -320,6 +364,41 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         ?{afterOccurredAt:stamp(last.occurred_at),afterId:String(last.id)}:undefined
       return {leads:[chosen],choiceRequired:false,truncated:result.rows.length>400,messages,...(next?{next}:{})}
     },
+    async addressPlan(owner, leadId, emails, identity) {
+      if (!capabilityBinding) fail('address_change_unavailable')
+      return transaction(owner, async c => planStoredAddresses(c, owner, leadId, emails, identity))
+    },
+    async addressCommit(owner, args) {
+      if (!capabilityBinding) fail('address_change_unavailable')
+      try { return await transaction(owner, async c => {
+        const prior = (await c.query(`/* nr:address-replay */ select result from crm_capability_private.commands
+          where owner_id=$1 and idempotency_key=$2 and from_identity=$3 and grant_family=$4 and access_revision=$5 and kind='address'`,
+          [capabilityBinding.ownerId, args.idempotencyKey, capabilityBinding.fromIdentity, capabilityBinding.grantFamily, capabilityBinding.accessRevision])).rows[0]
+        if (prior?.result) return { ...prior.result, replayed: true, emailAction: 'none', sent: false }
+        const plan = await planStoredAddresses(c, owner, args.leadId, args.emails, args.identity)
+        const digest = emailDigest({ leadId: plan.leadId, ownerId: plan.ownerId, emails: plan.emails })
+        if (digest !== args.digest) fail('address_review_digest_mismatch')
+        const saved = (await c.query(`/* nr:address-update */ update public.crm_leads set emails=$1::jsonb where id=$2 and owner_id=$3 returning id, owner_id`,
+          [JSON.stringify(plan.emails), plan.leadId, plan.ownerId])).rows[0]
+        if (!saved || saved.owner_id !== plan.ownerId) fail('address_not_saved')
+        const result = { updated: true, leadId: plan.leadId, ownerId: saved.owner_id, identity: plan.identity, added: plan.added, edited: plan.edited, removed: plan.removed, emailAction: 'none', sent: false, replayed: false }
+        await c.query(`/* nr:address-command */ insert into crm_capability_private.commands
+          (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
+          values($1,$2,$3,$4,$5,'address',$6,$7::jsonb)`,
+          [capabilityBinding.ownerId, args.idempotencyKey, capabilityBinding.fromIdentity, capabilityBinding.grantFamily, capabilityBinding.accessRevision, digest, JSON.stringify(result)])
+        return result
+      }) } catch (error) {
+        if (error?.code === '42501') return { updated: false, emailAction: 'none', sent: false, error: '42501', cause: 'emails_column_update_required', column: 'emails' }
+        throw error
+      }
+    },
+    async replyInbound(owner,leadId,messageId) {
+      const ask = async target => transaction(owner, async c => readInbound(c, owner, leadId, messageId, target))
+      const found = await ask(owner)
+      if (found) return found
+      const other = owner === CRM_ACCOUNTS.projects.ownerId ? visualOwner : owner === visualOwner ? CRM_ACCOUNTS.projects.ownerId : null
+      return other ? ask(other) : null
+    },
     async replyParent(owner,leadId,messageId) {
       const ask = async target => transaction(owner, async c => {
         await seeVisual(c, owner, target)
@@ -411,7 +490,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         const dueMs=+new Date(current.due_at)
         const waiting=Number.isFinite(dueMs)&&dueMs>now
         if(current.status!=='queued' || current.version!==(version ?? before.version) || waiting) return undefined
-        validateLead(row,current.data.snapshot)
+        const inbound=current.data?.snapshot?.inReplyTo ? await readInbound(c, owner, current.lead_id, current.data.snapshot.inReplyTo, leadOwner) : null
+        validateLead(row,current.data.snapshot,inbound)
         await validateIntent(c,owner,current.data.snapshot)
         return mapJob((await c.query("update crm_email_private.jobs set status='sending',version=version+1,updated_at=now() where id=$1 returning *",[id])).rows[0])
       })
@@ -428,7 +508,10 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         if(requireContactApproval) approvedLead=await lead(c,owner,loaded.lead_id,true,leadOwner)
         const job=(await c.query("select * from crm_email_private.jobs where owner_id=$1 and id=$2 and status='sending' for update",[owner,id])).rows[0]
         if(!job || job.delivery_started || emailContentDigest(job.data.snapshot)!==emailContentDigest(snapshot)) fail('delivery_claim_invalid_or_consumed')
-        if(requireContactApproval) validateLead(approvedLead,job.data.snapshot)
+        if(requireContactApproval) {
+          const inbound=job.data?.snapshot?.inReplyTo ? await readInbound(c, owner, loaded.lead_id, job.data.snapshot.inReplyTo, leadOwner) : null
+          validateLead(approvedLead,job.data.snapshot,inbound)
+        }
         await validateIntent(c,owner,snapshot)
         if(capabilityJobRequiresStarts(job.data))assertCapabilityStarts()
         await c.query('update crm_email_private.jobs set delivery_started=true where id=$1',[id])

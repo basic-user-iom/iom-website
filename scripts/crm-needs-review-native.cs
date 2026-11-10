@@ -111,7 +111,7 @@ namespace IomJournal {
       }
     }
     public static void Write(SafeFileHandle h,byte[] bytes) {
-      if(bytes.Length>593754+128) throw new IOException("handle_write_too_large");
+      if(bytes.Length>631818+128) throw new IOException("handle_write_too_large");
       uint count;
       if(!WriteFile(h,bytes,(uint)bytes.Length,out count,IntPtr.Zero) || count!=bytes.Length || !FlushFileBuffers(h))
         throw new IOException("handle_write_failed_unknown_outcome");

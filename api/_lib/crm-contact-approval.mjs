@@ -211,6 +211,36 @@ export function presentAccountMatches(leads, identity) {
 }
 // An oauth job cannot be stored for the visual owner with the current policies.
 // Search can use the existing staff-pair read. Sending is not claimed.
+const extraAddressPattern = /^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/
+export function extraAddressChange({ lead, emails, matches = [] } = {}) {
+  if (!Array.isArray(emails) || emails.length > 50) return { ok: false, code: 'invalid_address_list' }
+  const next = []
+  const seen = new Set()
+  for (const row of emails) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return { ok: false, code: 'invalid_address_list' }
+    const label = typeof row.label === 'string' ? row.label.trim().slice(0, 80) : ''
+    const email = typeof row.email === 'string' ? row.email.trim().toLowerCase() : ''
+    if (!email) continue
+    if (email.length > 320 || !extraAddressPattern.test(email)) return { ok: false, code: 'invalid_address' }
+    if (seen.has(email)) return { ok: false, code: 'address_duplicate' }
+    seen.add(email)
+    next.push({ label: label || email, email })
+  }
+  const primary = String(lead?.email || '').trim().toLowerCase()
+  if (primary && next.some(row => row.email === primary)) return { ok: false, code: 'address_duplicate' }
+  const leadId = String(lead?.id || lead?.leadId || '')
+  const conflict = (Array.isArray(matches) ? matches : []).find(match => String(match?.id || '') !== leadId)
+  if (conflict) return { ok: false, code: 'address_duplicate', ownerId: conflict.ownerId || conflict.owner_id || null }
+  const before = new Map((Array.isArray(lead?.emails) ? lead.emails : []).filter(row => row && typeof row.email === 'string' && row.email.trim()).map(row => [row.email.trim().toLowerCase(), String(row.label || '').trim()]))
+  const after = new Map(next.map(row => [row.email, row.label]))
+  let added = 0, edited = 0, removed = 0
+  for (const [email, label] of after) {
+    if (!before.has(email)) added += 1
+    else if (before.get(email) !== label) edited += 1
+  }
+  for (const email of before.keys()) if (!after.has(email)) removed += 1
+  return { ok: true, emails: next, added, edited, removed, ownerId: lead?.owner_id || lead?.ownerId || null }
+}
 export const VISUAL_JOB_BLOCK = Object.freeze({
   reason: 'visual_job_not_authorized',
   policy: 'crm_email_private.jobs credential_owner',

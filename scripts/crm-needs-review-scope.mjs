@@ -42,4 +42,5 @@ export const NEEDS_REVIEW_TOOLING_FILES=Object.freeze([
   "scripts/incremental-r2-release.mjs",
   "scripts/git-batch-reader.mjs"
 ]);
-export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json","api/_lib/crm-email-store.mjs"]);
+export const NEEDS_REVIEW_SCOPE_FILES=Object.freeze([...NEEDS_REVIEW_RUNTIME_FILES,...NEEDS_REVIEW_TOOLING_FILES,"config/crm-needs-review-release.json","api/_lib/crm-email-store.mjs",
+  "src/crm/leadAddressChange.ts","src/crm/api.ts","src/crm/LeadDetail.tsx","src/crm/EmailThreadPanel.tsx","src/crm/i18n.tsx"]);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { claimLeadOwner, deleteLead, getLead, listActivities, listLeadMessages, updateLead } from './api'
+import { claimLeadOwner, createActivity, deleteLead, findOtherLeadIdsByEmail, getLead, listActivities, listLeadMessages, updateLead } from './api'
 import { ActivityPanel } from './ActivityPanel'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
@@ -12,6 +12,7 @@ import { LeadNdaPanel } from './LeadNdaPanel'
 import { LeadForm } from './LeadForm'
 import { beginLeadEdit, canStartLeadEdit, type DetailLoadStatus } from './leadFormHydration'
 import { normalizeLeadEmails } from './api'
+import { describeExtraAddressChange } from './leadAddressChange'
 import { LeadTagsDisplay } from './LeadTagsField'
 import { hasNeedsReview, normalizeLeadTags, withoutNeedsReview } from './leadTags'
 import { isContactPriority } from './outreach'
@@ -216,7 +217,30 @@ export function LeadDetail({
       closeEdit()
       return
     }
-    const updated = await updateLead(lead.id, input)
+    const addressChange = input.emails
+      ? describeExtraAddressChange(lead, normalizeLeadEmails(input.emails))
+      : null
+    if (addressChange && !addressChange.ok) throw new Error(t('form.emailDuplicate'))
+    if (addressChange?.ok) {
+      for (const row of addressChange.emails) {
+        const others = await findOtherLeadIdsByEmail(row.email, lead.id)
+        if (others.length) throw new Error(t('form.emailDuplicate'))
+      }
+    }
+    const updated = await updateLead(lead.id, addressChange?.ok ? { ...input, emails: addressChange.emails } : input)
+    if (addressChange?.ok && (addressChange.added || addressChange.edited || addressChange.removed)) {
+      await createActivity({
+        lead_id: lead.id,
+        type: 'note',
+        subject: t('form.emailsChangedSubject'),
+        body: t('form.emailsChangedBody', {
+          added: addressChange.added,
+          edited: addressChange.edited,
+          removed: addressChange.removed,
+        }),
+        occurred_at: new Date().toISOString(),
+      })
+    }
     closeEdit()
     onChanged(updated)
   }

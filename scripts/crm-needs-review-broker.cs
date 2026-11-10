@@ -14,7 +14,7 @@ using System.Web.Script.Serialization;
 namespace IomJournal {
   public sealed class Session : IDisposable {
     const string WalName="state-wal.log";
-    const int MaxState=593754, MaxWal=37933243;
+    const int MaxState=631818, MaxWal=42944162;
     readonly string directory;
     readonly PinnedChain chain;
     readonly Dictionary<string,PinnedEvidence> files=new Dictionary<string,PinnedEvidence>(StringComparer.OrdinalIgnoreCase);
@@ -134,7 +134,7 @@ namespace IomJournal {
       while(true) {
         int ch=reader.Read(); if(ch<0) { if(text.Length==0) return null; throw new IOException("broker_incomplete_request"); }
         if(ch==10) return text.ToString();
-        if(text.Length>=800000) throw new IOException("broker_request_too_large");
+        if(text.Length>=842451) throw new IOException("broker_request_too_large");
         text.Append((char)ch);
       }
     }
