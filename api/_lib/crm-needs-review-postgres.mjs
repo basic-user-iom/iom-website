@@ -338,16 +338,19 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
             [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision,contact.digest,JSON.stringify(duplicate)])
           return {...duplicate,replayed:false}
         }
+        if(contact.temperature!=='cold'&&contact.temperature!=='warm')fail('invalid_temperature')
         if(contact.identity==='visual') await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+        // Status stays new and contact_priority stays false for the existing insert policy.
+        // Temperature is the reviewed choice; an omitted choice was already stored as cold.
         const created=(await c.query(`/* nr:contact */ insert into public.crm_leads(${CONTACT_INSERT_COLUMNS.join(',')})
-          values($1,$2,$3,$4,'new','warm',$5::jsonb,'[]'::jsonb,'[]'::jsonb,$6,$7,
+          values($1,$2,$3,$4,'new',$9,$5::jsonb,'[]'::jsonb,'[]'::jsonb,$6,$7,
             case when length(btrim($6))>0 and length(btrim($7))>0 then clock_timestamp() else null end,
             null,null,false,$8,'','','','','','','')
-          returning id`,[accountOwner,contact.companyName,contact.contactName,contact.email,JSON.stringify(plan.tags),
-            contact.subject||'',contact.body||'',contact.timezone||''])).rows[0]
+          returning id, owner_id, temperature`,[accountOwner,contact.companyName,contact.contactName,contact.email,JSON.stringify(plan.tags),
+            contact.subject||'',contact.body||'',contact.timezone||'',contact.temperature])).rows[0]
         if(contact.identity==='visual') await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")
-        if(!created?.id)fail('invalid_contact_source')
-        const result={leadId:created.id,alreadyExists:false,inserted:true,emailAction:'none',underRevision:true,status:'new',identity:contact.identity==='visual'?'visual':'projects',ownerId:accountOwner}
+        if(!created?.id||created.owner_id!==accountOwner||created.temperature!==contact.temperature)fail('invalid_contact_source')
+        const result={leadId:created.id,alreadyExists:false,inserted:true,emailAction:'none',underRevision:true,status:'new',temperature:created.temperature,identity:contact.identity==='visual'?'visual':'projects',ownerId:created.owner_id}
         await c.query(`/* nr:contact-command */ insert into crm_capability_private.commands
           (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
           values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,
@@ -356,6 +359,59 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
       }) } catch (error) {
         if (error?.code !== '42501') throw error
         return {leadId:null,alreadyExists:false,inserted:false,emailAction:'none',error:'42501',cause:'row_level_security'}
+      }
+    },
+    async planTemperature(b,leadId,identity){
+      if(identity!=='projects'&&identity!=='visual')fail('identity_required')
+      id(leadId)
+      return transaction(b,null,async c=>{
+        const accountOwner=identity==='visual'?CRM_ACCOUNTS.visual.ownerId:pin.ownerId
+        if(identity==='visual')await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+        try{
+          const row=(await c.query(`/* nr:temperature-read */ select id, owner_id, temperature, status from public.crm_leads where id=$1 and owner_id=$2`,[leadId,accountOwner])).rows[0]
+          if(!row||row.owner_id!==accountOwner)fail('lead_not_found')
+          return {leadId:row.id,ownerId:row.owner_id,identity,current:row.temperature,status:row.status,emailAction:'none',sent:false}
+        }finally{
+          if(identity==='visual')await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")
+        }
+      })
+    },
+    async changeTemperature(b,change,idempotencyKey){
+      if(!change||change.operation!=='set_temperature'||(change.temperature!=='cold'&&change.temperature!=='warm'))fail('invalid_temperature')
+      if(change.identity!=='projects'&&change.identity!=='visual')fail('identity_required')
+      if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(idempotencyKey||''))fail('invalid_confirmation')
+      id(change.leadId)
+      try { return await transaction(b,null,async c=>{
+        // The live command check allows contact and batch. This action stays a separate
+        // confirmation, and its stored result is marked set_temperature so a contact-create
+        // key cannot change the label.
+        const prior=(await c.query(`/* nr:temperature-replay */ select result from crm_capability_private.commands
+          where owner_id=$1 and idempotency_key=$2 and from_identity=$3 and grant_family=$4 and access_revision=$5 and kind='contact'`,
+          [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision])).rows[0]
+        if(prior?.result){
+          if(prior.result.operation!=='set_temperature')fail('idempotency_key_already_used')
+          return {...prior.result,replayed:true,emailAction:'none',sent:false}
+        }
+        const accountOwner=change.identity==='visual'?CRM_ACCOUNTS.visual.ownerId:pin.ownerId
+        if(change.ownerId!==accountOwner)fail('temperature_account_mismatch')
+        const expected=emailDigest({operation:'set_temperature',leadId:change.leadId,ownerId:accountOwner,identity:change.identity,temperature:change.temperature})
+        if(expected!==change.digest)fail('temperature_review_digest_mismatch')
+        if(change.identity==='visual')await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+        const current=(await c.query(`/* nr:temperature-read */ select id, owner_id, temperature from public.crm_leads where id=$1 and owner_id=$2`,[change.leadId,accountOwner])).rows[0]
+        if(!current||current.owner_id!==accountOwner)fail('lead_not_found')
+        const saved=(await c.query(`/* nr:temperature-update */ update public.crm_leads set temperature=$1 where id=$2 and owner_id=$3 returning id, owner_id, temperature`,
+          [change.temperature,change.leadId,accountOwner])).rows[0]
+        if(change.identity==='visual')await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")
+        if(!saved||saved.owner_id!==accountOwner||saved.temperature!==change.temperature)fail('temperature_not_saved')
+        const result={operation:'set_temperature',updated:true,leadId:saved.id,ownerId:saved.owner_id,identity:change.identity,temperature:saved.temperature,previous:current.temperature,emailAction:'none',sent:false,replayed:false}
+        await c.query(`/* nr:temperature-command */ insert into crm_capability_private.commands
+          (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
+          values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,
+          [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision,change.digest,JSON.stringify(result)])
+        return result
+      }) } catch (error) {
+        if (error?.code !== '42501') throw error
+        return {updated:false,emailAction:'none',sent:false,error:'42501',cause:'temperature_column_update_required',column:'temperature'}
       }
     },
   })

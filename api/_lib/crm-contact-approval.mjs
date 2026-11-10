@@ -112,10 +112,20 @@ function tagList(value){
   if(!Array.isArray(value)||value.length>20||value.some(tag=>typeof tag!=='string'||tag.length>40||tag.includes('\0')))fail('invalid_contact_source')
   return value.map(tag=>tag.trim()).filter(Boolean)
 }
+// A new uncontacted contact is cold unless the caller explicitly chooses warm.
+// Hot and every other label are rejected here; this choice does not send mail.
+export function contactTemperature(value,{required=false}={}){
+  if(value===undefined){
+    if(required)fail('invalid_temperature')
+    return 'cold'
+  }
+  if(value!=='cold'&&value!=='warm')fail('invalid_temperature')
+  return value
+}
 /** Review a new contact. This is not a send and not a needs-review approval. */
 export function prepareContactCreate(args){
   if(!object(args))fail('invalid_contact_arguments')
-  const allowed=['companyName','contactName','email','subject','body','timezone','tags','identity']
+  const allowed=['companyName','contactName','email','subject','body','timezone','tags','identity','temperature']
   if(Object.keys(args).some(key=>!allowed.includes(key))||args.email===undefined)fail('invalid_contact_arguments')
   if(args.identity!==undefined && args.identity!=='projects' && args.identity!=='visual')fail('identity_required')
   const companyName=text(args.companyName??'',2000).trim()
@@ -128,7 +138,8 @@ export function prepareContactCreate(args){
   const listed=tagList(args.tags)
   const tags=listed.some(tag=>tagKey(tag)==='needs-review')?listed:[...listed,'needs-review']
   const identity=args.identity==='visual'?'visual':'projects'
-  const draft={schemaVersion:1,operation:'create_contact',companyName,contactName,email,subject,body,timezone:storedZone(args.timezone),tags,identity}
+  const temperature=contactTemperature(args.temperature)
+  const draft={schemaVersion:1,operation:'create_contact',companyName,contactName,email,subject,body,timezone:storedZone(args.timezone),tags,identity,temperature}
   return {...draft,digest:emailDigest(draft)}
 }
 /** Duplicate addresses are reported. A new row is Under revision and is not a send. */
@@ -153,6 +164,16 @@ export function confirmContactCreate(args,draft){
   if(!digestPattern.test(args.digest||'')||!draft||args.digest!==draft.digest||emailDigest({...draft,digest:undefined})!==draft.digest)fail('contact_review_digest_mismatch')
   if(!/^[A-Za-z0-9_.:-]{8,120}$/.test(args.idempotencyKey||''))fail('invalid_confirmation')
   return {operation:'create_contact',emailAction:'none',commandKey:`contact-create:${draft.digest}`,idempotencyKey:args.idempotencyKey,contact:{...draft}}
+}
+/** Review a temperature label for a contact that already exists. This does not move the owner or send mail. */
+export function prepareTemperatureChange({leadId,ownerId,identity,temperature}={}){
+  if(!uuid.test(leadId||'')||!uuid.test(ownerId||''))fail('invalid_contact_arguments')
+  if(identity!=='projects'&&identity!=='visual')fail('identity_required')
+  const account=accountByIdentity(identity)
+  if(!account||ownerId!==account.ownerId)fail('temperature_account_mismatch')
+  const chosen=contactTemperature(temperature,{required:true})
+  const draft={operation:'set_temperature',leadId,ownerId:account.ownerId,identity,temperature:chosen}
+  return {...draft,digest:emailDigest(draft)}
 }
 
 // The two staff-pair logins. A lead stays on the owner that already holds it.

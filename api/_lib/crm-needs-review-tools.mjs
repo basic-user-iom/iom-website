@@ -1,7 +1,7 @@
 import {fields,fail,planApprovedSend} from './crm-email-workflow.mjs'
 import {retainPrivateAttachments} from './crm-needs-review-attachments.mjs'
 import {BATCH_POLICY,groupWindowLabel} from './crm-email-batch-policy.mjs'
-import {confirmContactCreate,prepareContactCreate} from './crm-contact-approval.mjs'
+import {confirmContactCreate,contactTemperature,prepareContactCreate,prepareTemperatureChange} from './crm-contact-approval.mjs'
 
 // Registration remains the host's explicit responsibility. No send/worker tool:
 // the authenticated host worker invokes the separately supplied dispatcher.
@@ -11,6 +11,7 @@ const EXPLICIT=Object.freeze(['crm_needs_review_email_preview','crm_needs_review
   'crm_needs_review_contact_find','crm_needs_review_approved_send',
   'crm_needs_review_reply_list','crm_needs_review_reply_preview','crm_needs_review_reply_confirm','crm_needs_review_reply_status',
   'crm_needs_review_address_preview','crm_needs_review_address_confirm',
+  'crm_needs_review_temperature_preview','crm_needs_review_temperature_confirm',
   'crm_needs_review_correspondence_open'])
 export const NEEDS_REVIEW_SINGLE_TOOLS=Object.freeze(['crm_needs_review_email_preview','crm_needs_review_email_confirm','crm_needs_review_email_status'])
 export function needsReviewSingleSendEnabled(env=process.env){return env?.CRM_NEEDS_REVIEW_SINGLE_SEND_ENABLED==='true'}
@@ -49,10 +50,14 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
       inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},to:{type:'string',maxLength:320},fromIdentity:{type:'string',enum:['projects','visual']},messageIntentId:{type:'string',format:'uuid'},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},scheduledLocal:{type:'string'},utcOffset:{type:'string',enum:['+01:00','+02:00']}},required:['leadId','to','fromIdentity','messageIntentId','subject','body'],additionalProperties:false}},
     {name:'crm_needs_review_followup_confirm',description:'Send one reviewed follow-up only after explicit confirmation of its review id and digest. Uses its own idempotency key. An unknown outcome is not retried. Does not open group sending.',
       inputSchema:{type:'object',properties:{reviewId:{type:'string',format:'uuid'},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['reviewId','digest','idempotencyKey','confirmed'],additionalProperties:false}},
-    {name:'crm_needs_review_contact_preview',description:'Review a new contact. Shows the name, address and optional draft. identity is projects or visual; an omitted identity stays on projects. Sends nothing and does not insert the contact.',
-      inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},identity:{type:'string',enum:['projects','visual']}},required:['email'],additionalProperties:false}},
-    {name:'crm_needs_review_contact_confirm',description:'Insert one reviewed contact only after explicit confirmation of its digest. identity must match the preview. A projects contact stays on the projects owner and a visual contact stays on the visual owner. Does not send mail. Creating a contact and sending mail remain separate confirmations.',
-      inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},identity:{type:'string',enum:['projects','visual']},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['email','digest','idempotencyKey','confirmed'],additionalProperties:false}},
+    {name:'crm_needs_review_contact_preview',description:'Review a new contact. Shows the name, address, optional draft, and the cold or warm label that will be stored. An omitted label is cold. identity is projects or visual; an omitted identity stays on projects. Sends nothing and does not insert the contact.',
+      inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},identity:{type:'string',enum:['projects','visual']},temperature:{type:'string',enum:['cold','warm']}},required:['email'],additionalProperties:false}},
+    {name:'crm_needs_review_contact_confirm',description:'Insert one reviewed contact only after explicit confirmation of its digest. The stored label is the previewed cold or warm value. identity must match the preview. A projects contact stays on the projects owner and a visual contact stays on the visual owner. Does not send mail. Creating a contact and sending mail remain separate confirmations.',
+      inputSchema:{type:'object',properties:{companyName:{type:'string',maxLength:2000},contactName:{type:'string',maxLength:2000},email:{type:'string',maxLength:320},subject:{type:'string',maxLength:300},body:{type:'string',maxLength:50000},timezone:{type:'string',maxLength:80},tags:{type:'array',items:{type:'string',maxLength:40}},identity:{type:'string',enum:['projects','visual']},temperature:{type:'string',enum:['cold','warm']},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['email','digest','idempotencyKey','confirmed'],additionalProperties:false}},
+    {name:'crm_needs_review_temperature_preview',description:'Review a cold or warm label for one existing contact. Shows the label that will be stored. Does not change the owner, does not send mail, and does not write the label.',
+      inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},identity:{type:'string',enum:['projects','visual']},temperature:{type:'string',enum:['cold','warm']}},required:['leadId','identity','temperature'],additionalProperties:false}},
+    {name:'crm_needs_review_temperature_confirm',description:'Change the cold or warm label of one existing contact after explicit confirmation of its digest. Uses its own idempotency key. Does not change the owner and does not send mail. A repeated key returns the first result.',
+      inputSchema:{type:'object',properties:{leadId:{type:'string',format:'uuid'},identity:{type:'string',enum:['projects','visual']},temperature:{type:'string',enum:['cold','warm']},digest:{type:'string',pattern:'^[a-f0-9]{64}$'},idempotencyKey:{type:'string',minLength:8,maxLength:120},confirmed:{type:'boolean',const:true}},required:['leadId','identity','temperature','digest','idempotencyKey','confirmed'],additionalProperties:false}},
     {name:'crm_needs_review_reply_list',description:'Search stored incoming replies, newest page first (at most 400). identity projects or visual limits the list to that account. An omitted identity returns both accounts, and each reply names its own account. A visual reply is not listed as a projects reply. Filter by company, contact, email, subject, or period. A calendar date is a Europe/Belgrade day; period.to and to are exclusive for a timestamp. The stable page key is occurred_at then id. Pass cursor.beforeOccurredAt and cursor.beforeId, or next.beforeOccurredAt and next.beforeId, for the next older page. A newer message that arrives while paging stays on the first page and is not repeated. The result includes truncated, incomplete, and next. Answered means any stored outbound message is later than that reply. Older mail outside this stored page is not marked complete. Sends nothing and writes nothing.',
       inputSchema:{type:'object',properties:{
         company:{type:'string',maxLength:200,description:'Company name contains this text'},
@@ -193,18 +198,36 @@ export function createNeedsReviewTools({binding,enabled=()=>false,startsEnabled=
         return workflow.addressConfirm(actor,args)
       }
       if(name==='crm_needs_review_contact_preview'||name==='crm_needs_review_contact_confirm'){
-        const contactArgs=['companyName','contactName','email','subject','body','timezone','tags','identity']
+        const contactArgs=['companyName','contactName','email','subject','body','timezone','tags','identity','temperature']
         if(name==='crm_needs_review_contact_preview'){
           fields(args,contactArgs,['email'])
           const draft=prepareContactCreate(args)
-          return {digest:draft.digest,contact:{companyName:draft.companyName,contactName:draft.contactName,email:draft.email,subject:draft.subject,body:draft.body,timezone:draft.timezone,tags:draft.tags},emailAction:'none',requiresExplicitConfirmation:true}
+          return {digest:draft.digest,contact:{companyName:draft.companyName,contactName:draft.contactName,email:draft.email,subject:draft.subject,body:draft.body,timezone:draft.timezone,tags:draft.tags,temperature:draft.temperature,identity:draft.identity},emailAction:'none',requiresExplicitConfirmation:true}
         }
         fields(args,[...contactArgs,'digest','idempotencyKey','confirmed'],['email','digest','idempotencyKey','confirmed'])
         const draft=prepareContactCreate(Object.fromEntries(contactArgs.filter(key=>args[key]!==undefined).map(key=>[key,args[key]])))
         const decision=confirmContactCreate(args,draft)
         if(typeof openContacts!=='function')fail('needs_review_connection_not_bound')
         const saved=await openContacts(bound).create(decision.contact,decision.idempotencyKey)
-        return {leadId:saved?.leadId||null,status:saved?.status||null,identity:saved?.identity||null,ownerId:saved?.ownerId||null,alreadyExists:saved?.alreadyExists===true,inserted:saved?.inserted===true,replayed:saved?.replayed===true,emailAction:'none',underRevision:saved?.underRevision===true,choiceRequired:saved?.choiceRequired===true,question:saved?.question||null,matches:Array.isArray(saved?.matches)?saved.matches:[],digest:draft.digest,error:saved?.error||null,cause:saved?.cause||null}
+        return {leadId:saved?.leadId||null,status:saved?.status||null,temperature:saved?.temperature??null,identity:saved?.identity||null,ownerId:saved?.ownerId||null,alreadyExists:saved?.alreadyExists===true,inserted:saved?.inserted===true,replayed:saved?.replayed===true,emailAction:'none',underRevision:saved?.underRevision===true,choiceRequired:saved?.choiceRequired===true,question:saved?.question||null,matches:Array.isArray(saved?.matches)?saved.matches:[],digest:draft.digest,error:saved?.error||null,cause:saved?.cause||null}
+      }
+      if(name==='crm_needs_review_temperature_preview'||name==='crm_needs_review_temperature_confirm'){
+        if(typeof openStore!=='function')fail('needs_review_connection_not_bound')
+        const store=openStore(bound)
+        if(name==='crm_needs_review_temperature_preview'){
+          fields(args,['leadId','identity','temperature'])
+          contactTemperature(args.temperature,{required:true})
+          const plan=await store.planTemperature(bound,args.leadId,args.identity)
+          const draft=prepareTemperatureChange({leadId:plan.leadId,ownerId:plan.ownerId,identity:args.identity,temperature:args.temperature})
+          return {leadId:plan.leadId,ownerId:plan.ownerId,identity:plan.identity,current:plan.current,temperature:draft.temperature,status:plan.status,digest:draft.digest,emailAction:'none',requiresExplicitConfirmation:true,sent:false}
+        }
+        fields(args,['leadId','identity','temperature','digest','idempotencyKey','confirmed'],['leadId','identity','temperature','digest','idempotencyKey','confirmed'])
+        if(args.confirmed!==true||!/^[a-f0-9]{64}$/.test(args.digest||''))fail('invalid_confirmation')
+        contactTemperature(args.temperature,{required:true})
+        const plan=await store.planTemperature(bound,args.leadId,args.identity)
+        const draft=prepareTemperatureChange({leadId:plan.leadId,ownerId:plan.ownerId,identity:args.identity,temperature:args.temperature})
+        if(draft.digest!==args.digest)fail('temperature_review_digest_mismatch')
+        return store.changeTemperature(bound,draft,args.idempotencyKey)
       }
       if(name==='crm_needs_review_contact_find'){
         if(typeof openIndividual!=='function')fail('needs_review_connection_not_bound')

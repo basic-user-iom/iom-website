@@ -28,7 +28,7 @@
     },
     {
       "path": "api/_lib/crm-contact-approval.mjs",
-      "sha256": "71415c428044a3d2ff5b79a8e6d23d7deb504a61dea6d4159fd147a930ee31fc"
+      "sha256": "7148b0ed0af193151438008e11fdbe30167e58a7796edea06c46723a77343985"
     },
     {
       "path": "api/_lib/crm-email-batch-policy.mjs",
@@ -64,7 +64,7 @@
     },
     {
       "path": "api/_lib/crm-needs-review-postgres.mjs",
-      "sha256": "2136982f1c31e9cfc55843e1588e6efe0085bb6e19888c445892d572cc7dd06a"
+      "sha256": "4759020d1d327445fa0c2a7133766d84f13ec910e7a2deed44a42833ba8fb5a0"
     },
     {
       "path": "api/_lib/crm-needs-review-receipts.mjs",
@@ -72,7 +72,7 @@
     },
     {
       "path": "api/_lib/crm-needs-review-tools.mjs",
-      "sha256": "c1a5588db0e9bd810c8ca7a0ae00abb654f085d0a2d5331d756b39bd624c6ca9"
+      "sha256": "c0257ce98bfc488db4556209fb8c77f457fbf17c1cbca99944d90c9c3ee77d12"
     },
     {
       "path": "api/crm-needs-review.js",
@@ -140,11 +140,11 @@
     },
     {
       "path": "scripts/crm-needs-review-native.cs",
-      "sha256": "74b44f6d76261c6e759fc575a10e57c3e129087def305339d59a8c7946ec423d"
+      "sha256": "a9043e084068f76a7541ffdbb388470e81adc98a3b9dc0bff9b101d93506e00e"
     },
     {
       "path": "scripts/crm-needs-review-broker.cs",
-      "sha256": "5863ff7c9d6a3280494862e42f5a43278af9bd40cdcde82b300c181ebc3693c1"
+      "sha256": "f47a734c0d7723bde5d7e42a2461ebbd21a1b2eba5b4b75f32b8f64b6b14a109"
     },
     {
       "path": "scripts/crm-needs-review-broker.ps1",
@@ -156,7 +156,7 @@
     },
     {
       "path": "scripts/crm-needs-review-journal-session.mjs",
-      "sha256": "70ae0edc36a669e47e3356a1c26a3bd3e748b6fdcce0f29c71f62f205d0e4e5d"
+      "sha256": "5e12de66c73446cdc0d0843099324165989da7fc0f2f2409ec9d99c9070783d9"
     },
     {
       "path": "scripts/deploy-production.mjs",
@@ -199,7 +199,7 @@
       "sha256": "ade442b529448e8975d326cd090360136dd69f72a5b4dedc50964f8da973e584"
     }
   ],
-  "runtimeDigest": "543dc345ee81439492b172f795b29bcecaec5b2631d43ee71573aefb2bc6c0c1",
+  "runtimeDigest": "2045ec6b1a893e34d0ed0e17aea20feed886d47040ea4d0c1cd3d8097d72437b",
   "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }
