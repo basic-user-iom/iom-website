@@ -107,7 +107,11 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   }
   async function mutate(owner,review,key,now,actor,replace) {
     const expectedOwner = jobOwnerForIdentity(review?.snapshot?.fromIdentity)
-    if (!expectedOwner || owner !== expectedOwner || (review?.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== expectedOwner)) fail('job_owner_mismatch')
+    const chosenName = review?.snapshot?.fromIdentity || 'none'
+    if (!expectedOwner || owner !== expectedOwner) fail(`sender_not_authorized:chosen=${chosenName}:required_owner=${expectedOwner || 'none'}`)
+    if (review?.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== expectedOwner) {
+      fail(`cross_account_reply_needs_new_email:chosen=${chosenName}:required_owner=${expectedOwner}:contact_owner=${review.snapshot.leadOwnerId}`)
+    }
     guardSchedule(review)
     guardStarts(review,actor,replace)
     const single=!capabilityMutationRequiresStarts(review,actor,replace)

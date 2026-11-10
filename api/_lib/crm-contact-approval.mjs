@@ -172,6 +172,34 @@ export function jobOwnerForIdentity(identity) {
   const account = accountByIdentity(identity)
   return account ? account.ownerId : null
 }
+// Only projects@ and visual@ may be chosen. An omitted choice uses the contact's
+// own account. The plugin grant cannot file the other account's contact, so that
+// path warns and does not switch the address. A staff reply can keep the thread.
+export function resolveSenderChoice({ fromIdentity, leadOwnerId, actorKind, actorFromIdentity, reply = false } = {}) {
+  const lead = accountByOwner(leadOwnerId)
+  const named = fromIdentity !== undefined && fromIdentity !== null && fromIdentity !== ''
+  if (!named) {
+    if (!lead) return { ok: false, code: 'sender_not_chosen' }
+    return { ok: true, identity: lead.identity, ownerId: lead.ownerId, explicit: false, leadOwnerId: lead.ownerId }
+  }
+  if (fromIdentity !== 'projects' && fromIdentity !== 'visual') {
+    return { ok: false, code: `sender_not_approved:chosen=${fromIdentity}` }
+  }
+  const chosen = accountByIdentity(fromIdentity)
+  if (actorKind === 'oauth' && actorFromIdentity !== chosen.identity) {
+    return { ok: false, code: `sender_not_authorized:chosen=${chosen.identity}:required_owner=${chosen.ownerId}` }
+  }
+  if (actorKind === 'oauth' && lead && lead.ownerId !== chosen.ownerId) {
+    return {
+      ok: false,
+      alternative: reply ? 'new_email' : null,
+      code: reply
+        ? `cross_account_reply_needs_new_email:chosen=${chosen.identity}:required_owner=${chosen.ownerId}:contact_owner=${lead.ownerId}`
+        : `sender_not_authorized:chosen=${chosen.identity}:required_owner=${chosen.ownerId}:contact_owner=${lead.ownerId}`,
+    }
+  }
+  return { ok: true, identity: chosen.identity, ownerId: chosen.ownerId, explicit: true, leadOwnerId: lead?.ownerId || leadOwnerId || null }
+}
 // The published needs-review read uses l.owner_id = the projects principal and leaves
 // iom.email_staff_pair empty. A visual-owned row then matches nothing, and the store
 // reports lead_not_found. This names that miss. It does not grant a new owner.

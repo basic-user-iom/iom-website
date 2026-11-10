@@ -3,7 +3,7 @@ import { renderOutreachEmailHtml, renderOutreachPlainText } from './outreach-ema
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
 import { parseOutreachAttachments } from './email-attachments.js'
 import { describeNamedAttachments, messageApprovalFingerprint, storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
-import { accountByIdentity, accountByOwner, jobOwnerForIdentity, presentAccountMatches } from './crm-contact-approval.mjs'
+import { accountByIdentity, accountByOwner, jobOwnerForIdentity, presentAccountMatches, resolveSenderChoice } from './crm-contact-approval.mjs'
 import { recipientWindow } from './crm-email-batch-policy.mjs'
 
 export class EmailWorkflowError extends Error {
@@ -360,15 +360,29 @@ export function planApprovedSend(args, contacts = [], now = Date.now()) {
     if (ACKNOWLEDGMENTS.has(body) && args.allowReplySoon !== true) { blocked = 'acknowledgment_not_approved'; break }
     const zone = describeContactZone({ timezone: contact.client_timezone }, now)
     const knownZone = zone.source === 'stored' ? zone.timezone : null
-    const account = accountByOwner(contact.owner_id || contact.ownerId) || accountByIdentity(contact.account_identity) || accountByIdentity('projects')
-    if (item.identity !== undefined && item.identity !== account.identity) {
+    const leadAccount = accountByOwner(contact.owner_id || contact.ownerId) || accountByIdentity(contact.account_identity)
+    if (item.identity !== undefined && item.identity !== 'projects' && item.identity !== 'visual') {
       recipients.push({
-        leadId, to, kind, subject, body, retry: false, identity: account.identity, ownerId: account.ownerId,
-        fromIdentity: account.identity, sender: account.email, requestedIdentity: item.identity,
-        action: 'hold', status: 'held', reason: 'account_mismatch', perFileConfirmRequired: false, publicUrl: null,
+        leadId, to, kind, subject, body, retry: false, identity: null, ownerId: null,
+        fromIdentity: null, sender: null, requestedIdentity: item.identity,
+        action: 'hold', status: 'held', reason: `sender_not_approved:chosen=${item.identity}`, perFileConfirmRequired: false, publicUrl: null,
       })
       continue
     }
+    const chosen = item.identity ? accountByIdentity(item.identity) : leadAccount
+    if (!chosen) { blocked = 'sender_not_chosen'; break }
+    if (leadAccount && chosen.identity !== leadAccount.identity) {
+      recipients.push({
+        leadId, to, kind, subject, body, retry: false, identity: chosen.identity, ownerId: chosen.ownerId,
+        fromIdentity: chosen.identity, sender: chosen.email, requestedIdentity: chosen.identity,
+        contactOwnerId: leadAccount.ownerId, alternative: 'new_email',
+        action: 'hold', status: 'held',
+        reason: `cross_account_reply_needs_new_email:chosen=${chosen.identity}:required_owner=${chosen.ownerId}:contact_owner=${leadAccount.ownerId}`,
+        perFileConfirmRequired: false, publicUrl: null,
+      })
+      continue
+    }
+    const account = chosen
     const files = describeNamedAttachments(item.attachments)
     const attachmentView = files.files.map(file => ({ filename: file.filename, contentType: file.contentType, size: file.size, content: file.content, reason: file.reason, publicUrl: null }))
     const base = {
@@ -458,15 +472,19 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     if (kind === 'followup' && !UUID.test(args.messageIntentId || '')) fail('invalid_message_intent')
     if (kind === 'initial' && (lead.initial_email_sent_at || lead.has_outbound)) fail('initial_email_already_sent')
     if (lead.scheduled_send && !args.replaceLegacySchedule && !args.legacySchedule) fail('legacy_schedule_requires_review')
-    const leadAccount = accountByOwner(lead.owner_id || lead.ownerId)
-    if (leadAccount && args.fromIdentity && args.fromIdentity !== leadAccount.identity) fail('account_mismatch')
-    const senderId = leadAccount?.identity || args.fromIdentity
+    const choice = resolveSenderChoice({
+      fromIdentity: args.fromIdentity, leadOwnerId: lead.owner_id || lead.ownerId,
+      actorKind: actor.kind, actorFromIdentity: actor.fromIdentity,
+      reply: Boolean(args.inReplyTo) || kind === 'reply',
+    })
+    if (!choice.ok) fail(choice.code)
+    const senderId = choice.identity
     const to = email(args.to)
     const recipients = [lead.email, ...(Array.isArray(lead.emails) ? lead.emails.map(e => e.email) : [])]
       .filter(v => typeof v === 'string').map(v => v.trim().toLowerCase())
     if (!recipients.includes(to)) fail('recipient_not_on_lead')
     const identity = (await identities()).find(i => i.id === senderId && i.configured)
-    if (!identity) fail('sender_not_configured')
+    if (!identity) fail(`sender_not_authorized:chosen=${senderId}:required_owner=${choice.ownerId}`)
     const from = email(identity.email)
     if (!identity.fromHeader || /[\r\n]/.test(identity.fromHeader)) fail('invalid_sender')
     const subject = String(kind !== 'initial' ? (legacyInput || args).subject : lead.initial_email_subject || '').trim()
@@ -498,7 +516,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       ...(parent ? {inReplyTo:parent,references:buildReferencesHeader(args.references || '',parent)} : {}),
       ...(attachments?.length ? {attachments} : {}),
       ...(args.approvalFingerprint ? { approvalFingerprint: args.approvalFingerprint } : {}),
-      ...(leadAccount ? { leadOwnerId: leadAccount.ownerId } : {}),
+      ...(lead.owner_id || lead.ownerId ? { leadOwnerId: lead.owner_id || lead.ownerId } : {}),
+      chosenSenderOwner: choice.ownerId,
       ...(lead.scheduled_send ? {legacySchedule:lead.scheduled_send} : {}),
     }
   }
@@ -542,7 +561,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
   const api = {
     async preview(actor, args) {
       await gate(actor, 'review')
-      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body','inReplyTo','references','attachments','approvalFingerprint'], ['leadId','to','fromIdentity'])
+      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body','inReplyTo','references','attachments','approvalFingerprint'], ['leadId','to'])
       if (args.kind !== undefined && !['initial','followup'].includes(args.kind)) fail('invalid_message_kind')
       if (args.kind === 'followup') {
         if (typeof args.subject !== 'string' || typeof args.body !== 'string') fail('invalid_draft')
@@ -564,8 +583,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       await gate(actor, 'review')
       const review = await store.getReview(actor.ownerId, args.reviewId)
       if (!review || review.digest !== args.digest) fail('review_not_found_or_mismatch')
-      const jobOwner = jobOwnerForIdentity(review.snapshot?.fromIdentity)
-      if (!jobOwner || (review.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== jobOwner)) fail('job_owner_mismatch')
+      const chosenOwner = jobOwnerForIdentity(review.snapshot?.fromIdentity)
+      const chosenName = review.snapshot?.fromIdentity || 'none'
+      if (!chosenOwner) fail(`sender_not_authorized:chosen=${chosenName}:required_owner=none`)
+      const staffJob = staffReviewMode && actor.kind === 'staff'
+      if (!staffJob && review.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== chosenOwner) {
+        fail(`cross_account_reply_needs_new_email:chosen=${chosenName}:required_owner=${chosenOwner}:contact_owner=${review.snapshot.leadOwnerId}`)
+      }
+      const jobOwner = staffJob ? actor.ownerId : chosenOwner
       if ((staffReviewMode && actor.kind==='staff' && (!review.principal || review.principal.kind!=='staff' ||
         review.principal.ownerId!==actor.ownerId || review.principal.accessRevision!==actor.accessRevision)) ||
         (actor.kind!=='staff' && review.principal?.kind==='staff')) fail('review_principal_mismatch')
