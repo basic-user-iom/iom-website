@@ -1,14 +1,24 @@
 import { fail, emailDigest, emailContentDigest } from './crm-email-workflow.mjs'
 import { attachmentMeta, parseOutreachAttachments } from './email-attachments.js'
+import { storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
-import { assertApprovedContact } from './crm-contact-approval.mjs'
+import { assertApprovedContact, CRM_ACCOUNTS } from './crm-contact-approval.mjs'
+
+export function sendFromCrmAllowed(row, snapshot) {
+  const tags = Array.isArray(row?.tags) ? row.tags.map(tag => String(tag).trim().toLowerCase()) : []
+  const underRevision = tags.includes('needs-review')
+  const notContacted = !row?.initial_email_sent_at
+  const thread = snapshot?.kind === 'reply' || snapshot?.kind === 'followup'
+  return underRevision || notContacted || thread
+}
 
 const mapJob = row => row && ({id:row.id,ownerId:row.owner_id,reviewId:row.review_id,version:row.version,
   ...row.data,status:row.status,...(row.result || {}),
   ...(row.status==='sending' ? {warning:'delivery_in_progress_or_unknown_do_not_retry'} : {}),
 })
 function singleMessage(snapshot){
-  if(snapshot?.attachments?.length) return false
+  // One recipient stays on the single-send path, including its files.
+  // The campaign worker is a separate batch and does not upload those files.
   if(snapshot?.kind==='initial') return snapshot?.messageIntentId===undefined && !snapshot?.inReplyTo
   // One confirmed thread reply stays a single message. Group STARTS remains separate.
   return snapshot?.kind==='followup' && snapshot?.messageIntentId!==undefined
@@ -51,15 +61,30 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     finally { c.release() }
   }
   const query = (owner,sql,values=[]) => transaction(owner,c=>c.query(sql,values))
-  const lead = async (c,owner,id,lock=false) => (await c.query(`select l.id,l.owner_id,l.email,l.emails,l.initial_email_subject,l.initial_email_body,
+  const visualOwner = CRM_ACCOUNTS.visual.ownerId
+  async function seeVisual(c, actorOwner, targetOwner) {
+    if (targetOwner === actorOwner) return
+    if (actorOwner !== CRM_ACCOUNTS.projects.ownerId || targetOwner !== visualOwner) fail('identity_required')
+    await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+  }
+  async function hideVisual(c, actorOwner, targetOwner) {
+    if (targetOwner === actorOwner) return
+    await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")
+  }
+  const lead = async (c,owner,id,lock=false,targetOwner=owner) => {
+    await seeVisual(c, owner, targetOwner)
+    try {
+      return (await c.query(`select l.id,l.owner_id,l.email,l.emails,l.initial_email_subject,l.initial_email_body,
     l.initial_email_sent_at,l.initial_email_drafted_at,l.scheduled_send,l.status,l.contact_priority,l.updated_at,
     exists(select 1 from public.crm_lead_messages m where m.lead_id=l.id and m.direction='outbound') as has_outbound
     ${staffPair?",crm_email_private.staff_pair_scope(l.owner_id) as staff_scope":""}
     ${requireContactApproval?",l.tags,l.company_name,l.contact_name":""}
-    from public.crm_leads l where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 ${lock?'for update of l':''}`,[owner,id])).rows[0]
+    from public.crm_leads l where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 ${lock?'for update of l':''}`,[staffPair?owner:targetOwner,id])).rows[0]
+    } finally { await hideVisual(c, owner, targetOwner) }
+  }
   function validateLead(row,snapshot) {
     if (!row) fail('lead_not_found')
-    if(requireContactApproval) assertApprovedContact({ownerId:row.owner_id,leadId:snapshot.leadId,to:snapshot.to},row)
+    if(requireContactApproval && !sendFromCrmAllowed(row,snapshot)) assertApprovedContact({ownerId:row.owner_id,leadId:snapshot.leadId,to:snapshot.to},row)
     if (snapshot.kind==='initial') {
       if (row.initial_email_sent_at || row.has_outbound) fail('initial_email_already_sent')
       if (String(row.initial_email_subject || '').trim()!==snapshot.subject || String(row.initial_email_body || '').trim()!==snapshot.body) fail('review_stale')
@@ -122,13 +147,23 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     contactApprovalRequired:requireContactApproval===true,
     forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||'',requireContactApproval,capabilityBinding,capabilityStartsEnabled,capabilityScheduleEnabled}),
     async threadMessages(owner, window = {}) {
-      // Fixed page. Dates and the older-page cursor are parameters, so the limit cannot grow.
+      // Fixed page. Dates, search text, and the older-page cursor are parameters, so the limit cannot grow.
       // Row visibility stays with the existing gateway policies; this statement does not change them.
+      // Newest first. The stable key is occurred_at, then id.
       const from = window?.from ?? null
       const to = window?.to ?? null
       const beforeAt = window?.beforeOccurredAt ?? null
       const beforeId = window?.beforeId ?? null
-      const result=await query(owner,`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
+      const company = window?.company ?? null
+      const contact = window?.contact ?? null
+      const email = window?.email ?? null
+      const subject = window?.subject ?? null
+      const identity = window?.identity ?? null
+      if (identity !== null && identity !== 'projects' && identity !== 'visual') fail('identity_required')
+      const target = identity === 'visual' ? visualOwner : owner
+      const result=await transaction(owner, async c => {
+        await seeVisual(c, owner, target)
+        try { return await c.query(`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
         l.company_name,l.contact_name,(m.raw_headers->>'autoReply')='true' as auto_reply,
         exists(select 1 from public.crm_lead_messages later
           where later.lead_id=m.lead_id and later.direction='outbound' and later.occurred_at>m.occurred_at) as later_outbound
@@ -138,8 +173,16 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
           and ($2::timestamptz is null or m.occurred_at>=$2::timestamptz)
           and ($3::timestamptz is null or m.occurred_at<$3::timestamptz)
           and ($4::timestamptz is null or m.occurred_at<$4::timestamptz or (m.occurred_at=$4::timestamptz and m.id<$5::uuid))
+          and ($6::text is null or l.company_name ilike $6 escape '\\')
+          and ($7::text is null or l.contact_name ilike $7 escape '\\')
+          and ($8::text is null or m.from_email ilike $8 escape '\\' or l.email ilike $8 escape '\\' or exists (
+            select 1 from jsonb_array_elements(case when jsonb_typeof(l.emails)='array' then l.emails else '[]'::jsonb end) extra
+            where coalesce(extra->>'email','') ilike $8 escape '\\'))
+          and ($9::text is null or m.subject ilike $9 escape '\\')
         order by m.occurred_at desc,m.id desc
-        limit 401`,[owner,from,to,beforeAt,beforeId])
+        limit 401`,[target,from,to,beforeAt,beforeId,company,contact,email,subject]) }
+        finally { await hideVisual(c, owner, target) }
+      })
       const page=result.rows.slice(0,400)
       const stamp=value=>value instanceof Date?value.toISOString():value
       const last=page[page.length-1]
@@ -155,11 +198,119 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
         ?{beforeOccurredAt:stamp(last.occurred_at),beforeId:String(last.id)}:undefined
       return {truncated:result.rows.length>400,messages,...(next?{next}:{})}
     },
+    async findContacts(owner, search = {}) {
+      const leadIds = Array.isArray(search.leadIds) && search.leadIds.length ? search.leadIds : null
+      const company = search.company ?? null
+      const contact = search.contact ?? null
+      const email = search.email ?? null
+      const identity = search.identity ?? null
+      if (identity !== null && identity !== 'projects' && identity !== 'visual') fail('identity_required')
+      const targets = identity === 'visual' ? [visualOwner] : identity === 'projects' || owner !== CRM_ACCOUNTS.projects.ownerId ? [owner] : [owner, visualOwner]
+      const leads = []
+      await transaction(owner, async c => {
+        for (const target of targets) {
+          await seeVisual(c, owner, target)
+          try {
+            const rows = (await c.query(`select l.id,l.owner_id,l.company_name,l.contact_name,l.email,l.emails,l.status,l.tags,l.client_timezone,
+        l.initial_email_subject,l.initial_email_body,l.initial_email_drafted_at,l.initial_email_sent_at,
+        l.contact_priority,l.scheduled_send,l.last_client_reply_at,l.updated_at,
+        exists(select 1 from public.crm_lead_messages m where m.lead_id=l.id and m.direction='outbound') as has_outbound
+        from public.crm_leads l
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
+          and ($2::uuid[] is null or l.id = any($2::uuid[]))
+          and ($3::text is null or l.company_name ilike $3 escape '\\')
+          and ($4::text is null or l.contact_name ilike $4 escape '\\')
+          and ($5::text is null or l.email ilike $5 escape '\\' or exists (
+            select 1 from jsonb_array_elements(case when jsonb_typeof(l.emails)='array' then l.emails else '[]'::jsonb end) extra
+            where coalesce(extra->>'email','') ilike $5 escape '\\'))
+        order by l.company_name asc,l.contact_name asc,l.id asc
+        limit 21`,[target,leadIds,company,contact,email])).rows
+            for (const row of rows) leads.push({ ...row, account_identity: target === visualOwner ? 'visual' : 'projects' })
+          } finally { await hideVisual(c, owner, target) }
+        }
+      })
+      return {leads:leads.slice(0,40),alreadyExists:leads.length>0,truncated:leads.length>40}
+    },
+    async correspondence(owner, search = {}) {
+      // Read-only. Chronological pages use occurred_at then id ascending, so a newer
+      // message arrives on a later page and is not repeated.
+      const leadId = search?.leadId ?? null
+      const company = search?.company ?? null
+      const contact = search?.contact ?? null
+      const email = search?.email ?? null
+      const identity = search?.identity ?? null
+      if (identity !== null && identity !== 'projects' && identity !== 'visual') fail('identity_required')
+      const targets = identity === 'visual' ? [visualOwner] : identity === 'projects' || owner !== CRM_ACCOUNTS.projects.ownerId ? [owner] : [owner, visualOwner]
+      const leads = []
+      await transaction(owner, async c => {
+        for (const target of targets) {
+          await seeVisual(c, owner, target)
+          try {
+            const rows = (await c.query(`select l.id,l.owner_id,l.company_name,l.contact_name,l.email,l.emails,l.status,l.tags,l.client_timezone,
+        l.initial_email_subject,l.initial_email_body,l.initial_email_drafted_at,l.initial_email_sent_at,
+        l.contact_priority,l.scheduled_send,l.last_client_reply_at,l.updated_at
+        from public.crm_leads l
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
+          and ($2::uuid is null or l.id=$2::uuid)
+          and ($3::text is null or l.company_name ilike $3 escape '\\')
+          and ($4::text is null or l.contact_name ilike $4 escape '\\')
+          and ($5::text is null or l.email ilike $5 escape '\\' or exists (
+            select 1 from jsonb_array_elements(case when jsonb_typeof(l.emails)='array' then l.emails else '[]'::jsonb end) extra
+            where coalesce(extra->>'email','') ilike $5 escape '\\'))
+        order by l.company_name asc,l.contact_name asc,l.id asc
+        limit 21`,[target,leadId,company,contact,email])).rows
+            for (const row of rows) leads.push({ ...row, account_identity: target === visualOwner ? 'visual' : 'projects' })
+          } finally { await hideVisual(c, owner, target) }
+        }
+      })
+      const choiceRequired = !leadId && leads.length !== 1
+      const chosen = choiceRequired ? null : leads[0]
+      if (!chosen) return { leads: leads.slice(0, 20), choiceRequired: true, truncated: leads.length > 20, messages: [] }
+      const afterAt = search?.afterOccurredAt ?? null
+      const afterId = search?.afterId ?? null
+      const messageOwner = chosen.owner_id || owner
+      const result=await transaction(owner, async c => {
+        await seeVisual(c, owner, messageOwner)
+        try { return await c.query(`select m.id,m.lead_id,m.direction,m.from_email,m.subject,m.body_text,m.message_id,m.occurred_at,
+        (m.raw_headers->>'autoReply')='true' as auto_reply,
+        m.raw_headers->'attachments' as attachments,
+        m.raw_headers->>'to' as to_header,
+        exists(select 1 from public.crm_lead_messages later
+          where later.lead_id=m.lead_id and later.direction='outbound' and later.occurred_at>m.occurred_at) as later_outbound
+        from public.crm_lead_messages m
+        join public.crm_leads l on l.id=m.lead_id
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"}
+          and m.lead_id=$2::uuid
+          and ($3::timestamptz is null or m.occurred_at>$3::timestamptz or (m.occurred_at=$3::timestamptz and m.id>$4::uuid))
+        order by m.occurred_at asc,m.id asc
+        limit 401`,[messageOwner,chosen.id,afterAt,afterId]) }
+        finally { await hideVisual(c, owner, messageOwner) }
+      })
+      const stamp=value=>value instanceof Date?value.toISOString():value
+      const page=result.rows.slice(0,400)
+      const last=page[page.length-1]
+      const messages=page.map(row=>({
+        id:String(row.id),leadId:String(row.lead_id),
+        direction:row.direction==='inbound'||row.direction==='outbound'?row.direction:'unknown',
+        from:row.from_email,toHeader:row.to_header,subject:row.subject,content:row.body_text,messageId:row.message_id,
+        occurredAt:stamp(row.occurred_at),autoReply:row.auto_reply===true,laterOutbound:row.later_outbound===true,
+        attachments:Array.isArray(row.attachments)?row.attachments.map(item=>item&&typeof item==='object'?{filename:item.filename,contentType:item.contentType,size:item.size}:{}):[],
+      }))
+      const next=result.rows.length>400 && last?.id
+        ?{afterOccurredAt:stamp(last.occurred_at),afterId:String(last.id)}:undefined
+      return {leads:[chosen],choiceRequired:false,truncated:result.rows.length>400,messages,...(next?{next}:{})}
+    },
     async replyParent(owner,leadId,messageId) {
-      return (await query(owner,`select 1 from public.crm_lead_messages m
+      const ask = async target => transaction(owner, async c => {
+        await seeVisual(c, owner, target)
+        try { return (await c.query(`select 1 from public.crm_lead_messages m
         join public.crm_leads l on l.id=m.lead_id
         where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 and lower(m.message_id)=$3 limit 1`,
-        [owner,leadId,messageId])).rows.length===1
+        [target,leadId,messageId])).rows.length===1 }
+        finally { await hideVisual(c, owner, target) }
+      })
+      if (await ask(owner)) return true
+      return owner === CRM_ACCOUNTS.projects.ownerId ? ask(visualOwner) : false
     },
     async staffBinding(pin,revision) {
       return (await query(pin.ownerId,`select 1 from crm_email_private.staff_access
@@ -207,7 +358,11 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
           and g.scopes @> array['iom:crm:email:read',case when j.data->'schedule'='null'::jsonb then 'iom:crm:email:send' else 'iom:crm:email:schedule' end]))`,[owner,id])
       if(result.rows.length!==1)fail('email_delivery_authorization_changed')
     },
-    lead:(owner,id)=>transaction(owner,c=>lead(c,owner,id)),get,replay,
+    lead:(owner,id)=>transaction(owner,async c=>{
+      const own=await lead(c,owner,id)
+      if(own || owner!==CRM_ACCOUNTS.projects.ownerId) return own
+      return lead(c,owner,id,false,visualOwner)
+    }),get,replay,
     async review(owner,data) {
       return transaction(owner,async c=>{
         if(data.snapshot.kind==='followup') {
@@ -283,8 +438,9 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
           const s=job.data.snapshot
           const parent=s.inReplyTo ? normalizeMessageId(s.inReplyTo) : null
           const references=parent ? buildReferencesHeader(s.references,parent) : s.references || null
+          const parsedAttachments=Array.isArray(s.attachments)&&s.attachments.length?attachmentMeta(parseOutreachAttachments(s.attachments)).map((meta,index)=>storedAttachmentRecord({...meta,storageKey:s.attachments[index]?.storageKey,reason:s.attachments[index]?.storageKey?null:'bytes_not_stored'})):[]
           const headers={fromIdentity:s.fromIdentity,scheduled:!!job.data.schedule,kind:s.kind,messageIntentId:s.messageIntentId||null,
-            attachments:attachmentMeta(parseOutreachAttachments(s.attachments)),simulated:result.simulated===true}
+            attachments:parsedAttachments,simulated:result.simulated===true,publicUrl:null}
           // Stable job UUID is the thread UUID: no extra SELECT privilege or REST key.
           // Thread, sent receipt and lead flags commit together or all roll back.
           await c.query(`insert into public.crm_lead_messages(id,lead_id,direction,from_email,to_email,subject,

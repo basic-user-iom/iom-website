@@ -5,6 +5,7 @@ export const NEEDS_REVIEW_RUNTIME_FILES=Object.freeze([
   "api/_lib/crm-contact-approval.mjs",
   "api/_lib/crm-email-batch-policy.mjs",
   "api/_lib/crm-email-workflow.mjs",
+  "api/_lib/crm-needs-review-attachments.mjs",
   "api/_lib/crm-needs-review-composition.mjs",
   "api/_lib/crm-needs-review-host.mjs",
   "api/_lib/crm-needs-review-http.mjs",

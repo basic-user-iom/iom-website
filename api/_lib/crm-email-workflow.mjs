@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto'
 import { renderOutreachEmailHtml, renderOutreachPlainText } from './outreach-email-html.js'
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
 import { parseOutreachAttachments } from './email-attachments.js'
+import { describeNamedAttachments, messageApprovalFingerprint, storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
+import { accountByIdentity, accountByOwner, presentAccountMatches, VISUAL_JOB_BLOCK } from './crm-contact-approval.mjs'
+import { recipientWindow } from './crm-email-batch-policy.mjs'
 
 export class EmailWorkflowError extends Error {
   constructor(code) { super(code); this.code = code }
@@ -118,17 +121,330 @@ function replyBound(value, edge) {
   }
   return replyInstant(value)
 }
+const plainObject = value => value && typeof value === 'object' && !Array.isArray(value)
+function contains(value, max) {
+  if (value === undefined) return null
+  if (typeof value !== 'string' || value.length > max) fail('invalid_arguments')
+  const text = value.trim()
+  if (!text) return null
+  return `%${text.replace(/[\\%_]/g, char => `\\${char}`)}%`
+}
+function sameOptional(left, right) {
+  if (left === undefined || right === undefined || left === right) return
+  fail('invalid_reply_window')
+}
+function periodOf(value) {
+  if (value === undefined) return {}
+  if (!plainObject(value) || Object.keys(value).some(key => !['from', 'to'].includes(key))) fail('invalid_reply_window')
+  return value
+}
+function cursorOf(value, keys) {
+  if (value === undefined) return {}
+  if (!plainObject(value) || Object.keys(value).some(key => !keys.includes(key))) fail('invalid_reply_window')
+  return value
+}
 // from is inclusive and to is exclusive. A calendar date uses Europe/Belgrade midnight.
-// The cursor is the older-page key returned by the previous newest-first page.
+// The older-page cursor is occurred_at then id, newest first. A newer message that
+// arrives while paging stays on the first page, so an older page neither skips nor repeats it.
 export function normalizeReplyListWindow(args = {}) {
-  fields(args, ['from', 'to', 'beforeOccurredAt', 'beforeId'], [])
-  const from = replyBound(args.from, 'from')
-  const to = replyBound(args.to, 'to')
+  fields(args, ['from', 'to', 'beforeOccurredAt', 'beforeId', 'company', 'contact', 'email', 'subject', 'period', 'cursor', 'identity'], [])
+  if (args.identity !== undefined && !accountByIdentity(args.identity)) fail('identity_required')
+  const period = periodOf(args.period)
+  const cursor = cursorOf(args.cursor, ['beforeOccurredAt', 'beforeId'])
+  sameOptional(args.from, period.from)
+  sameOptional(args.to, period.to)
+  sameOptional(args.beforeOccurredAt, cursor.beforeOccurredAt)
+  sameOptional(args.beforeId, cursor.beforeId)
+  const from = replyBound(args.from ?? period.from, 'from')
+  const to = replyBound(args.to ?? period.to, 'to')
   if (from && to && Date.parse(from) >= Date.parse(to)) fail('invalid_reply_window')
-  const cursor = args.beforeOccurredAt !== undefined || args.beforeId !== undefined
-  if (!cursor) return { from, to, beforeOccurredAt: null, beforeId: null }
-  if (args.beforeOccurredAt === undefined || args.beforeId === undefined || !UUID.test(args.beforeId || '')) fail('invalid_reply_window')
-  return { from, to, beforeOccurredAt: replyInstant(args.beforeOccurredAt), beforeId: args.beforeId.toLowerCase() }
+  const beforeOccurredAt = args.beforeOccurredAt ?? cursor.beforeOccurredAt
+  const beforeId = args.beforeId ?? cursor.beforeId
+  const paging = beforeOccurredAt !== undefined || beforeId !== undefined
+  if (paging && (beforeOccurredAt === undefined || beforeId === undefined || !UUID.test(beforeId || ''))) fail('invalid_reply_window')
+  return {
+    from, to,
+    beforeOccurredAt: paging ? replyInstant(beforeOccurredAt) : null,
+    beforeId: paging ? beforeId.toLowerCase() : null,
+    company: contains(args.company, 200),
+    contact: contains(args.contact, 200),
+    email: contains(args.email, 320),
+    subject: contains(args.subject, 300),
+    identity: args.identity || null,
+  }
+}
+export function normalizeCorrespondenceQuery(args = {}) {
+  fields(args, ['leadId', 'company', 'contact', 'email', 'cursor', 'identity'], [])
+  if (args.identity !== undefined && !accountByIdentity(args.identity)) fail('identity_required')
+  if (args.leadId !== undefined && !UUID.test(args.leadId || '')) fail('invalid_arguments')
+  const cursor = cursorOf(args.cursor, ['afterOccurredAt', 'afterId'])
+  const paging = cursor.afterOccurredAt !== undefined || cursor.afterId !== undefined
+  if (paging && (cursor.afterOccurredAt === undefined || cursor.afterId === undefined || !UUID.test(cursor.afterId || ''))) fail('invalid_reply_window')
+  const company = contains(args.company, 200)
+  const contact = contains(args.contact, 200)
+  const email = contains(args.email, 320)
+  if (args.leadId === undefined && !company && !contact && !email) fail('missing_arguments')
+  return {
+    leadId: args.leadId ? args.leadId.toLowerCase() : null,
+    company, contact, email,
+    afterOccurredAt: paging ? replyInstant(cursor.afterOccurredAt) : null,
+    afterId: paging ? cursor.afterId.toLowerCase() : null,
+    identity: args.identity || null,
+  }
+}
+function zoneOffset(zone, date) {
+  const part = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'longOffset', hour: '2-digit' })
+    .formatToParts(date).find(item => item.type === 'timeZoneName')?.value || ''
+  const match = part.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+  return match ? `${match[1]}${match[2].padStart(2, '0')}:${match[3] || '00'}` : null
+}
+function ianaZone(value) {
+  if (typeof value !== 'string' || !value.trim() || value.length > 80) return null
+  const name = value.trim()
+  try { new Intl.DateTimeFormat('en-US', { timeZone: name }).format(0) } catch { return null }
+  return name
+}
+// A stored IANA name is known. A city or country is only a guess and is never shown as known.
+// The offset comes from the platform zone database, including daylight saving.
+export function describeContactZone({ timezone, city, country } = {}, now = Date.now()) {
+  const stored = ianaZone(timezone)
+  if (stored) {
+    const date = new Date(now)
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+      timeZone: stored, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(date).map(part => [part.type, part.value]))
+    return { timezone: stored, source: 'stored', localTime: `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`, offset: zoneOffset(stored, date) }
+  }
+  const place = [city, country].some(value => typeof value === 'string' && value.trim())
+  if (place) return { timezone: null, source: 'inferred', localTime: null, offset: null }
+  return { timezone: null, source: 'unknown', localTime: null, offset: null }
+}
+const textState = value => {
+  if (typeof value !== 'string' || !value.trim()) return { state: 'empty', value: null }
+  return { state: 'present', value: value.trim() }
+}
+function attachmentViews(value) {
+  if (!Array.isArray(value) || value.length === 0) return { attachments: [], attachmentRecord: 'not_stored', publicUrl: null }
+  const attachments = value.map(item => storedAttachmentRecord(item))
+  return {
+    attachmentRecord: attachments.some(item => item.content === 'stored_private') ? 'stored_private' : 'metadata_only',
+    attachments, publicUrl: null,
+  }
+}
+export function shapeContactCard(row, now = Date.now()) {
+  const account = accountByOwner(row?.owner_id || row?.ownerId) || accountByIdentity(row?.account_identity) || accountByIdentity('projects')
+  const emails = Array.isArray(row?.emails) ? row.emails.filter(item => item && typeof item === 'object').map(item => ({
+    label: typeof item.label === 'string' && item.label.trim() ? item.label.trim() : null,
+    email: typeof item.email === 'string' && item.email.trim() ? item.email.trim() : null,
+  })) : []
+  const tags = Array.isArray(row?.tags) ? row.tags.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()) : []
+  const draftSubject = textState(row?.initial_email_subject)
+  const draftBody = textState(row?.initial_email_body)
+  return {
+    leadId: row?.id || null,
+    identity: row?.account_identity || account.identity,
+    ownerId: row?.owner_id || row?.ownerId || account.ownerId,
+    sender: account.email,
+    company: textState(row?.company_name),
+    contact: textState(row?.contact_name),
+    email: textState(row?.email),
+    otherEmails: emails.length ? { state: 'present', value: emails } : { state: 'empty', value: [] },
+    status: textState(row?.status),
+    tags: tags.length ? { state: 'present', value: tags } : { state: 'empty', value: [] },
+    localTime: describeContactZone({ timezone: row?.client_timezone }, now),
+    drafts: {
+      subject: draftSubject,
+      body: draftBody,
+      draftedAt: row?.initial_email_drafted_at || null,
+      sentAt: row?.initial_email_sent_at || null,
+      state: draftSubject.state === 'present' || draftBody.state === 'present' || row?.initial_email_drafted_at || row?.initial_email_sent_at ? 'present' : 'empty',
+    },
+    scheduledSend: row?.scheduled_send ? { state: 'present' } : { state: 'empty' },
+    lastClientReplyAt: row?.last_client_reply_at || null,
+    contactPriority: row?.contact_priority === true,
+    updatedAt: row?.updated_at || null,
+    unavailable: ['website', 'links', 'phone', 'notes', 'location', 'contactRole', 'companyFocus', 'offer', 'nextFollowUp', 'campaigns', 'activities'],
+  }
+}
+export function shapeStoredMessage(row) {
+  const direction = row?.direction === 'inbound' || row?.direction === 'outbound' ? row.direction : 'unknown'
+  const sender = typeof row?.from === 'string' && row.from.trim() ? row.from.trim() : null
+  const recipient = typeof row?.toHeader === 'string' && row.toHeader.trim() ? row.toHeader.trim() : null
+  const content = typeof row?.content === 'string' && row.content.trim() ? row.content : null
+  const files = attachmentViews(row?.attachments)
+  return {
+    id: row?.id || null,
+    leadId: row?.leadId || null,
+    direction,
+    occurredAt: row?.occurredAt || null,
+    sender,
+    senderState: sender ? 'stored' : 'unavailable',
+    recipient,
+    recipientState: recipient ? 'stored_header' : 'unavailable',
+    subject: typeof row?.subject === 'string' && row.subject.trim() ? row.subject.trim() : null,
+    content,
+    contentState: content ? 'present' : 'unavailable',
+    replyStatus: direction === 'outbound' ? 'stored_outbound' : row?.autoReply === true ? 'auto_reply' : row?.laterOutbound === true ? 'answered' : direction === 'inbound' ? 'waiting' : 'unknown',
+    messageId: typeof row?.messageId === 'string' && row.messageId ? row.messageId : null,
+    ...files,
+  }
+}
+
+const APPROVAL_KEY = /^[A-Za-z0-9_.:-]{8,40}$/
+const OBLIGATION = /\b(invoice|payment|wire transfer|bank account|contract|we accept|we agree|purchase order|quoted price|plaćanje|placanje|ugovor|faktura|prihvatamo)\b/i
+const ACKNOWLEDGMENTS = new Set([
+  'We received your message and will reply soon.',
+  'Primili smo poruku i javićemo se uskoro.',
+])
+export function dispatchReplay(previous) {
+  if (!previous) return { send: true, retry: false }
+  const status = previous.status === 'sending' ? 'unknown' : (previous.status || 'unknown')
+  if (status === 'unknown') return { send: false, status: 'unknown', retry: false, reason: 'unknown_not_retried' }
+  return { send: false, status, retry: false, reason: 'duplicate_not_resent' }
+}
+export function normalizeContactFind(args = {}) {
+  fields(args, ['company', 'contact', 'email', 'leadIds', 'identity'], [])
+  if (args.identity !== undefined && !accountByIdentity(args.identity)) fail('identity_required')
+  const company = contains(args.company, 200)
+  const contact = contains(args.contact, 200)
+  const email = contains(args.email, 320)
+  let leadIds = null
+  if (args.leadIds !== undefined) {
+    if (!Array.isArray(args.leadIds) || args.leadIds.length < 1 || args.leadIds.length > 200 || args.leadIds.some(id => !UUID.test(id || ''))) fail('invalid_arguments')
+    leadIds = args.leadIds.map(id => id.toLowerCase())
+  }
+  if (!leadIds && !company && !contact && !email) fail('missing_arguments')
+  return { company, contact, email, leadIds, identity: args.identity || null }
+}
+function approvalText(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+// One explicit list and purpose. This does not send. A later single call may
+// queue or send only the rows this plan marks. Same intent key, unknown, and
+// an unknown zone never become another send.
+export function planApprovedSend(args, contacts = [], now = Date.now()) {
+  const preview = args.preview === true && args.confirmed !== true
+  fields(args, ['purpose', 'confirmed', 'idempotencyKey', 'localDate', 'allowReplySoon', 'recipients', 'preview'], preview ? ['purpose', 'idempotencyKey', 'recipients'] : ['purpose', 'confirmed', 'idempotencyKey', 'recipients'])
+  if (!preview && args.confirmed !== true) fail('list_approval_required')
+  if (typeof args.purpose !== 'string' || args.purpose.trim().length < 8 || args.purpose.length > 500) fail('purpose_required')
+  if (!APPROVAL_KEY.test(args.idempotencyKey || '')) fail('invalid_confirmation')
+  if (args.allowReplySoon !== undefined && typeof args.allowReplySoon !== 'boolean') fail('invalid_arguments')
+  if (args.localDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(args.localDate)) fail('invalid_arguments')
+  const list = args.recipients
+  if (!Array.isArray(list) || list.length < 1 || list.length > 200) fail('invalid_selection')
+  const byId = new Map()
+  for (const row of contacts) {
+    const id = String(row?.leadId || row?.id || '').toLowerCase()
+    if (id) byId.set(id, row)
+  }
+  const seen = new Set()
+  const recipients = []
+  let blocked = null
+  for (const item of list) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) { blocked = 'unclear_recipient'; break }
+    const leadId = String(item.leadId || '').toLowerCase()
+    if (!UUID.test(leadId) || seen.has(leadId)) { blocked = 'unclear_recipient'; break }
+    seen.add(leadId)
+    const kind = item.kind
+    if (!['initial', 'followup', 'reply'].includes(kind)) { blocked = 'unclear_recipient'; break }
+    const contact = byId.get(leadId)
+    if (!contact) { blocked = 'unclear_recipient'; break }
+    const to = approvalText(item.to).toLowerCase()
+    const addresses = [contact.email, ...(Array.isArray(contact.emails) ? contact.emails.map(entry => entry?.email || entry) : [])]
+      .map(value => approvalText(value).toLowerCase()).filter(Boolean)
+    if (!to || !addresses.includes(to)) { blocked = 'unclear_recipient'; break }
+    const subject = approvalText(item.subject)
+    const body = approvalText(item.body)
+    if (!subject || subject.length > 300 || /[\r\n]/.test(subject) || !body || body.length > 50000) { blocked = 'invalid_draft'; break }
+    if (OBLIGATION.test(subject) || OBLIGATION.test(body)) { blocked = 'obligation_not_accepted'; break }
+    if (ACKNOWLEDGMENTS.has(body) && args.allowReplySoon !== true) { blocked = 'acknowledgment_not_approved'; break }
+    const zone = describeContactZone({ timezone: contact.client_timezone }, now)
+    const knownZone = zone.source === 'stored' ? zone.timezone : null
+    const account = accountByOwner(contact.owner_id || contact.ownerId) || accountByIdentity(contact.account_identity) || accountByIdentity('projects')
+    if (item.identity !== undefined && item.identity !== account.identity) {
+      recipients.push({
+        leadId, to, kind, subject, body, retry: false, identity: account.identity, ownerId: account.ownerId,
+        fromIdentity: account.identity, sender: account.email, requestedIdentity: item.identity,
+        action: 'hold', status: 'held', reason: 'account_mismatch', perFileConfirmRequired: false, publicUrl: null,
+      })
+      continue
+    }
+    const files = describeNamedAttachments(item.attachments)
+    const attachmentView = files.files.map(file => ({ filename: file.filename, contentType: file.contentType, size: file.size, content: file.content, reason: file.reason, publicUrl: null }))
+    const base = {
+      leadId, to, kind, subject, body, acknowledgment: ACKNOWLEDGMENTS.has(body),
+      zone: knownZone, zoneSource: zone.source, retry: false,
+      identity: account.identity, ownerId: account.ownerId, fromIdentity: account.identity, sender: account.email,
+      attachments: attachmentView, attachmentFingerprint: files.fingerprint, perFileConfirmRequired: false, publicUrl: null,
+      ...(files.ok && files.payload.length ? { attachmentPayload: files.payload } : {}),
+    }
+    if (!files.ok) {
+      const idempotencyKey = `${args.idempotencyKey}:${kind}:${leadId}`
+      recipients.push({ ...base, action: 'hold', status: 'held', reason: files.reason, idempotencyKey })
+      continue
+    }
+    if (account.identity === 'visual') {
+      const idempotencyKey = `${args.idempotencyKey}:visual:${kind}:${leadId}`
+      recipients.push({ ...base, action: 'hold', status: 'held', reason: VISUAL_JOB_BLOCK.reason, policy: VISUAL_JOB_BLOCK.policy, idempotencyKey })
+      continue
+    }
+    if (item.scheduledLocal !== undefined) {
+      recipients.push({ ...base, action: 'hold', status: 'held', reason: knownZone ? 'schedule_not_activated' : 'unknown_zone', window: null, scheduledLocal: item.scheduledLocal })
+      continue
+    }
+    if (kind === 'initial') {
+      const idempotencyKey = `${args.idempotencyKey}:initial:${leadId}`
+      if (contact.initial_email_sent_at || contact.has_outbound) {
+        recipients.push({ ...base, action: 'hold', status: 'held', reason: 'initial_already_sent', idempotencyKey })
+        continue
+      }
+      if (!knownZone) {
+        recipients.push({ ...base, action: 'hold', status: 'held', reason: 'unknown_zone', window: null, idempotencyKey })
+        continue
+      }
+      if (!args.localDate) { blocked = 'invalid_arguments'; break }
+      const storedSubject = approvalText(contact.initial_email_subject)
+      const storedBody = approvalText(contact.initial_email_body)
+      if (storedSubject !== subject || storedBody !== body) {
+        recipients.push({ ...base, action: 'hold', status: 'held', reason: 'content_not_stored', idempotencyKey })
+        continue
+      }
+      const window = recipientWindow(args.localDate, knownZone, now)
+      if (window === 'expired') {
+        recipients.push({ ...base, action: 'hold', status: 'held', reason: 'recipient_window_missed', window, idempotencyKey })
+        continue
+      }
+      const queued = { ...base, action: base.attachments.length ? 'send' : 'queue', status: base.attachments.length ? 'ready' : 'queued', reason: null, window, idempotencyKey, deliveryKey: `initial:${leadId}` }
+      recipients.push(queued)
+      continue
+    }
+    if (!UUID.test(item.messageIntentId || '') || (kind === 'reply' && !approvalText(item.inReplyTo))) { blocked = 'unclear_recipient'; break }
+    const intent = item.messageIntentId.toLowerCase()
+    recipients.push({
+      ...base, action: 'send', status: 'ready', reason: null, messageIntentId: intent, inReplyTo: approvalText(item.inReplyTo) || null,
+      idempotencyKey: `${args.idempotencyKey}:${kind}:${leadId}:${intent}`,
+      deliveryKey: `${kind}:${leadId}:${intent}`,
+    })
+  }
+  if (blocked) {
+    return {
+      purpose: args.purpose.trim(), idempotencyKey: args.idempotencyKey, confirmed: true,
+      perMessageConfirmRequired: false, blocked, sent: false,
+      recipients: list.map(item => ({ leadId: typeof item?.leadId === 'string' ? item.leadId.toLowerCase() : null, status: 'not_sent', reason: blocked, retry: false })),
+      counts: { queue: 0, send: 0, hold: 0, reject: list.length },
+    }
+  }
+  return {
+    purpose: args.purpose.trim(), idempotencyKey: args.idempotencyKey, confirmed: preview ? false : true, preview,
+    perMessageConfirmRequired: false, blocked: null, sent: false, publicUrl: null, recipients,
+    allowReplySoon: args.allowReplySoon === true,
+    counts: {
+      queue: recipients.filter(item => item.action === 'queue').length,
+      send: recipients.filter(item => item.action === 'send').length,
+      hold: recipients.filter(item => item.action === 'hold').length,
+      reject: 0,
+    },
+  }
 }
 
 // No credentials, network, environment loading, or production fallback in this module.
@@ -147,11 +463,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     if (kind === 'followup' && !UUID.test(args.messageIntentId || '')) fail('invalid_message_intent')
     if (kind === 'initial' && (lead.initial_email_sent_at || lead.has_outbound)) fail('initial_email_already_sent')
     if (lead.scheduled_send && !args.replaceLegacySchedule && !args.legacySchedule) fail('legacy_schedule_requires_review')
+    const leadAccount = accountByOwner(lead.owner_id || lead.ownerId)
+    if (leadAccount && args.fromIdentity && args.fromIdentity !== leadAccount.identity) fail('account_mismatch')
+    const senderId = leadAccount?.identity || args.fromIdentity
     const to = email(args.to)
     const recipients = [lead.email, ...(Array.isArray(lead.emails) ? lead.emails.map(e => e.email) : [])]
       .filter(v => typeof v === 'string').map(v => v.trim().toLowerCase())
     if (!recipients.includes(to)) fail('recipient_not_on_lead')
-    const identity = (await identities()).find(i => i.id === args.fromIdentity && i.configured)
+    const identity = (await identities()).find(i => i.id === senderId && i.configured)
     if (!identity) fail('sender_not_configured')
     const from = email(identity.email)
     if (!identity.fromHeader || /[\r\n]/.test(identity.fromHeader)) fail('invalid_sender')
@@ -169,9 +488,11 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
     if(parent && !await store.replyParent(actor.ownerId,lead.id,parent))fail('reply_parent_not_on_lead')
     // Replies use a stable followup intent, preserving the DB delivery-key contract.
     if (parent && kind !== 'followup') fail('invalid_message_kind')
-    const attachments = staffHeaders && args.attachments !== undefined
-      ? parseOutreachAttachments(args.attachments).map(a=>({filename:a.filename,contentType:a.contentType,content:a.content.toString('base64')}))
-      : (legacyInput || args).attachments
+    const attachments = actor.kind === 'oauth' && args.attachments !== undefined
+      ? (() => { const checked = describeNamedAttachments(args.attachments); if (!checked.ok) fail(checked.reason || 'attachment_invalid'); return checked.payload })()
+      : staffHeaders && args.attachments !== undefined
+        ? parseOutreachAttachments(args.attachments).map(a=>({filename:a.filename,contentType:a.contentType,content:a.content.toString('base64')}))
+        : (legacyInput || args).attachments
     return {
       leadId: lead.id, to, from, fromHeader: identity.fromHeader, fromIdentity: identity.id,
       subject, body, text: renderOutreachPlainText(body), html: renderOutreachEmailHtml({subject, body}),
@@ -181,6 +502,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       ...(kind === 'reply' ? {inReplyTo:(legacyInput || args).inReplyTo,references:(legacyInput || args).references || ''} : {}),
       ...(parent ? {inReplyTo:parent,references:buildReferencesHeader(args.references || '',parent)} : {}),
       ...(attachments?.length ? {attachments} : {}),
+      ...(args.approvalFingerprint ? { approvalFingerprint: args.approvalFingerprint } : {}),
+      ...(leadAccount ? { leadOwnerId: leadAccount.ownerId } : {}),
       ...(lead.scheduled_send ? {legacySchedule:lead.scheduled_send} : {}),
     }
   }
@@ -221,11 +544,10 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       return { ...job, status: 'unknown', error: 'delivery_accepted_receipt_unconfirmed_do_not_retry' }
     }
   }
-  return {
+  const api = {
     async preview(actor, args) {
       await gate(actor, 'review')
-      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body','inReplyTo','references',
-        ...(staffReviewMode && actor.kind==='staff'?['attachments']:[])], ['leadId','to','fromIdentity'])
+      fields(args, ['leadId','to','fromIdentity','scheduledLocal','utcOffset','replaceLegacySchedule','kind','messageIntentId','subject','body','inReplyTo','references','attachments','approvalFingerprint'], ['leadId','to','fromIdentity'])
       if (args.kind !== undefined && !['initial','followup'].includes(args.kind)) fail('invalid_message_kind')
       if (args.kind === 'followup') {
         if (typeof args.subject !== 'string' || typeof args.body !== 'string') fail('invalid_draft')
@@ -247,6 +569,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       await gate(actor, 'review')
       const review = await store.getReview(actor.ownerId, args.reviewId)
       if (!review || review.digest !== args.digest) fail('review_not_found_or_mismatch')
+      if (review.snapshot?.fromIdentity === 'visual' || review.snapshot?.leadOwnerId === accountByIdentity('visual').ownerId) fail(VISUAL_JOB_BLOCK.reason)
       if ((staffReviewMode && actor.kind==='staff' && (!review.principal || review.principal.kind!=='staff' ||
         review.principal.ownerId!==actor.ownerId || review.principal.accessRevision!==actor.accessRevision)) ||
         (actor.kind!=='staff' && review.principal?.kind==='staff')) fail('review_principal_mismatch')
@@ -284,9 +607,43 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       const loaded = await store.threadMessages(actor.ownerId, window)
       const messages = Array.isArray(loaded) ? loaded : loaded?.messages
       const classified = classifyInboundReplies(messages, {truncated: loaded?.truncated === true})
-      const next = loaded?.next
-      if (!next || typeof next.beforeOccurredAt !== 'string' || !UUID.test(next.beforeId || '')) return classified
-      return {...classified, next:{beforeOccurredAt:next.beforeOccurredAt, beforeId:next.beforeId}}
+      const raw = loaded?.next
+      const next = raw && typeof raw.beforeOccurredAt === 'string' && UUID.test(raw.beforeId || '')
+        ? { beforeOccurredAt: raw.beforeOccurredAt, beforeId: raw.beforeId } : null
+      return {
+        ...classified, truncated: classified.truncated === true, incomplete: classified.truncated === true,
+        next, cursor: next, sort: { keys: ['occurred_at', 'id'], direction: 'desc' },
+      }
+    },
+    async correspondence(actor, args = {}) {
+      await gate(actor, 'review')
+      const query = normalizeCorrespondenceQuery(args)
+      if (typeof store.correspondence !== 'function') fail('reply_thread_unavailable')
+      const loaded = await store.correspondence(actor.ownerId, query)
+      const nowAt = now()
+      const cards = (Array.isArray(loaded?.leads) ? loaded.leads : []).map(row => shapeContactCard(row, nowAt))
+      const rawNext = loaded?.next
+      const next = rawNext && typeof rawNext.afterOccurredAt === 'string' && UUID.test(rawNext.afterId || '')
+        ? { afterOccurredAt: rawNext.afterOccurredAt, afterId: rawNext.afterId } : null
+      const presented = presentAccountMatches(loaded?.leads || [], query.identity)
+      const opened = cards.length === 1 && loaded?.choiceRequired !== true && !presented.ambiguous
+      const messages = opened ? (Array.isArray(loaded?.messages) ? loaded.messages : []).map(shapeStoredMessage) : []
+      const truncated = loaded?.truncated === true
+      return {
+        contact: opened ? cards[0] : null,
+        matches: cards,
+        messages,
+        truncated, incomplete: truncated, next, cursor: next,
+        choiceRequired: !opened,
+        ...(presented.ambiguous ? { question: 'Which account should be used?', accounts: presented.accounts } : { accounts: presented.accounts }),
+        sort: { keys: ['occurred_at', 'id'], direction: 'asc' },
+        history: {
+          complete: false,
+          mailbox: 'not_verified',
+          olderMessages: 'unknown',
+          storedMessages: !opened ? 'not_opened' : truncated ? 'partial_page' : 'all_stored_rows_returned',
+        },
+      }
     },
     async status(actor,args) {
       fields(args,['idempotencyKey'])
@@ -352,4 +709,44 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       return results
     },
   }
+  api.contacts = async (actor, args = {}) => {
+    await gate(actor, 'review')
+    const query = normalizeContactFind(args)
+    if (typeof store.findContacts !== 'function') fail('reply_thread_unavailable')
+    const loaded = await store.findContacts(actor.ownerId, query)
+    const nowAt = now()
+    const presented = presentAccountMatches(loaded?.leads || [], query.identity)
+    const cards = presented.rows.map(item => shapeContactCard({ ...item.row, account_identity: item.identity, owner_id: item.ownerId }, nowAt))
+    if (presented.ambiguous) return { alreadyExists: true, matches: cards, choiceRequired: true, question: 'Which account should be used?', accounts: presented.accounts, emailAction: 'none', truncated: loaded?.truncated === true }
+    return { alreadyExists: cards.length > 0, matches: cards, choiceRequired: cards.length !== 1, accounts: presented.accounts, emailAction: 'none', truncated: loaded?.truncated === true }
+  }
+  api.contactsForDispatch = async (actor, args = {}) => {
+    await gate(actor, 'review')
+    const query = normalizeContactFind(args)
+    if (typeof store.findContacts !== 'function') fail('reply_thread_unavailable')
+    return store.findContacts(actor.ownerId, query)
+  }
+  api.approvedSingle = async (actor, item) => {
+    await gate(actor, 'send')
+    if (item.identity === 'visual' || item.fromIdentity === 'visual') return { send: false, status: 'held', reason: VISUAL_JOB_BLOCK.reason, policy: VISUAL_JOB_BLOCK.policy, retry: false, sent: false }
+    const previous = await store.replay(actor.ownerId, item.idempotencyKey)
+    const approvalFingerprint = messageApprovalFingerprint({
+      to: item.to, subject: item.subject, body: item.body, identity: item.identity || 'projects',
+      inReplyTo: item.inReplyTo || '', files: (item.attachmentPayload || []).map(file => ({ filename: file.filename, contentType: file.contentType, size: file.size, sha256: file.sha256 || null })),
+    })
+    if (previous?.snapshot?.approvalFingerprint && previous.snapshot.approvalFingerprint !== approvalFingerprint) {
+      return { send: false, status: 'approval_changed', reason: 'recipient_or_attachment_changed', retry: false, sent: false }
+    }
+    const decision = dispatchReplay(previous)
+    if (!decision.send) return { ...(previous || {}), ...decision, sent: false }
+    const preview = await api.preview(actor, {
+      leadId: item.leadId, to: item.to, fromIdentity: item.identity === 'visual' ? 'visual' : 'projects', kind: item.kind === 'initial' ? undefined : 'followup',
+      ...(item.kind === 'initial' ? {} : { messageIntentId: item.messageIntentId, subject: item.subject, body: item.body }),
+      ...(item.inReplyTo ? { inReplyTo: item.inReplyTo } : {}),
+      ...(item.attachmentPayload?.length ? { attachments: item.attachmentPayload } : {}),
+      approvalFingerprint,
+    })
+    return api.confirm(actor, { reviewId: preview.id, digest: preview.digest, idempotencyKey: item.idempotencyKey, confirmed: true })
+  }
+  return api
 }

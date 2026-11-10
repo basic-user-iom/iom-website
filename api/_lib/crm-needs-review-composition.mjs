@@ -13,11 +13,13 @@ export function createNeedsReviewComposition({acquire,binding,enabled=()=>false,
   workerScheduleAllowed=()=>false,now=Date.now,singleMail,singleSendEnabled=needsReviewSingleSendEnabled,scheduleEnabled=needsReviewScheduleEnabled}={}){
   if(binding?.grantFamily!==undefined) fail('needs_review_grant_family_must_come_from_connection')
   const openStore=bound=>createNeedsReviewPostgresStore({acquire,binding:bound,enabled})
-  const store={
-    listDueBatches(){fail('capability_worker_paused')},
-    claimBatch(){fail('capability_worker_paused')},
+  const workerStore={
+    listDueBatches:(bound,options)=>openStore(bound).listDueBatches(bound,options),
+    claimBatch:(bound,batchId,at)=>openStore(bound).claimBatch(bound,batchId,at),
+    beginBatchDelivery:(bound,claim)=>openStore(bound).beginBatchDelivery(bound,claim),
+    finishBatch:(bound,result)=>openStore(bound).finishBatch(bound,result),
   }
-  const dispatcher=createCrmBatchDispatcher({enabled,startsEnabled,workerEnabled,workerScheduleAllowed,store,
+  const dispatcher=createCrmBatchDispatcher({enabled,startsEnabled,workerEnabled,workerScheduleAllowed,store:workerStore,
     authorizeWorker,resolveBinding,targets:[{ownerId:binding.ownerId,fromIdentity:binding.fromIdentity}],now,
     providerDependenciesFor:()=>providerDependencies,
     validateHandoff:(claim,at)=>at<Date.parse(claim.authorizationExpiresAt)&&

@@ -33,8 +33,9 @@ export function recipientWindow(localDate,timeZone,now){
 }
 function snapshot(row,ownerId){
   if(!row||!uuid.test(row.id||'')||row.owner_id!==ownerId)fail('owner_or_lead_mismatch')
-  const tags=Array.isArray(row.tags)?row.tags.map(x=>String(x).trim().toLowerCase()):[]
-  if(!tags.includes('needs-review'))fail('not_needs_review')
+  // An explicit list may be Under revision or Not contacted. The untouched
+  // default selection still reads only the needs-review tag. A prior send is a
+  // follow-up or reply, never a second initial.
   if(row.status!=='new'||row.initial_email_sent_at||row.last_client_reply_at)fail('not_unsent_initial')
   // Adapter must obtain both booleans from authoritative history, never default
   // absent history to false. Existing unknown/sending reservations count as used.

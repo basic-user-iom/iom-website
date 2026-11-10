@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto'
 import {emailDigest, fail} from './crm-email-workflow.mjs'
+import {contactCreatePlan, CRM_ACCOUNTS} from './crm-contact-approval.mjs'
 import {BATCH_POLICY, prepareNeedsReviewBatch, recipientWindow} from './crm-email-batch-policy.mjs'
 import {createEmailStore} from './crm-needs-review-receipts.mjs'
 
@@ -11,6 +12,8 @@ const id=x=>{if(!uuid.test(x||''))fail('invalid_id');return x}
 const iso=x=>x instanceof Date?x.toISOString():x
 const stamp=x=>{const t=Date.parse(iso(x));if(!Number.isFinite(t))fail('invalid_database_time');return t}
 const marker='needs-review-batch-v1'
+// Columns written by the existing contact insert. No table-wide INSERT is requested.
+export const CONTACT_INSERT_COLUMNS = Object.freeze(['owner_id','company_name','contact_name','email','status','temperature','tags','links','emails','initial_email_subject','initial_email_body','initial_email_drafted_at','initial_email_sent_at','scheduled_send','contact_priority','client_timezone','website','phone','offer','company_focus','notes','contact_role','value_emoji'])
 export const GROUP_CONFIRMATION_MS=30*60*1000
 // Keep the existing transport snapshot shape exactly. Extra metadata here would
 // change the shared exact-content dedup index and weaken cross-mode duplicates.
@@ -308,18 +311,43 @@ export function createNeedsReviewPostgresStore({acquire,binding,enabled=()=>fals
         const prior=(await c.query(`/* nr:contact-replay */ select result from crm_capability_private.commands
           where owner_id=$1 and idempotency_key=$2 and from_identity=$3 and grant_family=$4 and access_revision=$5 and kind='contact'`,
           [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision])).rows[0]
-        if(prior?.result?.leadId)return {leadId:prior.result.leadId,replayed:true,emailAction:'none'}
-        const created=(await c.query(`/* nr:contact */ insert into public.crm_leads(
-          owner_id,company_name,contact_name,email,status,temperature,tags,links,emails,
-          initial_email_subject,initial_email_body,initial_email_drafted_at,initial_email_sent_at,scheduled_send,
-          contact_priority,client_timezone,website,phone,offer,company_focus,notes,contact_role,value_emoji)
+        if(prior?.result)return {...prior.result,replayed:true,emailAction:'none'}
+        const accountOwner=contact.identity==='visual'?CRM_ACCOUNTS.visual.ownerId:pin.ownerId
+        const duplicateSql=`/* nr:contact-duplicate */ select id,company_name,contact_name,email,status,owner_id
+          from public.crm_leads where owner_id=$1 and lower(email)=lower($2)
+          order by updated_at,id limit 5`
+        const projectsRows=pin.ownerId===CRM_ACCOUNTS.projects.ownerId
+          ?(await c.query(duplicateSql,[CRM_ACCOUNTS.projects.ownerId,contact.email])).rows
+          :(await c.query(duplicateSql,[accountOwner,contact.email])).rows
+        let visualRows=[]
+        if(pin.ownerId===CRM_ACCOUNTS.projects.ownerId){
+          await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+          try{visualRows=(await c.query(duplicateSql,[CRM_ACCOUNTS.visual.ownerId,contact.email])).rows}
+          finally{await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")}
+        }
+        const plan=contactCreatePlan([...projectsRows,...visualRows],contact)
+        if(plan.alreadyExists){
+          const sole=plan.choiceRequired?null:plan.matches[0]
+          const duplicate={leadId:plan.leadId,alreadyExists:true,inserted:false,emailAction:'none',underRevision:false,
+            status:sole?.status||null,choiceRequired:plan.choiceRequired===true,
+            question:plan.choiceRequired?'Which account should be used?':null,matches:plan.matches,
+            identity:sole?.identity||null,ownerId:sole?.ownerId||null}
+          await c.query(`/* nr:contact-command */ insert into crm_capability_private.commands
+            (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
+            values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,
+            [pin.ownerId,idempotencyKey,pin.fromIdentity,pin.grantFamily,pin.accessRevision,contact.digest,JSON.stringify(duplicate)])
+          return {...duplicate,replayed:false}
+        }
+        if(contact.identity==='visual') await c.query("select set_config('iom.email_staff_pair','v1',true), set_config('iom.email_staff_sender','visual',true)")
+        const created=(await c.query(`/* nr:contact */ insert into public.crm_leads(${CONTACT_INSERT_COLUMNS.join(',')})
           values($1,$2,$3,$4,'new','warm',$5::jsonb,'[]'::jsonb,'[]'::jsonb,$6,$7,
             case when length(btrim($6))>0 and length(btrim($7))>0 then clock_timestamp() else null end,
             null,null,false,$8,'','','','','','','')
-          returning id`,[pin.ownerId,contact.companyName,contact.contactName,contact.email,JSON.stringify(contact.tags||[]),
-            contact.subject||'',contact.body||'',contact.timezone])).rows[0]
+          returning id`,[accountOwner,contact.companyName,contact.contactName,contact.email,JSON.stringify(plan.tags),
+            contact.subject||'',contact.body||'',contact.timezone||''])).rows[0]
+        if(contact.identity==='visual') await c.query("select set_config('iom.email_staff_pair','',true), set_config('iom.email_staff_sender','',true)")
         if(!created?.id)fail('invalid_contact_source')
-        const result={leadId:created.id,emailAction:'none'}
+        const result={leadId:created.id,alreadyExists:false,inserted:true,emailAction:'none',underRevision:true,status:'new',identity:contact.identity==='visual'?'visual':'projects',ownerId:accountOwner}
         await c.query(`/* nr:contact-command */ insert into crm_capability_private.commands
           (owner_id,idempotency_key,from_identity,grant_family,access_revision,kind,request_digest,result)
           values($1,$2,$3,$4,$5,'contact',$6,$7::jsonb)`,

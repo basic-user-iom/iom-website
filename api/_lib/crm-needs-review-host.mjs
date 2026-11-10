@@ -71,7 +71,7 @@ export function createNeedsReviewRuntimeHost({enabled=()=>false,startsEnabled=()
       const binding={ownerId:pin.ownerId,fromIdentity:'projects',accessRevision:pin.accessRevision,authorized:true}
       const worker=await auth()
       app=compositionFactory({acquire:c.acquire,binding,enabled:installed,startsEnabled:starts,workerEnabled:workerStarts,
-        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>({...binding,authorized:false}),providerDependencies:c.providerDependencies,
+        workerScheduleAllowed,authorizeWorker:worker.authorize,resolveBinding:async()=>({...binding,authorized:starts()===true&&workerStarts()===true}),providerDependencies:c.providerDependencies||c.singleMail,
         singleMail:c.singleMail,singleSendEnabled:c.singleSendEnabled})
       trigger=createCrmBatchTriggerHandler({dispatcher:app.dispatcher,enabled:installed,verifyWorker:worker.verify,
         workerTransport:'vercel-cron',workerEnabled:workerStarts})
