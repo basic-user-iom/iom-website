@@ -166,6 +166,12 @@ export function accountByIdentity(identity) {
 export function accountByOwner(ownerId) {
   return Object.values(CRM_ACCOUNTS).find(account => account.ownerId === ownerId) || null
 }
+// A job owner is only the account named by the requested identity.
+// Projects never resolves to the visual owner, and an unknown identity resolves to none.
+export function jobOwnerForIdentity(identity) {
+  const account = accountByIdentity(identity)
+  return account ? account.ownerId : null
+}
 // The published needs-review read uses l.owner_id = the projects principal and leaves
 // iom.email_staff_pair empty. A visual-owned row then matches nothing, and the store
 // reports lead_not_found. This names that miss. It does not grant a new owner.

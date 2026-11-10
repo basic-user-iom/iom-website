@@ -28,7 +28,7 @@
     },
     {
       "path": "api/_lib/crm-contact-approval.mjs",
-      "sha256": "836d31c39cbbd25a7cf5f753bfb423322d2785328a4d3c85b087d306dc48c56a"
+      "sha256": "58e6887390ff91d7ee9842d4875c935ebd1d3da0902f8cca1d9271a98ee25af8"
     },
     {
       "path": "api/_lib/crm-email-batch-policy.mjs",
@@ -68,11 +68,11 @@
     },
     {
       "path": "api/_lib/crm-email-workflow.mjs",
-      "sha256": "3814cdf7530c9d50f598ea4b2af35fb37f9b33ef22692cdfeb07124733f29482"
+      "sha256": "950ed2104c42181787684a40bfe223f1b10236d5119d2ace2925252f1500d412"
     },
     {
       "path": "api/_lib/crm-needs-review-receipts.mjs",
-      "sha256": "0fe86c1dd6ceae008fa24b633fe46f5106335fa2048772a088e183356db7d968"
+      "sha256": "e8c760a4f7bb1f3133aaf511ca32bab0c1216e1509b4a9e99e00244255cc38a9"
     },
     {
       "path": "api/_lib/crm-needs-review-tools.mjs",
@@ -179,7 +179,7 @@
       "sha256": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531"
     }
   ],
-  "runtimeDigest": "19674de261b59635a782b2adba4c6b807ea8a29fa682fb266491e0cd622e785f",
+  "runtimeDigest": "b8cabdd592709c337e139e83f454a41f9da1f6bb870af493da9fd518315af835",
   "configDigest": "29043a4c6220542e30c16936395c873bd258bc765a881d2a41e562c5d1e34531",
   "productionApproval": null
 }

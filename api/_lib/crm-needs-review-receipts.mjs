@@ -2,7 +2,7 @@ import { fail, emailDigest, emailContentDigest } from './crm-email-workflow.mjs'
 import { attachmentMeta, parseOutreachAttachments } from './email-attachments.js'
 import { storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
-import { assertApprovedContact, CRM_ACCOUNTS } from './crm-contact-approval.mjs'
+import { assertApprovedContact, CRM_ACCOUNTS, jobOwnerForIdentity } from './crm-contact-approval.mjs'
 
 export function sendFromCrmAllowed(row, snapshot) {
   const tags = Array.isArray(row?.tags) ? row.tags.map(tag => String(tag).trim().toLowerCase()) : []
@@ -43,7 +43,13 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
   const guardStarts=(review,actor,replace)=>{if(capabilityMutationRequiresStarts(review,actor,replace))assertCapabilityStarts()}
   const guardSchedule=review=>{if(review?.schedule!=null && capabilityScheduleEnabled()!==true)fail('needs_review_schedule_paused')}
   async function transaction(owner,work) {
-    if(capabilityBinding && (requireContactApproval!==true || capabilityBinding.ownerId!==owner ||
+    const projectsOwner = CRM_ACCOUNTS.projects.ownerId
+    const registeredJobOwner = owner === projectsOwner || owner === CRM_ACCOUNTS.visual.ownerId
+    const bindingCanUseOwner = registeredJobOwner && capabilityBinding && (
+      capabilityBinding.ownerId === owner ||
+      (capabilityBinding.ownerId === projectsOwner && owner === CRM_ACCOUNTS.visual.ownerId)
+    )
+    if(capabilityBinding && (requireContactApproval!==true || !bindingCanUseOwner ||
       !['projects','visual'].includes(capabilityBinding.fromIdentity) || !/^[a-f0-9-]{36}$/i.test(capabilityBinding.grantFamily||'') ||
       typeof capabilityBinding.accessRevision!=='string' || !capabilityBinding.accessRevision)) fail('email_capability_binding_invalid')
     const c = await acquire()
@@ -100,6 +106,8 @@ export function createEmailStore(acquire,{staffPair=false,staffSender='',require
     return row && {...mapJob(row),commandReviewId:row.command_review_id}
   }
   async function mutate(owner,review,key,now,actor,replace) {
+    const expectedOwner = jobOwnerForIdentity(review?.snapshot?.fromIdentity)
+    if (!expectedOwner || owner !== expectedOwner || (review?.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== expectedOwner)) fail('job_owner_mismatch')
     guardSchedule(review)
     guardStarts(review,actor,replace)
     const single=!capabilityMutationRequiresStarts(review,actor,replace)

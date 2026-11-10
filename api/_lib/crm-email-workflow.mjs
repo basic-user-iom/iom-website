@@ -3,7 +3,7 @@ import { renderOutreachEmailHtml, renderOutreachPlainText } from './outreach-ema
 import { normalizeMessageId, buildReferencesHeader } from './crm-lead-messages.js'
 import { parseOutreachAttachments } from './email-attachments.js'
 import { describeNamedAttachments, messageApprovalFingerprint, storedAttachmentRecord } from './crm-needs-review-attachments.mjs'
-import { accountByIdentity, accountByOwner, presentAccountMatches, VISUAL_JOB_BLOCK } from './crm-contact-approval.mjs'
+import { accountByIdentity, accountByOwner, jobOwnerForIdentity, presentAccountMatches } from './crm-contact-approval.mjs'
 import { recipientWindow } from './crm-email-batch-policy.mjs'
 
 export class EmailWorkflowError extends Error {
@@ -383,11 +383,6 @@ export function planApprovedSend(args, contacts = [], now = Date.now()) {
       recipients.push({ ...base, action: 'hold', status: 'held', reason: files.reason, idempotencyKey })
       continue
     }
-    if (account.identity === 'visual') {
-      const idempotencyKey = `${args.idempotencyKey}:visual:${kind}:${leadId}`
-      recipients.push({ ...base, action: 'hold', status: 'held', reason: VISUAL_JOB_BLOCK.reason, policy: VISUAL_JOB_BLOCK.policy, idempotencyKey })
-      continue
-    }
     if (item.scheduledLocal !== undefined) {
       recipients.push({ ...base, action: 'hold', status: 'held', reason: knownZone ? 'schedule_not_activated' : 'unknown_zone', window: null, scheduledLocal: item.scheduledLocal })
       continue
@@ -507,8 +502,8 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       ...(lead.scheduled_send ? {legacySchedule:lead.scheduled_send} : {}),
     }
   }
-  async function deliver(actor, id) {
-    let job = await store.get(actor.ownerId, id)
+  async function deliver(actor, id, jobOwner = actor.ownerId) {
+    let job = await store.get(jobOwner, id)
     if (!job) fail('job_not_found')
     if (job.status !== 'queued') return job
     // Workers re-check the original grant/staff authorization, not a cron super-grant.
@@ -520,22 +515,22 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       if (emailContentDigest(current) !== emailContentDigest(job.snapshot)) fail('review_stale')
     } catch (error) {
       if (!(error instanceof EmailWorkflowError)) throw error
-      return store.block(actor.ownerId, id, error.code, job.version)
+      return store.block(jobOwner, id, error.code, job.version)
     }
-    job = await store.claim(actor.ownerId, id, now(), job.version)
-    if (!job) return store.get(actor.ownerId, id)
+    job = await store.claim(jobOwner, id, now(), job.version)
+    if (!job) return store.get(jobOwner, id)
     // The sending claim commits BEFORE SMTP. Never reclaim, even after a crash.
     let result
     try {
-      result = await send(job.snapshot, { ownerId: actor.ownerId, jobId: job.id })
+      result = await send(job.snapshot, { ownerId: jobOwner, jobId: job.id })
       if (result?.ok !== true) throw new Error('provider_acceptance_unconfirmed')
     }
     catch {
-      try { return await store.finish(actor.ownerId, id, 'unknown', { error: 'delivery_outcome_unknown_do_not_retry' }) }
+      try { return await store.finish(jobOwner, id, 'unknown', { error: 'delivery_outcome_unknown_do_not_retry' }) }
       catch { return {...job,status:'unknown',error:'delivery_outcome_unknown_do_not_retry'} }
     }
     try {
-      return await store.finish(actor.ownerId, id, 'sent', {
+      return await store.finish(jobOwner, id, 'sent', {
         messageId: result?.messageId || null,
         simulated: result?.simulated === true,
       })
@@ -569,13 +564,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       await gate(actor, 'review')
       const review = await store.getReview(actor.ownerId, args.reviewId)
       if (!review || review.digest !== args.digest) fail('review_not_found_or_mismatch')
-      if (review.snapshot?.fromIdentity === 'visual' || review.snapshot?.leadOwnerId === accountByIdentity('visual').ownerId) fail(VISUAL_JOB_BLOCK.reason)
+      const jobOwner = jobOwnerForIdentity(review.snapshot?.fromIdentity)
+      if (!jobOwner || (review.snapshot?.leadOwnerId && review.snapshot.leadOwnerId !== jobOwner)) fail('job_owner_mismatch')
       if ((staffReviewMode && actor.kind==='staff' && (!review.principal || review.principal.kind!=='staff' ||
         review.principal.ownerId!==actor.ownerId || review.principal.accessRevision!==actor.accessRevision)) ||
         (actor.kind!=='staff' && review.principal?.kind==='staff')) fail('review_principal_mismatch')
       if (review.principal && hash({snapshot:review.snapshot,schedule:review.schedule,principal:review.principal})!==review.digest) fail('review_not_found_or_mismatch')
       await gate(actor, review.schedule ? 'schedule' : 'send')
-      const existing = await store.replay(actor.ownerId, args.idempotencyKey)
+      const existing = await store.replay(jobOwner, args.idempotencyKey)
       if (existing) {
         if ((existing.commandReviewId || existing.reviewId) !== args.reviewId) fail('idempotency_conflict')
         return existing
@@ -586,14 +582,14 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       try {
         if (emailContentDigest(await snapshot(actor, review.snapshot)) !== emailContentDigest(review.snapshot)) fail('review_stale')
       } catch (error) {
-        const raced=await store.replay(actor.ownerId,args.idempotencyKey)
+        const raced=await store.replay(jobOwner,args.idempotencyKey)
         if(raced && (raced.commandReviewId || raced.reviewId)===review.id) return raced
         throw error
       }
       const job = review.replaceJobId
-        ? await store.reschedule(actor.ownerId,review,args.idempotencyKey,now(),actor)
-        : await store.enqueue(actor.ownerId, review, args.idempotencyKey, now(),actor)
-      return review.schedule ? job : deliver(actor, job.id)
+        ? await store.reschedule(jobOwner,review,args.idempotencyKey,now(),actor)
+        : await store.enqueue(jobOwner, review, args.idempotencyKey, now(),actor)
+      return review.schedule ? job : deliver(actor, job.id, jobOwner)
     },
     async list(actor, args = {}) {
       fields(args, [], [])
@@ -728,8 +724,9 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
   }
   api.approvedSingle = async (actor, item) => {
     await gate(actor, 'send')
-    if (item.identity === 'visual' || item.fromIdentity === 'visual') return { send: false, status: 'held', reason: VISUAL_JOB_BLOCK.reason, policy: VISUAL_JOB_BLOCK.policy, retry: false, sent: false }
-    const previous = await store.replay(actor.ownerId, item.idempotencyKey)
+    const jobOwner = jobOwnerForIdentity(item.identity || item.fromIdentity)
+    if (!jobOwner) fail('identity_required')
+    const previous = await store.replay(jobOwner, item.idempotencyKey)
     const approvalFingerprint = messageApprovalFingerprint({
       to: item.to, subject: item.subject, body: item.body, identity: item.identity || 'projects',
       inReplyTo: item.inReplyTo || '', files: (item.attachmentPayload || []).map(file => ({ filename: file.filename, contentType: file.contentType, size: file.size, sha256: file.sha256 || null })),
