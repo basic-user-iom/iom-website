@@ -6,7 +6,7 @@ import {resolve} from 'node:path'
 import {assertPrivateBindingBytes} from './crm-needs-review-source-binding.mjs'
 
 // Updated only with the reviewed local source closure; no caller/ENV override.
-const PINS=Object.freeze({"./crm-needs-review-native.cs":"a9043e084068f76a7541ffdbb388470e81adc98a3b9dc0bff9b101d93506e00e","./crm-needs-review-broker.cs":"f6401c67481c2447bb73402372302aaee34a0d0ade89011236dbc9800bacca18","./crm-needs-review-broker.ps1":"af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47","./crm-needs-review-journal-worker.mjs":"4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"}) // populated before running the isolated tests
+const PINS=Object.freeze({"./crm-needs-review-native.cs":"a9043e084068f76a7541ffdbb388470e81adc98a3b9dc0bff9b101d93506e00e","./crm-needs-review-broker.cs":"936597da7d0d611a22beab92dc2b7398691a1c212b381f282e6d2e1ebf7c97a6","./crm-needs-review-broker.ps1":"af19f3ecb93362793debcc219721b4d999d313bac454d365656508bc50734a47","./crm-needs-review-journal-worker.mjs":"4d6bd6edb7fb7b0f9f3c28d090e20f73f244ae71f56c3bb7dc763fb3958faf0d"}) // populated before running the isolated tests
 const fail=code=>{throw Object.assign(Error(code),{code})}
 const owned=new WeakMap()
 function start(directory,inspect){

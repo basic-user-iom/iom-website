@@ -134,7 +134,7 @@ namespace IomJournal {
       while(true) {
         int ch=reader.Read(); if(ch<0) { if(text.Length==0) return null; throw new IOException("broker_incomplete_request"); }
         if(ch==10) return text.ToString();
-        if(text.Length>=842451) throw new IOException("broker_request_too_large");
+        if(text.Length>=893116) throw new IOException("broker_request_too_large");
         text.Append((char)ch);
       }
     }
